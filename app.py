@@ -71,12 +71,11 @@ def load_catalog():
 
 CATALOG = load_catalog()
 
-# 3. Filtrado semántico previo ultrarrápido (0.005 seg)
+# 3. Filtrado semántico previo ultrarrápido
 def extract_relevant_candidates(query, catalog, top_n=25):
     q_clean = clean_text(query)
     q_words = [w for w in re.findall(r'\w+', q_clean) if len(w) > 2]
     
-    # Expandir con sinónimos
     expanded_words = list(q_words)
     for k, v in SYNONYMS.items():
         if k in q_clean:
@@ -89,7 +88,6 @@ def extract_relevant_candidates(query, catalog, top_n=25):
         desc_words = item["words"]
         score = 0.0
 
-        # Coincidencias de términos expandidos
         for w in expanded_words:
             if w in desc_words:
                 score += 15.0
@@ -108,7 +106,6 @@ def extract_relevant_candidates(query, catalog, top_n=25):
     scored.sort(key=lambda x: x[0], reverse=True)
     selected = [x[1] for x in scored[:top_n]]
 
-    # Si la consulta es muy abstracta, devolver candidatos generales
     if len(selected) < 5:
         selected.extend([f"{c['code']}:{c['desc']}" for c in catalog[:top_n]])
 
@@ -137,7 +134,6 @@ if user_input:
     with st.chat_message("user"):
         st.markdown(user_input)
 
-    # Obtenemos solo los 25 candidatos más probables
     candidates = extract_relevant_candidates(user_input, CATALOG, top_n=25)
 
     system_prompt = f"""
@@ -171,7 +167,7 @@ PREGUNTA DE DESAMBIGUACIÓN (SOLO SI DUDAS):
     with st.chat_message("assistant"):
         try:
             response = client.models.generate_content(
-                model="gemini-2.5-flash",
+                model="gemini-3.6-flash",
                 contents=user_input,
                 config=types.GenerateContentConfig(
                     system_instruction=system_prompt,
