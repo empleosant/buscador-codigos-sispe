@@ -1,6 +1,7 @@
 import os
 import re
 import unicodedata
+from difflib import SequenceMatcher
 import streamlit as st
 from google import genai
 from google.genai import types
@@ -14,49 +15,60 @@ st.set_page_config(
 st.title("💼 Codificador Ocupaciones SilcoiWeb")
 st.caption("Herramienta de apoyo técnico para orientadores y personal de oficina")
 
-# Función para normalizar texto (quitar tildes y mayúsculas)
-def normalize(text):
+# Normalizar texto (sin tildes, minúsculas)
+def clean_str(text):
     return ''.join(
         c for c in unicodedata.normalize('NFD', text)
         if unicodedata.category(c) != 'Mn'
-    ).lower()
+    ).lower().strip()
 
-# Cargar el catálogo en memoria una sola vez
-@st.cache_data
-def load_catalog_lines():
+# Cargar el catálogo en memoria una sola vez al arrancar
+@st.cache_resource
+def get_catalog():
+    data = []
     if os.path.exists("ocupaciones_sispe_ultraligero.txt"):
         with open("ocupaciones_sispe_ultraligero.txt", "r", encoding="utf-8") as f:
-            return [line.strip() for line in f if line.strip()]
-    return []
+            for line in f:
+                line = line.strip()
+                if ":" in line:
+                    code, desc = line.split(":", 1)
+                    data.append((code, desc, clean_str(desc)))
+    return data
 
-ALL_LINES = load_catalog_lines()
+CATALOG = get_catalog()
 
-# Filtro rápido en memoria: extrae solo las ~40 ocupaciones más probables
-def filter_relevant_lines(query, lines, max_results=50):
-    tokens = [t for t in re.findall(r'\w+', normalize(query)) if len(t) > 2]
-    if not tokens:
-        return "\n".join(lines[:max_results])
+# Búsqueda instantánea en milisegundos
+def find_top_matches(query, catalog, top_n=15):
+    q_clean = clean_str(query)
+    q_words = [w for w in re.findall(r'\w+', q_clean) if len(w) > 2]
     
     scored = []
-    for line in lines:
-        norm_line = normalize(line)
-        score = sum(2 if token in norm_line else 0 for token in tokens)
-        if score > 0:
-            scored.append((score, line))
+    for code, desc, clean_desc in catalog:
+        score = 0
+        # Coincidencia por palabras clave
+        for w in q_words:
+            if w in clean_desc:
+                score += 10
+        # Similitud difusa
+        ratio = SequenceMatcher(None, q_clean, clean_desc).ratio()
+        score += ratio * 5
+        
+        if score > 0.5:
+            scored.append((score, f"{code}:{desc}"))
             
     scored.sort(key=lambda x: x[0], reverse=True)
-    selected = [item[1] for item in scored[:max_results]]
+    results = [item[1] for item in scored[:top_n]]
     
-    # Si la búsqueda es muy abierta, completar con una muestra general
-    if len(selected) < 15:
-        selected.extend(lines[:30])
+    # Fallback por si la búsqueda fue muy abstracta
+    if not results:
+        results = [f"{c}:{d}" for c, d, _ in catalog[:top_n]]
         
-    return "\n".join(list(dict.fromkeys(selected)))
+    return "\n".join(results)
 
-# Obtener clave API
+# Cliente API
 api_key = st.secrets.get("GEMINI_API_KEY") or os.environ.get("GEMINI_API_KEY")
 if not api_key:
-    st.error("No se ha detectado GEMINI_API_KEY en los Secrets de Streamlit.")
+    st.error("Falta configurar GEMINI_API_KEY en Secrets.")
     st.stop()
 
 client = genai.Client(api_key=api_key)
@@ -76,54 +88,48 @@ if user_input:
     with st.chat_message("user"):
         st.markdown(user_input)
 
-    # Filtrar solo las ocupaciones relacionadas con la consulta
-    relevant_catalog = filter_relevant_lines(user_input, ALL_LINES)
+    # 1. Filtrado local en 0.01 segundos
+    top_candidates = find_top_matches(user_input, CATALOG, top_n=12)
 
+    # 2. Prompt ultra-compacto
     system_prompt = f"""
-Eres un asistente técnico para SilcoiWeb. Recibes un puesto laboral o funciones y seleccionas entre 3 y 5 ocupaciones oficiales de 8 cifras basándote estrictamente en el siguiente listado preseleccionado:
-
-LISTADO DE OCUPACIONES DISPONIBLES:
-{relevant_catalog}
+Eres un asistente de codificación ocupacional para SilcoiWeb.
+Selecciona de 3 a 5 ocupaciones oficiales de 8 cifras basándote ÚNICAMENTE en estos candidatos:
+{top_candidates}
 
 REGLAS:
-1. Solo códigos de 8 cifras y denominaciones exactas en MAYÚSCULAS extraídas del listado anterior.
-2. Cero citas, sin saludos ni introducciones. Empieza directamente con el listado numerado.
-3. Cantidad: entre 3 y 5 ocupaciones ordenadas de mayor a menor afinidad.
-4. Nivel Profesional:
-   - 90 - Aprendices: Sin experiencia.
-   - 00 - Técnicos / Sin categoría: Con experiencia (estándar).
-   - 10 - Directores y gerentes / 20 - Mandos intermedios / 30 - Jefes de equipo / 70 - Auxiliares / 80 - Peones.
+- Salida directa sin saludos ni texto previo.
+- 90 - Aprendices (sin exp.) / 00 - Técnicos / Sin categoría (estándar con exp.) / 10 - Directores / 20 - Mandos intermedios / 30 - Jefes equipo / 70 - Auxiliares / 80 - Peones.
 
-FORMATO EXACTO:
-1. **XXXXXXXX** - DENOMINACIÓN OFICIAL EN MAYÚSCULAS
+FORMATO:
+1. **XXXXXXXX** - DENOMINACIÓN EN MAYÚSCULAS
    * Nivel: 00 - Técnicos / Sin categoría
 
-2. **XXXXXXXX** - DENOMINACIÓN OFICIAL EN MAYÚSCULAS
+2. **XXXXXXXX** - DENOMINACIÓN EN MAYÚSCULAS
    * Nivel: 00 - Técnicos / Sin categoría
 
-PREGUNTA FINAL (SOLO SI DUDAS ENTRE OCUPACIONES):
-- Si dudas por falta de concreción, añade al final:
+(Si dudas entre 2 candidatos por falta de datos en la consulta, añade al final:
 **Pregunta sugerida para la persona:**
-* ¿Realizaba principalmente tareas de [XXXXXXXX - DENOMINACIÓN A] o de [XXXXXXXX - DENOMINACIÓN B]?
+* ¿Realizaba principalmente tareas de [XXXXXXXX - NOMBRE A] o de [XXXXXXXX - NOMBRE B]?)
 """
 
     with st.chat_message("assistant"):
         try:
-            # Respuesta en tiempo real (Streaming)
             response_stream = client.models.generate_content_stream(
                 model="gemini-3.6-flash",
                 contents=user_input,
                 config=types.GenerateContentConfig(
                     system_instruction=system_prompt,
-                    temperature=0.1
+                    temperature=0.0
                 )
             )
             
-            def stream_text():
+            def stream():
                 for chunk in response_stream:
-                    yield chunk.text
+                    if chunk.text:
+                        yield chunk.text
 
-            full_response = st.write_stream(stream_text)
+            full_response = st.write_stream(stream)
             st.session_state.messages.append({"role": "assistant", "content": full_response})
         except Exception as e:
             st.error(f"Error al conectar con la API: {e}")
