@@ -8,7 +8,7 @@ antes de grabarlos en SilcoiWeb.
 ```
 app.py
 requirements.txt
-ocupaciones_sispe_ultraligero.txt   <- el catálogo, mismo nombre exacto
+ocupaciones_sispe_ultraligero.txt   <- el catálogo, con ese nombre exacto
 ```
 
 ## Puesta en marcha en Streamlit Cloud
@@ -22,26 +22,28 @@ GEMINI_API_KEY = "tu_clave"
 
 3. Reinicia la app (**Reboot**).
 
-## Qué cambió respecto a la versión anterior
+## Cómo se usa
 
-| Cambio | Efecto |
-|---|---|
-| Índice invertido en lugar de recorrer el catálogo entero | prefiltro de ~800 ms a ~2 ms |
-| `thinking_level="minimal"` | Gemini 3.x razona por defecto; es la mayor fuente de espera |
-| Respuesta en streaming | el texto aparece según se genera |
-| 15 candidatos en lugar de 25 | menos tokens de entrada, menos latencia |
-| Cliente y catálogo cacheados | no se reconstruyen en cada interacción |
-| Modo sin IA | resultados del catálogo al instante, sin consumo de API |
-| Validación de códigos | avisa si el modelo devuelve un código inexistente |
-| Consulta directa por código de 8 cifras | respuesta local, sin llamada a la API |
+- Escribe el puesto o las funciones y pulsa Enter.
+- Escribe un código de 8 cifras para consultar su denominación oficial.
+- El bloque **Copiar códigos** tiene un botón de copia para pegar en SilcoiWeb.
+- En **Ajustes** puedes desactivar la IA (resultados instantáneos del catálogo),
+  descargar las consultas de la sesión en CSV y empezar de nuevo.
 
 ## Mantenimiento
 
-El diccionario `SINONIMOS` en `app.py` traduce lenguaje coloquial y nombres de
-plataformas al vocabulario del catálogo. Se amplía añadiendo una línea:
+El diccionario `SINONIMOS` traduce lenguaje coloquial y nombres de plataformas
+al vocabulario del catálogo. Se amplía añadiendo una línea:
 
 ```python
 "palabra_que_dice_la_persona": "términos que aparecen en el catálogo",
 ```
 
-No hace falta tocar nada más: el índice se reconstruye al arrancar.
+Las claves y los valores van **sin acentos y en minúscula**: el buscador
+normaliza el texto antes de comparar. No hace falta tocar nada más.
+
+## Garantía sobre los datos
+
+Ninguna denominación procede del modelo: se toma siempre del catálogo a partir
+del código. Si el modelo devolviera un código inexistente, se descarta antes de
+mostrarlo.
