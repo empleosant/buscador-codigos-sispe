@@ -1,4 +1,6 @@
 import os
+import re
+import unicodedata
 import streamlit as st
 from google import genai
 from google.genai import types
@@ -12,55 +14,46 @@ st.set_page_config(
 st.title("💼 Codificador Ocupaciones SilcoiWeb")
 st.caption("Herramienta de apoyo técnico para orientadores y personal de oficina")
 
-# Cargar el catálogo de ocupaciones
+# Función para normalizar texto (quitar tildes y mayúsculas)
+def normalize(text):
+    return ''.join(
+        c for c in unicodedata.normalize('NFD', text)
+        if unicodedata.category(c) != 'Mn'
+    ).lower()
+
+# Cargar el catálogo en memoria una sola vez
 @st.cache_data
-def load_catalog():
+def load_catalog_lines():
     if os.path.exists("ocupaciones_sispe_ultraligero.txt"):
         with open("ocupaciones_sispe_ultraligero.txt", "r", encoding="utf-8") as f:
-            return f.read()
-    return ""
+            return [line.strip() for line in f if line.strip()]
+    return []
 
-catalog_data = load_catalog()
+ALL_LINES = load_catalog_lines()
 
-SYSTEM_INSTRUCTION = f"""
-Eres una herramienta de apoyo técnico para orientadores laborales y personal de oficina que codifican la demanda en SilcoiWeb. Tu cometido es analizar el puesto de trabajo, las tareas o la experiencia indicadas en el chat y devolver entre 3 y un máximo de 5 ocupaciones oficiales de 8 cifras extraídas del siguiente catálogo, asignando el Nivel Profesional oficial.
+# Filtro rápido en memoria: extrae solo las ~40 ocupaciones más probables
+def filter_relevant_lines(query, lines, max_results=50):
+    tokens = [t for t in re.findall(r'\w+', normalize(query)) if len(t) > 2]
+    if not tokens:
+        return "\n".join(lines[:max_results])
+    
+    scored = []
+    for line in lines:
+        norm_line = normalize(line)
+        score = sum(2 if token in norm_line else 0 for token in tokens)
+        if score > 0:
+            scored.append((score, line))
+            
+    scored.sort(key=lambda x: x[0], reverse=True)
+    selected = [item[1] for item in scored[:max_results]]
+    
+    # Si la búsqueda es muy abierta, completar con una muestra general
+    if len(selected) < 15:
+        selected.extend(lines[:30])
+        
+    return "\n".join(list(dict.fromkeys(selected)))
 
-CATÁLOGO OFICIAL:
-{catalog_data}
-
-REGLAS DE CODIFICACIÓN (OBLIGATORIAS):
-1. Solo códigos de 8 cifras extraídos exactamente del catálogo anterior. Prohibido inventar o alterar códigos y nombres.
-2. Cero citas: no uses llamadas del tipo [fuente] ni notas al pie.
-3. Comienza directamente con la primera ocupación, sin textos introductorios, tablas ni saludos.
-4. Cantidad: devuelve entre 3 y 5 opciones ordenadas de mayor a menor afinidad.
-5. Criterios de Nivel Profesional:
-   - 90 - Aprendices: Si no tiene experiencia previa en la ocupación.
-   - 00 - Técnicos / Sin categoría: Nivel estándar por defecto para personal con experiencia sin mandos.
-   - 10 - Directores y gerentes: Alta dirección o gerencia.
-   - 20 - Mandos intermedios: Encargados de taller, planta, tienda o departamento.
-   - 30 - Jefes de equipo: Coordinadores de grupo o cuadrilla.
-   - 40 / 50 / 60 - Oficiales: Cualificados por oficio/categoría.
-   - 70 - Ayudantes y auxiliares: Personal asistencial o de apoyo.
-   - 80 - Peones: Trabajos no cualificados.
-
-FORMATO DE SALIDA (LISTADO LIMPIO PARA COPIAR Y PEGAR):
-1. **XXXXXXXX** - DENOMINACIÓN OFICIAL EN MAYÚSCULAS
-   * Nivel: 00 - Técnicos / Sin categoría
-
-2. **XXXXXXXX** - DENOMINACIÓN OFICIAL EN MAYÚSCULAS
-   * Nivel: 00 - Técnicos / Sin categoría
-
-3. **XXXXXXXX** - DENOMINACIÓN OFICIAL EN MAYÚSCULAS
-   * Nivel: 00 - Técnicos / Sin categoría
-
-PREGUNTAS SUGERIDAS (SOLO SI EXISTE DUDA REAL):
-- Si la información aportada es clara, termina la respuesta directamente tras la última ocupación listada.
-- Única excepción: Si dudas entre varias ocupaciones por falta de concreción en las tareas, añade al final una sola pregunta mencionando explícitamente los códigos y nombres en duda:
-**Pregunta sugerida para la persona:**
-* ¿Realizaba principalmente tareas de [XXXXXXXX - DENOMINACIÓN A] o de [XXXXXXXX - DENOMINACIÓN B]?
-"""
-
-# Obtener la API key de los secrets de Streamlit o del entorno
+# Obtener clave API
 api_key = st.secrets.get("GEMINI_API_KEY") or os.environ.get("GEMINI_API_KEY")
 if not api_key:
     st.error("No se ha detectado GEMINI_API_KEY en los Secrets de Streamlit.")
@@ -83,18 +76,54 @@ if user_input:
     with st.chat_message("user"):
         st.markdown(user_input)
 
+    # Filtrar solo las ocupaciones relacionadas con la consulta
+    relevant_catalog = filter_relevant_lines(user_input, ALL_LINES)
+
+    system_prompt = f"""
+Eres un asistente técnico para SilcoiWeb. Recibes un puesto laboral o funciones y seleccionas entre 3 y 5 ocupaciones oficiales de 8 cifras basándote estrictamente en el siguiente listado preseleccionado:
+
+LISTADO DE OCUPACIONES DISPONIBLES:
+{relevant_catalog}
+
+REGLAS:
+1. Solo códigos de 8 cifras y denominaciones exactas en MAYÚSCULAS extraídas del listado anterior.
+2. Cero citas, sin saludos ni introducciones. Empieza directamente con el listado numerado.
+3. Cantidad: entre 3 y 5 ocupaciones ordenadas de mayor a menor afinidad.
+4. Nivel Profesional:
+   - 90 - Aprendices: Sin experiencia.
+   - 00 - Técnicos / Sin categoría: Con experiencia (estándar).
+   - 10 - Directores y gerentes / 20 - Mandos intermedios / 30 - Jefes de equipo / 70 - Auxiliares / 80 - Peones.
+
+FORMATO EXACTO:
+1. **XXXXXXXX** - DENOMINACIÓN OFICIAL EN MAYÚSCULAS
+   * Nivel: 00 - Técnicos / Sin categoría
+
+2. **XXXXXXXX** - DENOMINACIÓN OFICIAL EN MAYÚSCULAS
+   * Nivel: 00 - Técnicos / Sin categoría
+
+PREGUNTA FINAL (SOLO SI DUDAS ENTRE OCUPACIONES):
+- Si dudas por falta de concreción, añade al final:
+**Pregunta sugerida para la persona:**
+* ¿Realizaba principalmente tareas de [XXXXXXXX - DENOMINACIÓN A] o de [XXXXXXXX - DENOMINACIÓN B]?
+"""
+
     with st.chat_message("assistant"):
         try:
-            response = client.models.generate_content(
+            # Respuesta en tiempo real (Streaming)
+            response_stream = client.models.generate_content_stream(
                 model="gemini-3.6-flash",
                 contents=user_input,
                 config=types.GenerateContentConfig(
-                    system_instruction=SYSTEM_INSTRUCTION,
+                    system_instruction=system_prompt,
                     temperature=0.1
                 )
             )
-            answer = response.text
-            st.markdown(answer)
-            st.session_state.messages.append({"role": "assistant", "content": answer})
+            
+            def stream_text():
+                for chunk in response_stream:
+                    yield chunk.text
+
+            full_response = st.write_stream(stream_text)
+            st.session_state.messages.append({"role": "assistant", "content": full_response})
         except Exception as e:
             st.error(f"Error al conectar con la API: {e}")
