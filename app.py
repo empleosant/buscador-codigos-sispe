@@ -22,7 +22,6 @@ def load_catalog():
 
 catalog_data = load_catalog()
 
-# System prompt configurado
 SYSTEM_INSTRUCTION = f"""
 Eres una herramienta de apoyo técnico para orientadores laborales y personal de oficina que codifican la demanda en SilcoiWeb. Tu cometido es analizar el puesto de trabajo, las tareas o la experiencia indicadas en el chat y devolver entre 3 y un máximo de 5 ocupaciones oficiales de 8 cifras extraídas del siguiente catálogo, asignando el Nivel Profesional oficial.
 
@@ -61,10 +60,10 @@ PREGUNTAS SUGERIDAS (SOLO SI EXISTE DUDA REAL):
 * ¿Realizaba principalmente tareas de [XXXXXXXX - DENOMINACIÓN A] o de [XXXXXXXX - DENOMINACIÓN B]?
 """
 
-# Configurar cliente API
-api_key = os.environ.get("GEMINI_API_KEY")
+# Obtener la API key de los secrets de Streamlit o del entorno
+api_key = st.secrets.get("GEMINI_API_KEY") or os.environ.get("GEMINI_API_KEY")
 if not api_key:
-    st.error("No se ha configurado la variable de entorno GEMINI_API_KEY en los Settings del Space.")
+    st.error("No se ha detectado GEMINI_API_KEY en los Secrets de Streamlit.")
     st.stop()
 
 client = genai.Client(api_key=api_key)
@@ -85,14 +84,17 @@ if user_input:
         st.markdown(user_input)
 
     with st.chat_message("assistant"):
-        response = client.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=user_input,
-            config=types.GenerateContentConfig(
-                system_instruction=SYSTEM_INSTRUCTION,
-                temperature=0.1
+        try:
+            response = client.models.generate_content(
+                model="gemini-1.5-flash",
+                contents=user_input,
+                config=types.GenerateContentConfig(
+                    system_instruction=SYSTEM_INSTRUCTION,
+                    temperature=0.1
+                )
             )
-        )
-        answer = response.text
-        st.markdown(answer)
-        st.session_state.messages.append({"role": "assistant", "content": answer})
+            answer = response.text
+            st.markdown(answer)
+            st.session_state.messages.append({"role": "assistant", "content": answer})
+        except Exception as e:
+            st.error(f"Error al conectar con la API: {e}")
