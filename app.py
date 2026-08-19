@@ -22,7 +22,7 @@ def clean_str(text):
         if unicodedata.category(c) != 'Mn'
     ).lower().strip()
 
-# Cargar el catálogo en memoria una sola vez al arrancar
+# Cargar el catálogo en memoria
 @st.cache_resource
 def get_catalog():
     data = []
@@ -37,7 +37,7 @@ def get_catalog():
 
 CATALOG = get_catalog()
 
-# Búsqueda instantánea en milisegundos
+# Búsqueda difusa local ultra-rápida (0.01 seg)
 def find_top_matches(query, catalog, top_n=15):
     q_clean = clean_str(query)
     q_words = [w for w in re.findall(r'\w+', q_clean) if len(w) > 2]
@@ -45,11 +45,9 @@ def find_top_matches(query, catalog, top_n=15):
     scored = []
     for code, desc, clean_desc in catalog:
         score = 0
-        # Coincidencia por palabras clave
         for w in q_words:
             if w in clean_desc:
                 score += 10
-        # Similitud difusa
         ratio = SequenceMatcher(None, q_clean, clean_desc).ratio()
         score += ratio * 5
         
@@ -59,7 +57,6 @@ def find_top_matches(query, catalog, top_n=15):
     scored.sort(key=lambda x: x[0], reverse=True)
     results = [item[1] for item in scored[:top_n]]
     
-    # Fallback por si la búsqueda fue muy abstracta
     if not results:
         results = [f"{c}:{d}" for c, d, _ in catalog[:top_n]]
         
@@ -88,48 +85,53 @@ if user_input:
     with st.chat_message("user"):
         st.markdown(user_input)
 
-    # 1. Filtrado local en 0.01 segundos
-    top_candidates = find_top_matches(user_input, CATALOG, top_n=12)
+    top_candidates = find_top_matches(user_input, CATALOG, top_n=15)
 
-    # 2. Prompt ultra-compacto
     system_prompt = f"""
-Eres un asistente de codificación ocupacional para SilcoiWeb.
-Selecciona de 3 a 5 ocupaciones oficiales de 8 cifras basándote ÚNICAMENTE en estos candidatos:
+Eres un asistente para SilcoiWeb. Devuelve entre 3 y 5 ocupaciones de 8 cifras basadas ÚNICAMENTE en estos candidatos:
 {top_candidates}
 
 REGLAS:
-- Salida directa sin saludos ni texto previo.
-- 90 - Aprendices (sin exp.) / 00 - Técnicos / Sin categoría (estándar con exp.) / 10 - Directores / 20 - Mandos intermedios / 30 - Jefes equipo / 70 - Auxiliares / 80 - Peones.
-
-FORMATO:
+- Salida directa sin saludos ni introducciones.
+- Formato exacto por cada ocupación:
 1. **XXXXXXXX** - DENOMINACIÓN EN MAYÚSCULAS
    * Nivel: 00 - Técnicos / Sin categoría
 
-2. **XXXXXXXX** - DENOMINACIÓN EN MAYÚSCULAS
-   * Nivel: 00 - Técnicos / Sin categoría
+(Niveles: 90 - Aprendices si no tiene exp / 00 - Técnicos estándar con exp / 10 - Directores / 20 - Mandos / 30 - Jefes / 70 - Auxiliares / 80 - Peones).
 
-(Si dudas entre 2 candidatos por falta de datos en la consulta, añade al final:
+- Si dudas entre 2 opciones por falta de datos, añade al final:
 **Pregunta sugerida para la persona:**
-* ¿Realizaba principalmente tareas de [XXXXXXXX - NOMBRE A] o de [XXXXXXXX - NOMBRE B]?)
+* ¿Realizaba tareas de [XXXXXXXX - NOMBRE A] o de [XXXXXXXX - NOMBRE B]?
 """
 
     with st.chat_message("assistant"):
         try:
-            response_stream = client.models.generate_content_stream(
-                model="gemini-3.6-flash",
+            # Desactivamos el tiempo de pensamiento (thinking_budget=0) para respuesta inmediata
+            response = client.models.generate_content(
+                model="gemini-2.5-flash",
                 contents=user_input,
                 config=types.GenerateContentConfig(
                     system_instruction=system_prompt,
-                    temperature=0.0
+                    temperature=0.0,
+                    thinking_config=types.ThinkingConfig(thinking_budget=0)
                 )
             )
-            
-            def stream():
-                for chunk in response_stream:
-                    if chunk.text:
-                        yield chunk.text
-
-            full_response = st.write_stream(stream)
-            st.session_state.messages.append({"role": "assistant", "content": full_response})
+            answer = response.text
+            st.markdown(answer)
+            st.session_state.messages.append({"role": "assistant", "content": answer})
         except Exception as e:
-            st.error(f"Error al conectar con la API: {e}")
+            # Fallback en caso de incompatibilidad con thinking_budget en algún modelo
+            try:
+                response = client.models.generate_content(
+                    model="gemini-3.6-flash",
+                    contents=user_input,
+                    config=types.GenerateContentConfig(
+                        system_instruction=system_prompt,
+                        temperature=0.0
+                    )
+                )
+                answer = response.text
+                st.markdown(answer)
+                st.session_state.messages.append({"role": "assistant", "content": answer})
+            except Exception as ex:
+                st.error(f"Error: {ex}")
