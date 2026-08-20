@@ -118,9 +118,10 @@ html,body,[class*="css"],.stMarkdown{ font-family:Figtree,system-ui,sans-serif; 
 .portada{ text-align:center; padding:3.5rem 0 1.2rem; animation:surgir .5s ease both; }
 .portada h1{
   font-size:clamp(2rem,4.5vw,2.9rem); font-weight:700; letter-spacing:-.03em;
-  color:var(--tinta); margin:0 0 .5rem;
+  color:var(--tinta) !important; margin:0 0 .5rem;
 }
-.portada h1 span{ color:var(--verde); }
+.portada h1 span{ color:var(--verde) !important; }
+.marca span{ color:var(--verde) !important; }
 .portada p{ color:var(--humo); font-size:1.02rem; margin:0; }
 
 /* ---------- Columna izquierda ---------- */
@@ -166,6 +167,18 @@ html,body,[class*="css"],.stMarkdown{ font-family:Figtree,system-ui,sans-serif; 
 }
 
 /* ---------- Controles ---------- */
+/* Streamlit escribe "Press Enter to submit form" encima del marcador */
+div[data-testid="InputInstructions"]{ display:none !important; }
+
+/* El marco del campo lo pinta BaseWeb, no el input */
+div[data-baseweb="input"], div[data-baseweb="base-input"]{
+  background:#fff !important; border:none !important; border-radius:26px !important;
+  box-shadow:0 1px 3px rgba(27,43,51,.07) !important;
+}
+div[data-baseweb="input"]:focus-within{
+  box-shadow:0 0 0 2px var(--verde) !important;
+}
+
 div[data-testid="stTextInput"] input{
   background:#fff !important; border:none !important; border-radius:26px !important;
   padding:.85rem 1.25rem !important; font-size:1rem !important; color:var(--tinta) !important;
@@ -196,6 +209,21 @@ div[data-testid="stProgress"] div[role="progressbar"] > div{ background-color:va
 div[data-testid="stProgress"] div[role="progressbar"] > div > div{
   background-color:var(--verde) !important; background-image:none !important;
 }
+.st-key-reinicio button{
+  width:46px !important; height:46px !important; border-radius:50% !important;
+  padding:0 !important; font-size:1.25rem !important; line-height:1 !important;
+  color:var(--humo) !important; background:#fff !important;
+  box-shadow:0 1px 3px rgba(27,43,51,.09) !important;
+}
+.st-key-reinicio button:hover{
+  background:var(--verde) !important; color:#fff !important; transform:rotate(-90deg);
+}
+.st-key-reinicio button p{ font-size:1.25rem !important; }
+.reinicio-pie{
+  display:flex; align-items:center; gap:.7rem; margin-top:1.6rem;
+  font-size:.8rem; color:var(--tenue);
+}
+
 div[data-testid="stExpander"]{ border:none; background:transparent; }
 div[data-testid="stExpander"] summary{ font-size:.84rem; color:var(--humo); }
 </style>
@@ -1244,7 +1272,8 @@ def resuelve(texto, zona, usar_ia=True, contexto="", busqueda=None):
 # INTERFAZ
 # ---------------------------------------------------------------------------
 
-st.session_state.setdefault("historial", [])
+st.session_state.setdefault("actual", None)
+st.session_state.setdefault("registro", [])
 st.session_state.setdefault("pendiente", None)
 st.session_state.setdefault("usar_ia", True)
 st.session_state.setdefault("cache", {})
@@ -1278,15 +1307,12 @@ def panel_ajustes():
             "Afinar con IA", value=st.session_state["usar_ia"],
             help="Desactivado, muestra las coincidencias del catálogo al instante.",
         )
-        if st.session_state["historial"]:
+        if st.session_state["registro"]:
             buffer = io.StringIO()
             escritor = csv.writer(buffer, delimiter=";")
             escritor.writerow(["consulta", "codigos"])
-            for consulta, payload in st.session_state["historial"]:
-                escritor.writerow([
-                    consulta,
-                    " | ".join(o["codigo"] for o in payload.get("ocupaciones", [])),
-                ])
+            for fila in st.session_state["registro"]:
+                escritor.writerow(fila)
             st.download_button(
                 "Descargar sesión", buffer.getvalue().encode("utf-8-sig"),
                 file_name="codificaciones.csv", mime="text/csv",
@@ -1362,7 +1388,7 @@ if not entrada:
 
 portada = st.empty()
 
-if not st.session_state["historial"] and not entrada:
+if not st.session_state["actual"] and not entrada:
     with portada.container():
         st.markdown(
             '<div class="portada"><h1>Codificador de <span>ocupaciones</span></h1>'
@@ -1415,14 +1441,6 @@ with izquierda:
     st.markdown('<div class="separa"></div>', unsafe_allow_html=True)
     panel_ajustes()
 
-    if st.session_state["historial"]:
-        if st.button(
-            f"Empezar de nuevo · {len(st.session_state['historial'])}",
-            use_container_width=True, key="reinicio",
-        ):
-            st.session_state["historial"] = []
-            st.rerun()
-
 with derecha:
     st.markdown('<div class="panel-der"></div>', unsafe_allow_html=True)
 
@@ -1436,16 +1454,29 @@ with derecha:
             usar_ia=st.session_state["usar_ia"],
             contexto=contexto, busqueda=busqueda,
         )
-        st.session_state["historial"].append((rotulo or entrada, payload))
+        st.session_state["actual"] = (rotulo or entrada, payload)
+        st.session_state["registro"].append((
+            rotulo or entrada,
+            " | ".join(o["codigo"] for o in payload.get("ocupaciones", [])),
+        ))
         st.rerun()
 
-    # Lo más reciente arriba: así no hay que desplazarse
-    total = len(st.session_state["historial"])
-    for orden, (consulta, payload) in enumerate(reversed(st.session_state["historial"])):
+    elif st.session_state["actual"]:
+        consulta, payload = st.session_state["actual"]
         st.markdown(f'<div class="consulta">{consulta}</div>', unsafe_allow_html=True)
-        pinta_resultado(payload, interactivo=(orden == 0), consulta=consulta)
-        if orden < total - 1:
-            st.markdown('<div class="separa"></div>', unsafe_allow_html=True)
+        pinta_resultado(payload, interactivo=True, consulta=consulta)
+
+        st.write("")
+        vuelta, texto, _ = st.columns([1, 4, 2])
+        with vuelta:
+            if st.button("↺", key="reinicio", help="Nueva búsqueda"):
+                st.session_state["actual"] = None
+                st.rerun()
+        with texto:
+            st.markdown(
+                '<div class="reinicio-pie">Empezar una búsqueda nueva</div>',
+                unsafe_allow_html=True,
+            )
 
 # Con el resultado ya en pantalla, se publica lo aprendido para el resto
 for clave, valor in st.session_state.pop("por_guardar", []):
