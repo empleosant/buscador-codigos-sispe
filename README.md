@@ -6,44 +6,53 @@ antes de grabarlos en SilcoiWeb.
 ## Archivos del repositorio
 
 ```
-app.py
-requirements.txt
-ocupaciones_sispe_ultraligero.txt   <- el catálogo, con ese nombre exacto
+app.py                            la aplicación
+requirements.txt                  dependencias
+ocupaciones_sispe_ultraligero.txt catálogo oficial (nombre exacto)
+terminos_ampliados.txt            vocabulario coloquial por ocupación (opcional)
+enriquecer.py                     genera el archivo anterior (no lo usa la app)
 ```
 
 ## Puesta en marcha en Streamlit Cloud
 
-1. Sube los tres archivos al repositorio de GitHub.
-2. En Streamlit Cloud: **Settings → Secrets** y añade:
+En **Settings → Secrets**:
 
 ```toml
 GEMINI_API_KEY = "tu_clave"
 ```
 
-3. Reinicia la app (**Reboot**).
-
 ## Cómo se usa
 
 - Escribe el puesto o las funciones y pulsa Enter.
 - Escribe un código de 8 cifras para consultar su denominación oficial.
-- El bloque **Copiar códigos** tiene un botón de copia para pegar en SilcoiWeb.
-- En **Ajustes** puedes desactivar la IA (resultados instantáneos del catálogo),
-  descargar las consultas de la sesión en CSV y empezar de nuevo.
+- En **Ajustes**: apagar la IA, probar la conexión, descargar la sesión en CSV
+  y ver los términos que la app ha aprendido.
 
-## Mantenimiento
+## Dónde se toca cada cosa
 
-El diccionario `SINONIMOS` traduce lenguaje coloquial y nombres de plataformas
-al vocabulario del catálogo. Se amplía añadiendo una línea:
+- **Modelo de IA**: bloque `PROVEEDORES`, arriba del archivo. Es una lista: si
+  uno agota cuota o desaparece, la app pasa al siguiente sola.
+- **Proveedor**: la constante `PROVEEDOR` admite `gemini`, `groq` o `mistral`.
+  Cambiando esa palabra y la clave en Secrets, la app funciona igual.
+- **Vocabulario**: `SINONIMOS` para lo que quieras fijar a mano;
+  `terminos_ampliados.txt` para el vocabulario masivo generado por el script.
+- **Palabras que estorban**: `VACIAS`.
 
-```python
-"palabra_que_dice_la_persona": "términos que aparecen en el catálogo",
+## Regenerar el vocabulario
+
+Se ejecuta fuera de la app, una vez, en local o en Google Colab:
+
+```
+pip install google-genai
+export GEMINI_API_KEY=tu_clave
+python enriquecer.py
 ```
 
-Las claves y los valores van **sin acentos y en minúscula**: el buscador
-normaliza el texto antes de comparar. No hace falta tocar nada más.
+Son unas 148 llamadas. Es reanudable: si se corta, se relanza y sigue donde
+estaba. Para rehacerlo desde cero, borra `terminos_ampliados.txt` antes.
 
 ## Garantía sobre los datos
 
 Ninguna denominación procede del modelo: se toma siempre del catálogo a partir
-del código. Si el modelo devolviera un código inexistente, se descarta antes de
+del código. Si el modelo devuelve un código inexistente, se descarta antes de
 mostrarlo.

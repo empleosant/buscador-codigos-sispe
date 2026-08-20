@@ -27,6 +27,9 @@ except ImportError:                     # noqa: S110
     OpenAI = None
 
 CATALOGO = "ocupaciones_sispe_ultraligero.txt"
+# Opcional: lo genera enriquecer.py una sola vez. Si está, la app busca también
+# por el vocabulario coloquial de cada ocupación.
+AMPLIADO = "terminos_ampliados.txt"
 N_CANDIDATOS = 12
 
 # ---------------------------------------------------------------------------
@@ -225,6 +228,8 @@ VACIAS = {
     "hacia", "hace", "estado", "sido", "una", "unos", "unas", "casa", "casas",
     "sus", "mis", "tus", "este", "esta", "esto", "ese", "esa", "muy", "bien",
     "algo", "cosas", "cosa", "tipo", "tipos", "ahora", "antes", "despues",
+    "poner", "pongo", "ponia", "hacer", "hago", "llevar", "llevaba", "dar",
+    "daba", "estar", "estaba", "ser", "era", "tenido", "hecho", "todo", "toda",
 }
 
 SINONIMOS = {
@@ -255,6 +260,16 @@ SINONIMOS = {
     "teleoperador": "teleoperadores telefonistas",
     "chofer": "conductores",
     "chapista": "chapistas carroceria",
+    "pladur": "colocadores prefabricados ligeros escayolistas tabiques construccion",
+    "escayolista": "escayolistas prefabricados ligeros construccion",
+    "ferrallista": "ferrallistas armaduras hormigon construccion",
+    "gruista": "operadores grua",
+    "encofrador": "encofradores hormigon construccion",
+    "solador": "soladores alicatadores pavimentos",
+    "alicatador": "alicatadores soladores revestimientos",
+    "matarife": "matarifes matanza carniceros",
+    "camillero": "celadores sanitarios auxiliares",
+    "reponedora": "reponedores comercio",
 
     # oficina: la persona nombra la tarea, el catálogo nombra el puesto
     "administrativa": "empleados administrativos oficina",
@@ -325,7 +340,16 @@ def carga_indice():
     if not os.path.exists(CATALOGO):
         return {"ok": False, "registros": []}
 
+    ampliado = {}
+    if os.path.exists(AMPLIADO):
+        with open(AMPLIADO, "r", encoding="utf-8") as f:
+            for linea in f:
+                if ":" in linea:
+                    cod, terms = linea.split(":", 1)
+                    ampliado[cod.strip()] = terms.strip()
+
     registros, inv, inv_raiz = [], defaultdict(list), defaultdict(list)
+    inv_extra = defaultdict(list)
     with open(CATALOGO, "r", encoding="utf-8") as f:
         for linea in f:
             linea = linea.strip()
@@ -336,12 +360,19 @@ def carga_indice():
                 t for t in re.findall(r"\w+", normaliza(denom))
                 if len(t) > 2 and t not in VACIAS
             ]
+            propias = {raiz(t) for t in tokens}
+            sueltas = {
+                raiz(t)
+                for t in re.findall(r"\w+", normaliza(ampliado.get(codigo.strip(), "")))
+                if len(t) > 2 and t not in VACIAS
+            }
             registros.append({
                 "codigo": codigo.strip(),
                 "denom": denom.strip(),
                 "palabras": set(tokens),
-                "raices": {raiz(t) for t in tokens},
+                "raices": propias,
                 "cabeza": {raiz(t) for t in tokens[:3]},
+                "extra": sueltas - propias,
             })
 
     n = max(1, len(registros))
@@ -350,6 +381,8 @@ def carga_indice():
             inv[w].append(i)
         for w in r["raices"]:
             inv_raiz[w].append(i)
+        for w in r["extra"]:
+            inv_extra[w].append(i)
 
     trigramas = defaultdict(set)
     for w in inv_raiz:
@@ -364,6 +397,9 @@ def carga_indice():
         "inv_raiz": inv_raiz,
         "idf": {w: math.log(1 + n / len(ix)) for w, ix in inv.items()},
         "idf_raiz": {w: math.log(1 + n / len(ix)) for w, ix in inv_raiz.items()},
+        "inv_extra": inv_extra,
+        "idf_extra": {w: math.log(1 + n / len(ix)) for w, ix in inv_extra.items()},
+        "ampliado": len(ampliado),
         "trigramas": trigramas,
         "vocab_raiz": list(inv_raiz.keys()),
     }
@@ -406,11 +442,11 @@ def desconocidas(consulta):
         if len(w) <= 3 or w in VACIAS or w in fuera:
             continue
         r = raiz(w)
-        if w in IDX["inv"] or r in IDX["inv_raiz"]:
+        if w in IDX["inv"] or r in IDX["inv_raiz"] or r in IDX["inv_extra"]:
             continue
         if any(v.startswith(r) or r.startswith(v) for v in IDX["vocab_raiz"] if len(v) > 3):
             continue
-        if any(clave in q for clave in SINONIMOS if w in clave or clave in w):
+        if w in SINONIMOS or any(w in c.split() for c in SINONIMOS if " " in c):
             continue
         fuera.append(w)
     return fuera
@@ -422,8 +458,11 @@ def busca(consulta, tope=20):
     for w in re.findall(r"\w+", q):
         if len(w) > 2 and w not in VACIAS:
             terminos[w] = 1.0
+    palabras_q = set(re.findall(r"\w+", q))
     for clave, expansion in SINONIMOS.items():
-        if clave in q:
+        # clave de una palabra: coincidencia exacta ("ele" no debe saltar con
+        # "elementos"). Clave de varias: basta con que aparezca la expresión.
+        if (clave in palabras_q) if " " not in clave else (clave in q):
             for w in re.findall(r"\w+", normaliza(expansion)):
                 terminos.setdefault(w, 0.6)
     if not terminos:
@@ -449,6 +488,12 @@ def busca(consulta, tope=20):
             k = IDX["idf_raiz"][r] * peso * 2.2
             for i in IDX["inv_raiz"][r]:
                 suma(i, k, r)
+        if r in IDX["inv_extra"]:                             # vocabulario coloquial
+            encontrado = True
+            k = IDX["idf_extra"][r] * peso * 1.6
+            for i in IDX["inv_extra"][r]:
+                suma(i, k, r)
+
         if len(r) > 3:
             for v in IDX["vocab_raiz"]:
                 if v != r and (v.startswith(r) or r.startswith(v)):
@@ -580,14 +625,23 @@ def _flujo_openai(cli, prompt):
             yield texto
 
 
-TRADUCTOR = """Eres experto en la Clasificación Nacional de Ocupaciones española.
-Recibes palabras coloquiales, marcas comerciales o jerga de oficio.
-Devuelve SOLO entre 6 y 12 palabras sueltas separadas por espacios: los términos
-que usaría la clasificación oficial para esa actividad (nombre formal del oficio,
-materiales, herramientas, tareas). Sin comas, sin frases, sin explicaciones.
+TRADUCTOR = """Eres experto en la Clasificación Nacional de Ocupaciones (CNO)
+y en el catálogo de ocupaciones del SEPE.
 
-Ejemplo. Entrada: pladur
-Salida: prefabricados ligeros colocadores escayolista tabiques yeso laminado construccion
+Recibes jerga de oficio, marcas comerciales o nombres coloquiales.
+Devuelve SOLO palabras sueltas separadas por espacios, entre 8 y 14. Empieza por
+las palabras que compondrían la DENOMINACIÓN OFICIAL de esa ocupación en la
+clasificación y sigue con materiales, herramientas y tareas.
+Sin comas, sin frases, sin explicaciones, sin mayúsculas.
+
+Entrada: kelly
+Salida: camareros piso hosteleria limpieza habitaciones hoteles alojamiento
+
+Entrada: ferrallista
+Salida: ferrallistas armaduras hormigon armado construccion montadores hierro obra
+
+Entrada: teleco de campo
+Salida: instaladores reparadores equipos telecomunicaciones lineas antenas redes
 """
 
 
@@ -781,6 +835,13 @@ def pinta_resultado(payload, estado=None, avance=0.06):
     if estado:
         return
 
+    if payload.get("interpretado"):
+        origen, destino = payload["interpretado"]
+        st.markdown(
+            f'<div class="nota">Interpretado <b>{origen}</b> como: {destino}</div>',
+            unsafe_allow_html=True,
+        )
+
     otras = payload.get("otras", [])
     if otras:
         with st.expander("Ver otras ocupaciones del catálogo"):
@@ -792,13 +853,6 @@ def pinta_resultado(payload, estado=None, avance=0.06):
                     f'<span style="font-size:.9rem">{den}</span></div>',
                     unsafe_allow_html=True,
                 )
-
-    if payload.get("interpretado"):
-        origen, destino = payload["interpretado"]
-        st.markdown(
-            f'<div class="nota">Interpretado <b>{origen}</b> como: {destino}</div>',
-            unsafe_allow_html=True,
-        )
 
     if payload.get("fallo"):
         st.markdown(
@@ -1006,7 +1060,10 @@ with ajustes:
                 language=None,
             )
         st.caption(
-            f"{len(IDX['registros'])} ocupaciones cargadas. Describe solo el puesto: "
+            f"{len(IDX['registros'])} ocupaciones cargadas"
+            + (f", {IDX['ampliado']} con vocabulario ampliado. " if IDX.get("ampliado")
+               else " (sin vocabulario ampliado). ")
+            + "Describe solo el puesto: "
             "sin nombres, DNI ni datos identificativos de la persona."
         )
 
