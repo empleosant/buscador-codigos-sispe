@@ -206,10 +206,11 @@ div[data-testid="stTextArea"] textarea::placeholder{ color:var(--tenue) !importa
 div[data-testid="stTextArea"] textarea:focus{ box-shadow:none !important; }
 
 div[data-testid="stTextInput"] input{
-  background:#fff !important; border:none !important; border-radius:26px !important;
-  padding:.85rem 1.25rem !important; font-size:1rem !important; color:var(--tinta) !important;
-  box-shadow:0 1px 3px rgba(27,43,51,.07) !important;
+  background:#fff !important; border:none !important; border-radius:30px !important;
+  padding:1.1rem 1.5rem !important; font-size:1.02rem !important; color:var(--tinta) !important;
+  box-shadow:none !important; height:auto !important;
 }
+div[data-testid="stTextInput"] input:focus{ box-shadow:none !important; }
 div[data-testid="stTextInput"] input:focus{
   box-shadow:0 0 0 2px var(--verde) !important;
 }
@@ -425,6 +426,60 @@ def guarda_termino(clave, valor):
         return True
     except Exception:  # noqa: BLE001
         return False
+
+
+def prueba_gist():
+    """Escribe y vuelve a leer un término. Devuelve (correcto, explicación)."""
+    gist, token = _credenciales()
+    if not gist:
+        return False, "No hay GIST_ID o GITHUB_TOKEN en los Secrets."
+
+    marca = f"_prueba_{int(time.time())}"
+    try:
+        actual = dict(lexico_compartido())
+        antes = len(actual)
+        actual[marca] = "comprobacion"
+        _peticion(
+            f"https://api.github.com/gists/{gist}", token,
+            datos={"files": {ARCHIVO_GIST: {
+                "content": json.dumps(actual, ensure_ascii=False, indent=1, sort_keys=True)
+            }}},
+            metodo="PATCH",
+        )
+    except urllib.error.HTTPError as e:
+        pistas = {
+            401: "el token no vale o está revocado",
+            403: "al token le falta el permiso «gist»",
+            404: "el GIST_ID no existe o no es tuyo",
+        }
+        return False, f"Al escribir: {e.code}, {pistas.get(e.code, 'error de GitHub')}."
+    except Exception as e:  # noqa: BLE001
+        return False, f"Al escribir: {type(e).__name__}: {e}"
+
+    lexico_compartido.clear()
+    try:
+        vuelta = lexico_compartido()
+    except Exception as e:  # noqa: BLE001
+        return False, f"Al releer: {type(e).__name__}: {e}"
+
+    if marca not in vuelta:
+        return False, "Se escribió, pero al releer no aparece. Revisa el nombre del archivo."
+
+    # Limpieza: se retira la marca de prueba
+    del vuelta[marca]
+    try:
+        _peticion(
+            f"https://api.github.com/gists/{gist}", token,
+            datos={"files": {ARCHIVO_GIST: {
+                "content": json.dumps(vuelta, ensure_ascii=False, indent=1, sort_keys=True)
+            }}},
+            metodo="PATCH",
+        )
+        lexico_compartido.clear()
+    except Exception:  # noqa: BLE001
+        pass
+
+    return True, f"Escritura y lectura correctas. {antes} términos guardados."
 
 
 def diccionario():
@@ -1319,11 +1374,11 @@ EJEMPLOS = [
 def caja_busqueda(clave, etiqueta="Buscar"):
     """Cuadro de texto con envío al pulsar Enter."""
     with st.form(clave, clear_on_submit=True, border=False):
-        texto = st.text_area(
-            "Consulta", label_visibility="collapsed", height=96,
+        texto = st.text_input(
+            "Consulta", label_visibility="collapsed",
             placeholder=(
-                "Describe el puesto con las palabras de la persona: qué hacía, "
-                "dónde y con qué. También admite un código de 8 cifras."
+                "Describe el puesto: qué hacía, dónde y con qué. "
+                "También admite un código de 8 cifras."
             ),
         )
         enviado = st.form_submit_button(etiqueta, use_container_width=True)
@@ -1370,6 +1425,9 @@ def panel_ajustes():
                 f"{len(compartido)} términos aprendidos entre todas. "
                 "Se guardan solos al aparecer."
             )
+            if st.button("Comprobar que guarda", use_container_width=True):
+                correcto, detalle = prueba_gist()
+                (st.success if correcto else st.error)(detalle)
         elif st.session_state.get("lexico"):
             st.markdown("**Términos aprendidos**")
             st.caption("Solo en esta sesión. Pégalos en SINONIMOS para conservarlos.")
@@ -1424,7 +1482,7 @@ if not st.session_state["actual"] and not entrada:
             '<p>Describe el puesto y obtén los códigos oficiales del catálogo SISPE.</p></div>',
             unsafe_allow_html=True,
         )
-        _, centro, _ = st.columns([1, 2.2, 1])
+        _, centro, _ = st.columns([0.5, 4, 0.5])
         with centro:
             entrada = caja_busqueda("inicio", "Buscar")
             # Si ya hay consulta, no se crean más controles: la vista de
