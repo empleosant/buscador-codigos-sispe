@@ -14,12 +14,47 @@ from collections import defaultdict
 from difflib import SequenceMatcher
 
 import streamlit as st
-from google import genai
-from google.genai import types
+
+try:
+    from google import genai
+    from google.genai import types
+except ImportError:                     # noqa: S110
+    genai = types = None
+
+try:
+    from openai import OpenAI
+except ImportError:                     # noqa: S110
+    OpenAI = None
 
 CATALOGO = "ocupaciones_sispe_ultraligero.txt"
-MODELO = "gemini-3.6-flash"
 N_CANDIDATOS = 12
+
+# ---------------------------------------------------------------------------
+# PROVEEDOR DE IA
+# Cambia esta única línea para migrar: "gemini", "groq" o "mistral".
+# La clave correspondiente va en los Secrets de Streamlit.
+# ---------------------------------------------------------------------------
+PROVEEDOR = "gemini"
+
+PROVEEDORES = {
+    "gemini": {
+        "clave": "GEMINI_API_KEY",
+        "modelo": "gemini-3.6-flash",
+    },
+    "groq": {
+        "clave": "GROQ_API_KEY",
+        "modelo": "llama-3.3-70b-versatile",
+        "url": "https://api.groq.com/openai/v1",
+    },
+    "mistral": {
+        "clave": "MISTRAL_API_KEY",
+        "modelo": "mistral-small-latest",
+        "url": "https://api.mistral.ai/v1",
+    },
+}
+
+AJUSTES = PROVEEDORES[PROVEEDOR]
+MODELO = AJUSTES["modelo"]
 
 st.set_page_config(
     page_title="Codificador de ocupaciones",
@@ -381,8 +416,13 @@ def busca(consulta, tope=20):
 
 @st.cache_resource(show_spinner=False)
 def cliente():
-    clave = st.secrets.get("GEMINI_API_KEY") or os.environ.get("GEMINI_API_KEY")
-    return genai.Client(api_key=clave) if clave else None
+    nombre = AJUSTES["clave"]
+    clave = st.secrets.get(nombre) or os.environ.get(nombre)
+    if not clave:
+        return None
+    if PROVEEDOR == "gemini":
+        return genai.Client(api_key=clave) if genai else None
+    return OpenAI(api_key=clave, base_url=AJUSTES["url"]) if OpenAI else None
 
 
 INSTRUCCIONES = """Eres un técnico de codificación de ocupaciones para SilcoiWeb (SEPE).
@@ -402,7 +442,7 @@ Responde solo con este JSON:
 
 
 def _configuraciones():
-    """De la más rápida a la más lenta. La que funcione se recuerda en la sesión."""
+    """Solo Gemini. De la más rápida a la más lenta; la que sirva se recuerda."""
     base = dict(
         system_instruction=INSTRUCCIONES,
         max_output_tokens=900,
@@ -420,14 +460,10 @@ def _configuraciones():
     return opciones
 
 
-def flujo_modelo(cli, texto, candidatos):
-    """Devuelve fragmentos de texto según llegan."""
-    prompt = f"CANDIDATOS (única fuente válida):\n{candidatos}\n\nDESCRIPCIÓN: {texto}"
+def _flujo_gemini(cli, prompt):
     opciones = _configuraciones()
-    orden = list(range(st.session_state.get("cfg", 0), len(opciones)))
-
     ultimo = None
-    for i in orden:
+    for i in range(st.session_state.get("cfg", 0), len(opciones)):
         emitido = False
         try:
             flujo = cli.models.generate_content_stream(
@@ -436,16 +472,46 @@ def flujo_modelo(cli, texto, candidatos):
             )
             for trozo in flujo:
                 if not emitido:
-                    st.session_state["cfg"] = i   # esta configuración sirve
+                    st.session_state["cfg"] = i
                     emitido = True
                 if getattr(trozo, "text", None):
                     yield trozo.text
             return
         except Exception as e:  # noqa: BLE001
-            if emitido:      # no reintentar a medio texto: duplicaria contenido
+            if emitido:      # no reintentar a medio texto: duplicaría contenido
                 raise
             ultimo = e
     raise ultimo
+
+
+def _flujo_openai(cli, prompt):
+    """Groq, Mistral y cualquier otro compatible con el formato de OpenAI."""
+    flujo = cli.chat.completions.create(
+        model=MODELO,
+        messages=[
+            {"role": "system", "content": INSTRUCCIONES},
+            {"role": "user", "content": prompt},
+        ],
+        max_tokens=900,
+        temperature=0,
+        response_format={"type": "json_object"},
+        stream=True,
+    )
+    for trozo in flujo:
+        if not trozo.choices:
+            continue
+        texto = trozo.choices[0].delta.content
+        if texto:
+            yield texto
+
+
+def flujo_modelo(cli, texto, candidatos):
+    """Devuelve fragmentos de texto según llegan."""
+    prompt = f"CANDIDATOS (única fuente válida):\n{candidatos}\n\nDESCRIPCIÓN: {texto}"
+    if PROVEEDOR == "gemini":
+        yield from _flujo_gemini(cli, prompt)
+    else:
+        yield from _flujo_openai(cli, prompt)
 
 
 def objetos_parciales(bruto):
