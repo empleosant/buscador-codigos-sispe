@@ -1,0 +1,71 @@
+# Despertador de la aplicación.
+#
+# Va en el repositorio, en la ruta:  .github/workflows/mantener-despierta.yml
+#
+# Cada seis horas abre la app con un navegador real y, si la encuentra
+# dormida, pulsa el botón de reactivarla. Un ping normal no sirve: devuelve
+# 200 pero solo carga la cáscara HTML, sin arrancar el proceso de Python.
+#
+# Antes de usarlo, cambia la URL de abajo por la de tu aplicación.
+
+name: Mantener la app despierta
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'      # cada 6 horas (hora UTC)
+  workflow_dispatch:            # y también a mano, desde la pestaña Actions
+
+jobs:
+  despertar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Instalar navegador
+        run: |
+          pip install --quiet playwright
+          playwright install chromium --with-deps
+
+      - name: Abrir la aplicación
+        env:
+          URL: https://TU-APP.streamlit.app        # <-- cámbiala
+        run: |
+          python - <<'PY'
+          import os, sys, time
+          from playwright.sync_api import sync_playwright
+
+          url = os.environ["URL"]
+
+          with sync_playwright() as p:
+              navegador = p.chromium.launch()
+              pagina = navegador.new_page()
+              pagina.goto(url, timeout=60000)
+              pagina.wait_for_timeout(5000)
+
+              texto = pagina.content().lower()
+              dormida = "zzz" in texto or "get this app back up" in texto
+
+              if dormida:
+                  print("Estaba dormida. Despertándola...")
+                  try:
+                      pagina.get_by_role("button").first.click(timeout=15000)
+                      pagina.wait_for_timeout(45000)   # arrancar tarda un rato
+                  except Exception as e:
+                      print(f"No he podido pulsar el botón: {e}")
+              else:
+                  print("Ya estaba despierta.")
+
+              # Comprobación final: el cuadro de texto debe existir
+              try:
+                  pagina.wait_for_selector("textarea", timeout=30000)
+                  print("La aplicación responde correctamente.")
+              except Exception:
+                  print("La aplicación no ha terminado de cargar.")
+                  navegador.close()
+                  sys.exit(1)
+
+              navegador.close()
+          PY
