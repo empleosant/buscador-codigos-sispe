@@ -129,14 +129,18 @@ html,body,[class*="css"],.stMarkdown{ font-family:'Inter',system-ui,sans-serif; 
 }
 .nota{ font-size:.78rem; color:var(--humo); margin-top:.4rem; }
 
-.estado{
-  display:inline-flex; align-items:center; gap:.5rem;
-  font-family:'JetBrains Mono',monospace; font-size:.63rem; letter-spacing:.16em;
-  text-transform:uppercase; color:var(--humo); margin:0 0 .7rem;
+/* Barra de progreso mientras responde el modelo */
+div[data-testid="stProgress"]{ margin:0 0 1rem; }
+div[data-testid="stProgress"] p{
+  font-family:'JetBrains Mono',monospace !important; font-size:.63rem !important;
+  letter-spacing:.16em; text-transform:uppercase; color:var(--humo) !important;
 }
-.punto{ width:7px; height:7px; border-radius:50%; background:var(--coral); animation:latido 1.1s ease-in-out infinite; }
-@keyframes latido{ 0%,100%{ opacity:.2; transform:scale(.8);} 50%{ opacity:1; transform:scale(1);} }
-@media (prefers-reduced-motion:reduce){ .punto{ animation:none; opacity:.8; } }
+div[data-testid="stProgress"] div[role="progressbar"] > div{
+  background-color:var(--borde);
+}
+div[data-testid="stProgress"] div[role="progressbar"] > div > div{
+  background-color:var(--coral) !important; background-image:none !important;
+}
 
 /* ---------- Controles nativos ---------- */
 div[data-testid="stChatInput"] textarea{ font-family:'Inter',sans-serif !important; font-size:.98rem !important; }
@@ -549,12 +553,9 @@ def pinta_tarjeta(i, o, destacada=False):
     )
 
 
-def pinta_resultado(payload, estado=None):
+def pinta_resultado(payload, estado=None, avance=0.06):
     if estado:
-        st.markdown(
-            f'<div class="estado"><span class="punto"></span>{estado}</div>',
-            unsafe_allow_html=True,
-        )
+        st.progress(min(avance, 0.95), text=estado)
     if payload.get("aviso"):
         st.info(payload["aviso"])
         return
@@ -580,9 +581,6 @@ def pinta_resultado(payload, estado=None):
 
     if estado:
         return
-
-    st.markdown('<div class="seccion">Copiar códigos</div>', unsafe_allow_html=True)
-    st.code("\n".join(o["codigo"] for o in ocupaciones), language=None)
 
     otras = payload.get("otras", [])
     if otras:
@@ -662,7 +660,7 @@ def resuelve(texto, zona, usar_ia=True):
 
     # Resultados del catálogo mientras el modelo responde
     with zona.container():
-        pinta_resultado(provisional, estado="Afinando la selección")
+        pinta_resultado(provisional, estado="Afinando el resultado")
 
     bruto, mostradas = "", 0
     try:
@@ -672,7 +670,11 @@ def resuelve(texto, zona, usar_ia=True):
             if len(listas) > mostradas:
                 mostradas = len(listas)
                 with zona.container():
-                    pinta_resultado({"ocupaciones": listas}, estado="Afinando la selección")
+                    pinta_resultado(
+                        {"ocupaciones": listas},
+                        estado="Afinando el resultado",
+                        avance=0.06 + 0.19 * mostradas,
+                    )
     except Exception:  # noqa: BLE001
         with zona.container():
             pinta_resultado(provisional)
