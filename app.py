@@ -768,6 +768,15 @@ def pinta_resultado(payload, estado=None, avance=0.06):
                     unsafe_allow_html=True,
                 )
 
+    if payload.get("fallo"):
+        st.markdown(
+            '<div class="nota">La IA no ha respondido: estas son las coincidencias '
+            'del catálogo, sin afinar.</div>',
+            unsafe_allow_html=True,
+        )
+        with st.expander("Ver el motivo"):
+            st.code(payload["fallo"], language=None)
+
     if payload.get("descartadas"):
         st.markdown(
             f'<div class="nota">Se {"ha" if payload["descartadas"] == 1 else "han"} descartado '
@@ -866,8 +875,9 @@ def resuelve(texto, zona, usar_ia=True):
                         estado="Afinando el resultado",
                         avance=0.06 + 0.19 * mostradas,
                     )
-    except Exception:  # noqa: BLE001
+    except Exception as e:  # noqa: BLE001
         zona.empty()
+        provisional["fallo"] = f"{type(e).__name__}: {e}"
         pinta_resultado(provisional)
         return provisional
 
@@ -929,6 +939,20 @@ with ajustes:
             if st.button("Empezar de nuevo", use_container_width=True):
                 st.session_state["historial"] = []
                 st.rerun()
+        if st.button("Probar la conexión con la IA", use_container_width=True):
+            prueba = cliente()
+            if prueba is None:
+                st.error(f"No hay clave {AJUSTES['clave']} en los Secrets.")
+            else:
+                try:
+                    eco = pregunta_corta(
+                        prueba, "Responde únicamente con la palabra ok.",
+                        "ok", maximo=200,
+                    )
+                    st.success(f"{MODELO}: {eco[:60] or '(respuesta vacía)'}")
+                except Exception as e:  # noqa: BLE001
+                    st.error(f"{type(e).__name__}: {e}")
+
         if st.session_state.get("lexico"):
             st.markdown("**Términos aprendidos**")
             st.caption("Pégalos en SINONIMOS para no volver a traducirlos.")
