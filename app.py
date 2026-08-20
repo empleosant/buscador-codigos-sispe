@@ -6,6 +6,7 @@ Interfaz de apoyo para localizar codigos oficiales antes de grabarlos en SilcoiW
 import os
 import re
 import csv
+import time
 import io
 import json
 import math
@@ -14,6 +15,7 @@ from collections import defaultdict
 from difflib import SequenceMatcher
 
 import streamlit as st
+import streamlit.components.v1 as components
 
 try:
     from google import genai
@@ -31,6 +33,7 @@ CATALOGO = "ocupaciones_sispe_ultraligero.txt"
 # por el vocabulario coloquial de cada ocupación.
 AMPLIADO = "terminos_ampliados.txt"
 N_CANDIDATOS = 12
+ESPERA_MAXIMA = 45      # segundos antes de rendirse con el modelo
 
 # ---------------------------------------------------------------------------
 # PROVEEDOR DE IA
@@ -551,8 +554,18 @@ def cliente():
     if not clave:
         return None
     if PROVEEDOR == "gemini":
-        return genai.Client(api_key=clave) if genai else None
-    return OpenAI(api_key=clave, base_url=AJUSTES["url"]) if OpenAI else None
+        if not genai:
+            return None
+        try:
+            return genai.Client(
+                api_key=clave,
+                http_options=types.HttpOptions(timeout=ESPERA_MAXIMA * 1000),
+            )
+        except Exception:  # noqa: BLE001  SDK antiguo sin http_options
+            return genai.Client(api_key=clave)
+    if not OpenAI:
+        return None
+    return OpenAI(api_key=clave, base_url=AJUSTES["url"], timeout=ESPERA_MAXIMA)
 
 
 INSTRUCCIONES = """Eres un técnico de codificación de ocupaciones para SilcoiWeb (SEPE).
@@ -804,6 +817,33 @@ def interpreta(bruto):
 # RENDER
 # ---------------------------------------------------------------------------
 
+def bajar():
+    """Lleva la vista al final de la página. Streamlit no lo hace solo."""
+    components.html(
+        f"""
+        <script>
+          const doc = window.parent.document;
+          const marca = "{time.time()}";
+          setTimeout(function () {{
+            const zonas = [
+              doc.querySelector('section.main'),
+              doc.querySelector('[data-testid="stAppViewContainer"] > section'),
+              doc.querySelector('[data-testid="stMain"]'),
+              doc.scrollingElement,
+            ];
+            for (const z of zonas) {{
+              if (z) {{
+                try {{ z.scrollTo({{ top: z.scrollHeight, behavior: "smooth" }}); }}
+                catch (e) {{}}
+              }}
+            }}
+          }}, 150);
+        </script>
+        """,
+        height=0,
+    )
+
+
 def pinta_tarjeta(i, o, destacada=False):
     clase = "tarjeta top" if destacada else "tarjeta"
     etiqueta = "etiqueta destacada" if destacada else "etiqueta"
@@ -822,7 +862,7 @@ def pinta_tarjeta(i, o, destacada=False):
     )
 
 
-def pinta_resultado(payload, estado=None, avance=0.06):
+def pinta_resultado(payload, estado=None, avance=0.06, interactivo=False, consulta=""):
     if estado:
         st.progress(min(avance, 0.95), text=estado)
     if payload.get("aviso"):
@@ -847,6 +887,14 @@ def pinta_resultado(payload, estado=None, avance=0.06):
             f'<div class="texto">{payload["pregunta"]}</div></div>',
             unsafe_allow_html=True,
         )
+        if interactivo:
+            si, no, _ = st.columns([1, 1, 3])
+            if si.button("Sí", key="resp_si", use_container_width=True):
+                st.session_state["respuesta"] = (consulta, payload["pregunta"], True)
+                st.rerun()
+            if no.button("No", key="resp_no", use_container_width=True):
+                st.session_state["respuesta"] = (consulta, payload["pregunta"], False)
+                st.rerun()
 
     if estado:
         return
@@ -900,7 +948,7 @@ def _basica(encontrados, motivo=""):
     } for _, c, d in encontrados[:5]]
 
 
-def resuelve(texto, zona, usar_ia=True):
+def resuelve(texto, zona, usar_ia=True, contexto="", busqueda=None):
     """Pinta resultados desde el primer instante y los va afinando."""
     codigo = texto.strip()
     if re.fullmatch(r"\d{8}", codigo):
@@ -918,7 +966,7 @@ def resuelve(texto, zona, usar_ia=True):
             pinta_resultado(payload)
         return payload
 
-    encontrados = busca(texto, tope=N_CANDIDATOS)
+    encontrados = busca(busqueda or texto, tope=N_CANDIDATOS)
     if not encontrados:
         payload = {"ocupaciones": []}
         with zona.container():
@@ -926,7 +974,7 @@ def resuelve(texto, zona, usar_ia=True):
         return payload
 
     memoria = st.session_state["cache"]
-    clave = normaliza(texto)
+    clave = normaliza(texto + contexto)
     if clave in memoria:
         with zona.container():
             pinta_resultado(memoria[clave])
@@ -970,18 +1018,30 @@ def resuelve(texto, zona, usar_ia=True):
                 with zona.container():
                     pinta_resultado(provisional, estado="Afinando el resultado")
 
-    bruto, mostradas = "", 0
+    bruto, mostradas, avance = "", 0, 0.10
+    arranque = time.perf_counter()
     try:
-        for trozo in flujo_modelo(cli, texto, "\n".join(f"{c}:{d}" for _, c, d in encontrados)):
+        peticion = texto + contexto
+        for trozo in flujo_modelo(cli, peticion, "\n".join(f"{c}:{d}" for _, c, d in encontrados)):
             bruto += trozo
+            transcurrido = time.perf_counter() - arranque
+            if transcurrido > ESPERA_MAXIMA:
+                raise TimeoutError(
+                    f"El modelo ha tardado más de {ESPERA_MAXIMA} segundos."
+                )
             listas, _ = verifica(objetos_parciales(bruto))
-            if len(listas) > mostradas:
-                mostradas = len(listas)
+            # avanza con lo que llega y, si no llega nada, con el reloj
+            nuevo = max(
+                0.10 + 0.17 * len(listas),
+                min(0.10 + transcurrido / (ESPERA_MAXIMA * 1.6), 0.9),
+            )
+            if len(listas) > mostradas or nuevo - avance > 0.03:
+                mostradas, avance = len(listas), nuevo
                 with zona.container():
                     pinta_resultado(
-                        {"ocupaciones": listas},
+                        {"ocupaciones": listas} if listas else provisional,
                         estado="Afinando el resultado",
-                        avance=0.06 + 0.19 * mostradas,
+                        avance=avance,
                     )
     except Exception as e:  # noqa: BLE001
         zona.empty()
@@ -1016,6 +1076,7 @@ st.session_state.setdefault("usar_ia", True)
 st.session_state.setdefault("cache", {})
 st.session_state.setdefault("lexico", {})
 st.session_state.setdefault("modelo_ok", 0)
+st.session_state.setdefault("respuesta", None)
 
 st.markdown(
     '<div class="hero">'
@@ -1096,9 +1157,10 @@ if not st.session_state["historial"]:
                 st.session_state["pendiente"] = ej
                 st.rerun()
 
-for consulta, payload in st.session_state["historial"]:
+ultimo = len(st.session_state["historial"]) - 1
+for i, (consulta, payload) in enumerate(st.session_state["historial"]):
     st.markdown(f'<div class="consulta">{consulta}</div>', unsafe_allow_html=True)
-    pinta_resultado(payload)
+    pinta_resultado(payload, interactivo=(i == ultimo), consulta=consulta)
 
 if st.session_state["historial"]:
     st.markdown('<div class="cierre"></div>', unsafe_allow_html=True)
@@ -1112,9 +1174,33 @@ if st.session_state["historial"]:
 entrada = st.chat_input("Puesto, funciones o experiencia. También admite un código de 8 cifras.")
 entrada = entrada or st.session_state.pop("pendiente", None)
 
+contexto, busqueda, rotulo = "", None, None
+respuesta = st.session_state.pop("respuesta", None)
+if respuesta and not entrada:
+    original, pregunta, afirmativa = respuesta
+    entrada = original
+    rotulo = f"{original}  ·  {'Sí' if afirmativa else 'No'}"
+    contexto = (
+        f"\n\nACLARACIÓN: a la pregunta «{pregunta}» la persona responde "
+        f"{'SÍ' if afirmativa else 'NO'}. Ten en cuenta esta respuesta y no "
+        f"vuelvas a plantear la misma duda."
+    )
+    if afirmativa:
+        # si confirma, las palabras de la pregunta ayudan a buscar
+        busqueda = f"{original} {pregunta}"
+
 if entrada:
-    st.markdown(f'<div class="consulta">{entrada}</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="consulta">{rotulo or entrada}</div>', unsafe_allow_html=True)
+    bajar()
     zona = st.empty()
-    payload = resuelve(entrada, zona, usar_ia=st.session_state["usar_ia"])
-    st.session_state["historial"].append((entrada, payload))
+    payload = resuelve(
+        entrada, zona,
+        usar_ia=st.session_state["usar_ia"],
+        contexto=contexto, busqueda=busqueda,
+    )
+    st.session_state["historial"].append((rotulo or entrada, payload))
+    st.session_state["ir_al_final"] = True
     st.rerun()   # redibuja la página para que los controles sigan vivos
+
+if st.session_state.pop("ir_al_final", False):
+    bajar()
