@@ -19,7 +19,7 @@ from google.genai import types
 
 CATALOGO = "ocupaciones_sispe_ultraligero.txt"
 MODELO = "gemini-3.6-flash"
-N_CANDIDATOS = 15
+N_CANDIDATOS = 12
 
 st.set_page_config(
     page_title="Codificador de ocupaciones",
@@ -128,6 +128,15 @@ html,body,[class*="css"],.stMarkdown{ font-family:'Inter',system-ui,sans-serif; 
   text-transform:uppercase; color:var(--humo); margin:1.5rem 0 .6rem;
 }
 .nota{ font-size:.78rem; color:var(--humo); margin-top:.4rem; }
+
+.estado{
+  display:inline-flex; align-items:center; gap:.5rem;
+  font-family:'JetBrains Mono',monospace; font-size:.63rem; letter-spacing:.16em;
+  text-transform:uppercase; color:var(--humo); margin:0 0 .7rem;
+}
+.punto{ width:7px; height:7px; border-radius:50%; background:var(--coral); animation:latido 1.1s ease-in-out infinite; }
+@keyframes latido{ 0%,100%{ opacity:.2; transform:scale(.8);} 50%{ opacity:1; transform:scale(1);} }
+@media (prefers-reduced-motion:reduce){ .punto{ animation:none; opacity:.8; } }
 
 /* ---------- Controles nativos ---------- */
 div[data-testid="stChatInput"] textarea{ font-family:'Inter',sans-serif !important; font-size:.98rem !important; }
@@ -380,7 +389,7 @@ Selecciona entre 3 y 5, de mayor a menor afinidad.
 REGLAS
 1. Usa únicamente códigos y denominaciones literales de la lista de candidatos. No inventes ni modifiques ninguno.
 2. Nivel profesional: 90 aprendices (sin experiencia) / 00 técnicos o sin categoría (estándar con experiencia) / 10 dirección / 20 mandos intermedios / 30 jefes de equipo / 70 auxiliares / 80 peones.
-3. El campo "motivo" explica en menos de 12 palabras por qué encaja, en español con acentuación correcta.
+3. El campo "motivo" explica en menos de 10 palabras por qué encaja, en español con acentuación correcta.
 4. Rellena "pregunta" solo si faltan datos para decidir entre dos ocupaciones; si no, déjalo vacío.
 
 Responde solo con este JSON:
@@ -388,42 +397,114 @@ Responde solo con este JSON:
 """
 
 
-def consulta_modelo(cli, texto, candidatos):
-    prompt = (
-        f"CANDIDATOS (unica fuente valida):\n{candidatos}\n\nDESCRIPCION: {texto}"
-    )
+def _configuraciones():
+    """De la más rápida a la más lenta. La que funcione se recuerda en la sesión."""
     base = dict(
         system_instruction=INSTRUCCIONES,
         max_output_tokens=900,
         response_mime_type="application/json",
     )
-    intentos = []
-    try:
-        intentos.append(
-            {**base, "thinking_config": types.ThinkingConfig(thinking_level="minimal")}
-        )
-    except Exception:  # noqa: BLE001
-        pass
-    intentos.append(base)
-    intentos.append({k: v for k, v in base.items() if k != "response_mime_type"})
+    opciones = []
+    for nivel in ("minimal", "low"):
+        try:
+            opciones.append(
+                {**base, "thinking_config": types.ThinkingConfig(thinking_level=nivel)}
+            )
+        except Exception:  # noqa: BLE001  SDK sin thinking_level
+            break
+    opciones.append(base)
+    return opciones
+
+
+def flujo_modelo(cli, texto, candidatos):
+    """Devuelve fragmentos de texto según llegan."""
+    prompt = f"CANDIDATOS (única fuente válida):\n{candidatos}\n\nDESCRIPCIÓN: {texto}"
+    opciones = _configuraciones()
+    orden = list(range(st.session_state.get("cfg", 0), len(opciones)))
 
     ultimo = None
-    for cfg in intentos:
+    for i in orden:
+        emitido = False
         try:
-            r = cli.models.generate_content(
+            flujo = cli.models.generate_content_stream(
                 model=MODELO, contents=prompt,
-                config=types.GenerateContentConfig(**cfg),
+                config=types.GenerateContentConfig(**opciones[i]),
             )
-            return r.text
+            for trozo in flujo:
+                if not emitido:
+                    st.session_state["cfg"] = i   # esta configuración sirve
+                    emitido = True
+                if getattr(trozo, "text", None):
+                    yield trozo.text
+            return
         except Exception as e:  # noqa: BLE001
+            if emitido:      # no reintentar a medio texto: duplicaria contenido
+                raise
             ultimo = e
     raise ultimo
 
 
+def objetos_parciales(bruto):
+    """Extrae las ocupaciones ya completas de un JSON aún a medio llegar."""
+    inicio = bruto.find("[")
+    if inicio == -1:
+        return []
+    salida, prof, arranque = [], 0, None
+    cadena = escape = False
+    for i in range(inicio + 1, len(bruto)):
+        c = bruto[i]
+        if cadena:
+            if escape:
+                escape = False
+            elif c == "\\":
+                escape = True
+            elif c == '"':
+                cadena = False
+            continue
+        if c == '"':
+            cadena = True
+        elif c == "{":
+            if prof == 0:
+                arranque = i
+            prof += 1
+        elif c == "}":
+            prof -= 1
+            if prof == 0 and arranque is not None:
+                try:
+                    salida.append(json.loads(bruto[arranque:i + 1]))
+                except Exception:  # noqa: BLE001
+                    pass
+                arranque = None
+        elif c == "]" and prof == 0:
+            break
+    return salida
+
+
+def verifica(lista):
+    """Solo sobreviven los códigos que existen en el catálogo oficial."""
+    limpias, descartadas = [], 0
+    vistos = set()
+    for o in lista or []:
+        codigo = str(o.get("codigo", "")).strip()
+        if codigo in vistos:
+            continue
+        if codigo in IDX["por_codigo"]:
+            vistos.add(codigo)
+            nivel = str(o.get("nivel", "00")).strip()[:2] or "00"
+            limpias.append({
+                "codigo": codigo,
+                "denominacion": IDX["por_codigo"][codigo],   # siempre la oficial
+                "nivel": nivel,
+                "nivel_texto": NIVELES.get(nivel, "Técnicos / Sin categoría"),
+                "motivo": str(o.get("motivo", "")).strip(),
+            })
+        elif codigo:
+            descartadas += 1
+    return limpias[:5], descartadas
+
+
 def interpreta(bruto):
-    """Convierte la respuesta en datos verificados contra el catalogo."""
-    texto = (bruto or "").strip()
-    texto = re.sub(r"^```(?:json)?|```$", "", texto, flags=re.MULTILINE).strip()
+    texto = re.sub(r"^```(?:json)?|```$", "", (bruto or "").strip(), flags=re.MULTILINE)
     datos = {}
     try:
         datos = json.loads(texto)
@@ -434,24 +515,13 @@ def interpreta(bruto):
                 datos = json.loads(bloque.group())
             except Exception:  # noqa: BLE001
                 datos = {}
+    if not datos:
+        ocupaciones, descartadas = verifica(objetos_parciales(texto))
+        return {"ocupaciones": ocupaciones, "pregunta": "", "descartadas": descartadas}
 
-    limpias, descartadas = [], 0
-    for o in datos.get("ocupaciones", []) or []:
-        codigo = str(o.get("codigo", "")).strip()
-        if codigo in IDX["por_codigo"]:
-            nivel = str(o.get("nivel", "00")).strip()[:2] or "00"
-            limpias.append({
-                "codigo": codigo,
-                "denominacion": IDX["por_codigo"][codigo],  # siempre la oficial
-                "nivel": nivel,
-                "nivel_texto": NIVELES.get(nivel, "Técnicos / Sin categoría"),
-                "motivo": str(o.get("motivo", "")).strip(),
-            })
-        elif codigo:
-            descartadas += 1
-
+    ocupaciones, descartadas = verifica(datos.get("ocupaciones"))
     return {
-        "ocupaciones": limpias[:5],
+        "ocupaciones": ocupaciones,
         "pregunta": str(datos.get("pregunta", "") or "").strip(),
         "descartadas": descartadas,
     }
@@ -479,7 +549,12 @@ def pinta_tarjeta(i, o, destacada=False):
     )
 
 
-def pinta_resultado(payload):
+def pinta_resultado(payload, estado=None):
+    if estado:
+        st.markdown(
+            f'<div class="estado"><span class="punto"></span>{estado}</div>',
+            unsafe_allow_html=True,
+        )
     if payload.get("aviso"):
         st.info(payload["aviso"])
         return
@@ -502,6 +577,9 @@ def pinta_resultado(payload):
             f'<div class="texto">{payload["pregunta"]}</div></div>',
             unsafe_allow_html=True,
         )
+
+    if estado:
+        return
 
     st.markdown('<div class="seccion">Copiar códigos</div>', unsafe_allow_html=True)
     st.code("\n".join(o["codigo"] for o in ocupaciones), language=None)
@@ -532,53 +610,85 @@ def pinta_resultado(payload):
 # LOGICA DE CONSULTA
 # ---------------------------------------------------------------------------
 
-def resuelve(texto, usar_ia=True):
+def _basica(encontrados, motivo=""):
+    return [{
+        "codigo": c, "denominacion": d, "nivel": "00",
+        "nivel_texto": NIVELES["00"], "motivo": motivo,
+    } for _, c, d in encontrados[:5]]
+
+
+def resuelve(texto, zona, usar_ia=True):
+    """Pinta resultados desde el primer instante y los va afinando."""
     codigo = texto.strip()
     if re.fullmatch(r"\d{8}", codigo):
         if codigo in IDX["por_codigo"]:
-            return {"ocupaciones": [{
+            payload = {"ocupaciones": [{
                 "codigo": codigo,
                 "denominacion": IDX["por_codigo"][codigo],
                 "nivel": "00",
                 "nivel_texto": NIVELES["00"],
                 "motivo": "Consulta directa por código.",
             }]}
-        return {"aviso": f"El código {codigo} no figura en el catálogo oficial."}
+        else:
+            payload = {"aviso": f"El código {codigo} no figura en el catálogo oficial."}
+        with zona.container():
+            pinta_resultado(payload)
+        return payload
 
     encontrados = busca(texto, tope=N_CANDIDATOS)
     if not encontrados:
-        return {"ocupaciones": []}
+        payload = {"ocupaciones": []}
+        with zona.container():
+            pinta_resultado(payload)
+        return payload
 
+    memoria = st.session_state["cache"]
+    clave = normaliza(texto)
+    if clave in memoria:
+        with zona.container():
+            pinta_resultado(memoria[clave])
+        return memoria[clave]
+
+    provisional = {
+        "ocupaciones": _basica(encontrados),
+        "otras": [(c, d) for _, c, d in encontrados[5:12]],
+    }
     cli = cliente() if usar_ia else None
-    if cli is None:
-        return {
-            "ocupaciones": [{
-                "codigo": c, "denominacion": d, "nivel": "00",
-                "nivel_texto": NIVELES["00"], "motivo": "",
-            } for _, c, d in encontrados[:5]],
-            "otras": [(c, d) for _, c, d in encontrados[5:12]],
-        }
 
+    if cli is None:
+        with zona.container():
+            pinta_resultado(provisional)
+        return provisional
+
+    # Resultados del catálogo mientras el modelo responde
+    with zona.container():
+        pinta_resultado(provisional, estado="Afinando la selección")
+
+    bruto, mostradas = "", 0
     try:
-        bruto = consulta_modelo(cli, texto, "\n".join(f"{c}:{d}" for _, c, d in encontrados))
+        for trozo in flujo_modelo(cli, texto, "\n".join(f"{c}:{d}" for _, c, d in encontrados)):
+            bruto += trozo
+            listas, _ = verifica(objetos_parciales(bruto))
+            if len(listas) > mostradas:
+                mostradas = len(listas)
+                with zona.container():
+                    pinta_resultado({"ocupaciones": listas}, estado="Afinando la selección")
     except Exception:  # noqa: BLE001
-        return {
-            "ocupaciones": [{
-                "codigo": c, "denominacion": d, "nivel": "00",
-                "nivel_texto": NIVELES["00"], "motivo": "",
-            } for _, c, d in encontrados[:5]],
-            "otras": [(c, d) for _, c, d in encontrados[5:12]],
-        }
+        with zona.container():
+            pinta_resultado(provisional)
+        return provisional
 
     payload = interpreta(bruto)
     if not payload["ocupaciones"]:
-        payload["ocupaciones"] = [{
-            "codigo": c, "denominacion": d, "nivel": "00",
-            "nivel_texto": NIVELES["00"], "motivo": "",
-        } for _, c, d in encontrados[:5]]
+        payload["ocupaciones"] = provisional["ocupaciones"]
     elegidos = {o["codigo"] for o in payload["ocupaciones"]}
     payload["otras"] = [(c, d) for _, c, d in encontrados if c not in elegidos][:7]
+
+    with zona.container():
+        pinta_resultado(payload)
+    memoria[clave] = payload
     return payload
+
 
 
 # ---------------------------------------------------------------------------
@@ -588,6 +698,7 @@ def resuelve(texto, usar_ia=True):
 st.session_state.setdefault("historial", [])
 st.session_state.setdefault("pendiente", None)
 st.session_state.setdefault("usar_ia", True)
+st.session_state.setdefault("cache", {})
 
 st.markdown(
     '<div class="hero">'
@@ -654,7 +765,6 @@ entrada = entrada or st.session_state.pop("pendiente", None)
 
 if entrada:
     st.markdown(f'<div class="consulta">{entrada}</div>', unsafe_allow_html=True)
-    with st.spinner("Buscando en el catálogo…"):
-        payload = resuelve(entrada, usar_ia=st.session_state["usar_ia"])
-    pinta_resultado(payload)
+    zona = st.empty()
+    payload = resuelve(entrada, zona, usar_ia=st.session_state["usar_ia"])
     st.session_state["historial"].append((entrada, payload))
