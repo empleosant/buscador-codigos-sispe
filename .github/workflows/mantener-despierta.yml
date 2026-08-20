@@ -1,24 +1,26 @@
-# Despertador de la aplicación.
+# Despertador de la aplicación
 #
-# Va en el repositorio, en la ruta:  .github/workflows/mantener-despierta.yml
+# Ubicación en el repositorio:  .github/workflows/mantener-despierta.yml
 #
-# Cada seis horas abre la app con un navegador real y, si la encuentra
-# dormida, pulsa el botón de reactivarla. Un ping normal no sirve: devuelve
-# 200 pero solo carga la cáscara HTML, sin arrancar el proceso de Python.
+# Abre la app con un navegador real. Un ping normal devuelve 200 aunque el
+# proceso siga dormido, por eso hace falta un navegador.
 #
-# Antes de usarlo, cambia la URL de abajo por la de tu aplicación.
+# ANTES DE USARLO: cambia la URL de la línea marcada.
+#   Streamlit:     https://tu-app.streamlit.app
+#   Hugging Face:  https://tuusuario-tuspace.hf.space   (la directa, no la de
+#                  huggingface.co/spaces/..., que la muestra dentro de un marco)
 
 name: Mantener la app despierta
 
 on:
   schedule:
-    - cron: '0 */6 * * *'      # cada 6 horas (hora UTC)
-  workflow_dispatch:            # y también a mano, desde la pestaña Actions
+    - cron: '0 6,18 * * *'      # 08:00 y 20:00 hora peninsular
+  workflow_dispatch:             # y a mano, desde la pestaña Actions
 
 jobs:
   despertar:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/setup-python@v5
         with:
@@ -34,38 +36,66 @@ jobs:
           URL: https://TU-APP.streamlit.app        # <-- cámbiala
         run: |
           python - <<'PY'
-          import os, sys, time
+          import os
+          import sys
+
           from playwright.sync_api import sync_playwright
 
           url = os.environ["URL"]
 
+          if "TU-APP" in url or "TU-USUARIO" in url:
+              print("ERROR: la URL sigue siendo el marcador de posicion.")
+              print("Edita este archivo y pon la direccion real de tu aplicacion.")
+              sys.exit(1)
+
+          print(f"Abriendo {url}")
+
           with sync_playwright() as p:
               navegador = p.chromium.launch()
               pagina = navegador.new_page()
-              pagina.goto(url, timeout=60000)
-              pagina.wait_for_timeout(5000)
 
-              texto = pagina.content().lower()
-              dormida = "zzz" in texto or "get this app back up" in texto
-
-              if dormida:
-                  print("Estaba dormida. Despertándola...")
-                  try:
-                      pagina.get_by_role("button").first.click(timeout=15000)
-                      pagina.wait_for_timeout(45000)   # arrancar tarda un rato
-                  except Exception as e:
-                      print(f"No he podido pulsar el botón: {e}")
-              else:
-                  print("Ya estaba despierta.")
-
-              # Comprobación final: el cuadro de texto debe existir
               try:
-                  pagina.wait_for_selector("textarea", timeout=30000)
-                  print("La aplicación responde correctamente.")
-              except Exception:
-                  print("La aplicación no ha terminado de cargar.")
+                  pagina.goto(url, timeout=90000)
+              except Exception as e:
+                  print(f"No se ha podido abrir la direccion: {e}")
+                  print("Revisa que la URL sea correcta y que la app exista.")
                   navegador.close()
                   sys.exit(1)
 
+              pagina.wait_for_timeout(5000)
+              texto = pagina.content().lower()
+
+              # Streamlit Cloud muestra un boton; Hugging Face arranca solo.
+              if "zzz" in texto or "get this app back up" in texto:
+                  print("Estaba dormida. Pulsando el boton de reactivar...")
+                  try:
+                      pagina.get_by_role("button").first.click(timeout=15000)
+                  except Exception as e:
+                      print(f"No se ha podido pulsar el boton: {e}")
+              else:
+                  print("No aparece la pantalla de hibernacion.")
+
+              # Senal de vida: cualquier cosa con la que se pueda interactuar.
+              # Se prueban varias porque la interfaz cambia con el tiempo.
+              senales = [
+                  "input",
+                  "textarea",
+                  "button",
+                  "[data-testid='stAppViewContainer']",
+                  "[data-testid='stMain']",
+              ]
+              for senal in senales:
+                  try:
+                      pagina.wait_for_selector(senal, timeout=60000)
+                      print(f"La aplicacion responde (encontrado: {senal}).")
+                      navegador.close()
+                      sys.exit(0)
+                  except Exception:
+                      continue
+
+              # No se rinde con error: la app puede estar arrancando todavia y
+              # el aviso por correo cada vez seria mas molesto que util.
+              print("AVISO: no se ha confirmado que la interfaz este cargada.")
+              print("Puede que siga arrancando. Se reintentara en el proximo turno.")
               navegador.close()
           PY
