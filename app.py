@@ -205,67 +205,74 @@ VACIAS = {
     "ocupaciones", "codigo", "codigos", "puesto", "persona", "personas",
     "gente", "alguien", "senor", "senora", "chico", "chica", "tiene", "tenia",
     "hacia", "hace", "estado", "sido", "una", "unos", "unas", "casa", "casas",
+    "sus", "mis", "tus", "este", "esta", "esto", "ese", "esa", "muy", "bien",
+    "algo", "cosas", "cosa", "tipo", "tipos", "ahora", "antes", "despues",
 }
 
 SINONIMOS = {
-    "uber": "conductores automoviles taxis furgonetas taxistas pasajeros",
-    "cabify": "conductores automoviles taxis furgonetas taxistas pasajeros",
-    "vtc": "conductores automoviles taxis furgonetas taxistas pasajeros",
-    "bolt": "conductores automoviles taxis furgonetas taxistas pasajeros",
-    "glovo": "repartidor motocicleta ciclomotor reparto domicilio mensajero",
-    "uber eats": "repartidor motocicleta ciclomotor reparto domicilio",
-    "just eat": "repartidor motocicleta ciclomotor reparto domicilio",
-    "deliveroo": "repartidor motocicleta ciclomotor reparto domicilio",
-    "rider": "repartidor motocicleta ciclomotor reparto domicilio",
-    "amazon": "mozo carga descarga almacen preparador pedidos",
-    "carretillero": "carretillas elevadoras conductor operadores almacen",
-    "mozo": "mozos carga descarga almacen mercado peones",
-    "reponedor": "reponedores comercio dependientes almacen",
-    "camarera": "camareros barra sala cafeteria restaurante",
-    "cocinera": "cocineros ayudantes cocina restaurante",
-    "limpiadora": "personal limpieza limpiadores instituciones domicilios",
-    "kelly": "camareros piso hosteleria limpieza habitaciones",
-    "enfermera": "enfermeros cuidados generales clinica hospital",
-    "cuidadora": "cuidadores auxiliares personas mayores dependencia domicilio",
-    "interna": "empleados hogar domicilio cuidadores",
-    "teleoperadora": "teleoperadores telefonistas atencion cliente",
-    "administrativa": "empleados administrativos contabilidad administracion",
-    "secretaria": "secretarios direccion administracion oficina",
-    "recepcionista": "recepcionistas hotel oficinas informacion",
-    "comercial": "agentes comerciales representantes venta",
-    "dependienta": "dependientes comercio tiendas venta",
-    "cajera": "cajeros comercio supermercado",
-    "programador": "programadores aplicaciones informaticas analistas software",
-    "desarrollador": "programadores aplicaciones informaticas analistas web software",
-    "informatico": "tecnicos mantenimiento reparacion equipos informaticos redes",
-    "socorrista": "socorristas piscinas salvamento",
-    "mecanico": "mecanicos mantenimiento reparacion automocion vehiculos",
-    "fontanera": "fontaneros instaladores tuberias fluidos gas calefaccion",
-    "fontanero": "fontaneros instaladores tuberias fluidos",
-    "electricista": "instaladores electricistas edificios viviendas industriales",
-    "albanil": "albaniles encofradores mamposteros construccion obra",
-    "peon": "peones construccion industria obra",
-    "vigilante": "vigilantes seguridad escoltas control acceso",
-    "monitora": "monitores actividades tiempo libre ocio",
-    "profesora": "profesores ensenanza educacion",
-    "esteticista": "esteticistas belleza estetica",
-    "peluquera": "peluqueros barberos",
-    "costurera": "costureros confeccion textil",
-    "jardinera": "jardineros paisajismo horticultura",
+    # Solo hace falta una entrada cuando la palabra de la persona NO comparte
+    # raíz con la del catálogo. Género y plural ya los resuelve raiz():
+    # camarera→camarer→camareros, peluquera→peluquer→peluqueros, etc.
+
+    # plataformas y marcas
+    "uber": "conductores automoviles taxis furgonetas taxistas",
+    "cabify": "conductores automoviles taxis furgonetas taxistas",
+    "vtc": "conductores automoviles taxis furgonetas taxistas",
+    "bolt": "conductores automoviles taxis furgonetas taxistas",
+    "glovo": "repartidores motocicleta ciclomotor reparto",
+    "uber eats": "repartidores motocicleta ciclomotor reparto",
+    "just eat": "repartidores motocicleta ciclomotor reparto",
+    "deliveroo": "repartidores motocicleta ciclomotor reparto",
+    "rider": "repartidores motocicleta ciclomotor reparto",
+    "amazon": "mozos carga descarga almacen preparadores pedidos",
+
+    # coloquialismos de oficio
+    "carretillero": "carretillas elevadoras operadores",
+    "kelly": "camareros piso habitaciones",
+    "interna": "hogar internos domicilio",
+    "interno": "hogar internos domicilio",
+    "informatico": "tecnicos equipos informaticos redes microinformaticos",
+    "desarrollador": "programadores aplicaciones informaticas software",
+    "teleoperadora": "teleoperadores telefonistas",
+    "teleoperador": "teleoperadores telefonistas",
+    "chofer": "conductores",
+    "chapista": "chapistas carroceria",
+
+    # oficina: la persona nombra la tarea, el catálogo nombra el puesto
+    "administrativa": "empleados administrativos oficina",
+    "administrativo": "empleados administrativos oficina",
+    "facturacion": "contabilidad administrativos empleados",
+    "facturas": "contabilidad administrativos empleados",
+    "nominas": "contabilidad administrativos empleados",
+    "contabilidad": "contabilidad administrativos empleados",
+    "atencion al cliente": "atencion cliente empleados administrativos",
+    "secretaria": "secretarios direccion administrativos",
+    "archivo": "archivo administrativos empleados",
+
+    # idiomas: el catálogo dice "idiomas", nunca el idioma concreto
     "ingles": "idiomas profesores",
     "frances": "idiomas profesores",
     "aleman": "idiomas profesores",
+    "italiano": "idiomas profesores",
+    "chino": "idiomas profesores",
     "ele": "idiomas profesores",
-    # entorno de trabajo: domicilio frente a institucion
+
+    # entorno de trabajo: domicilio frente a institución
     "casa": "domiciliarios domicilio hogar",
     "domicilio": "domiciliarios hogar",
     "particular": "hogar domiciliarios",
     "hogar": "hogar domiciliarios",
-    "mayores": "dependencia domiciliarios asistentes acompanantes",
+    "residencia": "instituciones dependencia",
+    "geriatrico": "instituciones dependencia",
+
+    # personas atendidas
+    "mayores": "mayores dependencia domiciliarios asistentes",
+    "anciano": "mayores dependencia domiciliarios asistentes",
+    "ancianos": "mayores dependencia domiciliarios asistentes",
+    "abuelo": "mayores dependencia domiciliarios asistentes",
+    "abuela": "mayores dependencia domiciliarios asistentes",
+    "tercera edad": "mayores dependencia domiciliarios asistentes",
     "dependencia": "dependencia domiciliarios asistentes",
-    "dependiente": "dependencia domiciliarios asistentes",
-    "residencia": "instituciones geriatrico dependencia cuidadores",
-    "geriatrico": "instituciones dependencia cuidadores",
 }
 
 NIVELES = {
@@ -378,7 +385,7 @@ def busca(consulta, tope=20):
     for clave, expansion in SINONIMOS.items():
         if clave in q:
             for w in re.findall(r"\w+", normaliza(expansion)):
-                terminos.setdefault(w, 0.8)
+                terminos.setdefault(w, 0.6)
     if not terminos:
         return []
 
@@ -415,11 +422,18 @@ def busca(consulta, tope=20):
                     suma(i, k, r)
 
     n_term = max(1, len(originales))
+    n_total = max(1, len({raiz(w) for w in terminos}))
     resultados = []
     for i, valor in puntos.items():
         reg = IDX["registros"][i]
         nucleo = 1.0 + 0.5 * len(cubierto[i] & reg["cabeza"])
-        cobertura = 0.6 + 0.4 * min(1.0, len(cubierto[i] & originales) / n_term)
+        propios = len(cubierto[i] & originales)
+        # premia encajar con varias palabras a la vez, sean propias o expandidas
+        cobertura = (
+            0.55
+            + 0.30 * min(1.0, len(cubierto[i]) / n_total)
+            + 0.15 * min(1.0, propios / n_term)
+        )
         resultados.append((valor * nucleo * cobertura, reg["codigo"], reg["denom"]))
     resultados.sort(reverse=True)
     return resultados[:tope]
