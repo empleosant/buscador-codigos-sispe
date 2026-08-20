@@ -37,24 +37,42 @@ N_CANDIDATOS = 12
 PROVEEDOR = "gemini"
 
 PROVEEDORES = {
+    # El primero es el preferido. Si agota cuota o no existe, se pasa al
+    # siguiente automáticamente. Cuotas gratuitas al día, agosto 2026:
+    #   gemini-3.5-flash-lite  500      gemini-3.1-flash-lite  500
+    #   gemini-3.6-flash        20  <-- por eso no va el primero
     "gemini": {
         "clave": "GEMINI_API_KEY",
-        "modelo": "gemini-3.6-flash",
+        "modelos": [
+            "gemini-3.5-flash-lite",
+            "gemini-3.1-flash-lite",
+            "gemini-2.5-flash-lite",
+            "gemini-3.6-flash",
+        ],
     },
     "groq": {
         "clave": "GROQ_API_KEY",
-        "modelo": "llama-3.3-70b-versatile",
+        "modelos": ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"],
         "url": "https://api.groq.com/openai/v1",
     },
     "mistral": {
         "clave": "MISTRAL_API_KEY",
-        "modelo": "mistral-small-latest",
+        "modelos": ["mistral-small-latest"],
         "url": "https://api.mistral.ai/v1",
     },
 }
 
 AJUSTES = PROVEEDORES[PROVEEDOR]
-MODELO = AJUSTES["modelo"]
+MODELOS = AJUSTES["modelos"]
+
+
+def modelo_actual():
+    return MODELOS[min(st.session_state.get("modelo_ok", 0), len(MODELOS) - 1)]
+
+
+def sin_cuota(e):
+    t = str(e)
+    return "429" in t or "RESOURCE_EXHAUSTED" in t or "quota" in t.lower()
 
 st.set_page_config(
     page_title="Codificador de ocupaciones",
@@ -516,31 +534,35 @@ def _configuraciones():
 def _flujo_gemini(cli, prompt):
     opciones = _configuraciones()
     ultimo = None
-    for i in range(st.session_state.get("cfg", 0), len(opciones)):
-        emitido = False
-        try:
-            flujo = cli.models.generate_content_stream(
-                model=MODELO, contents=prompt,
-                config=types.GenerateContentConfig(**opciones[i]),
-            )
-            for trozo in flujo:
-                if not emitido:
-                    st.session_state["cfg"] = i
-                    emitido = True
-                if getattr(trozo, "text", None):
-                    yield trozo.text
-            return
-        except Exception as e:  # noqa: BLE001
-            if emitido:      # no reintentar a medio texto: duplicaría contenido
-                raise
-            ultimo = e
+    for m in range(st.session_state.get("modelo_ok", 0), len(MODELOS)):
+        for i in range(st.session_state.get("cfg", 0), len(opciones)):
+            emitido = False
+            try:
+                flujo = cli.models.generate_content_stream(
+                    model=MODELOS[m], contents=prompt,
+                    config=types.GenerateContentConfig(**opciones[i]),
+                )
+                for trozo in flujo:
+                    if not emitido:
+                        st.session_state["modelo_ok"] = m
+                        st.session_state["cfg"] = i
+                        emitido = True
+                    if getattr(trozo, "text", None):
+                        yield trozo.text
+                return
+            except Exception as e:  # noqa: BLE001
+                if emitido:   # no reintentar a medio texto: duplicaría contenido
+                    raise
+                ultimo = e
+                if sin_cuota(e):
+                    break     # cuota agotada: cambiar de modelo, no de ajuste
     raise ultimo
 
 
 def _flujo_openai(cli, prompt):
     """Groq, Mistral y cualquier otro compatible con el formato de OpenAI."""
     flujo = cli.chat.completions.create(
-        model=MODELO,
+        model=modelo_actual(),
         messages=[
             {"role": "system", "content": INSTRUCCIONES},
             {"role": "user", "content": prompt},
@@ -578,13 +600,13 @@ def pregunta_corta(cli, sistema, prompt, maximo=220):
         except Exception:  # noqa: BLE001
             pass
         r = cli.models.generate_content(
-            model=MODELO, contents=prompt,
+            model=modelo_actual(), contents=prompt,
             config=types.GenerateContentConfig(**cfg),
         )
         return (getattr(r, "text", "") or "").strip()
 
     r = cli.chat.completions.create(
-        model=MODELO,
+        model=modelo_actual(),
         messages=[
             {"role": "system", "content": sistema},
             {"role": "user", "content": prompt},
@@ -903,6 +925,7 @@ st.session_state.setdefault("pendiente", None)
 st.session_state.setdefault("usar_ia", True)
 st.session_state.setdefault("cache", {})
 st.session_state.setdefault("lexico", {})
+st.session_state.setdefault("modelo_ok", 0)
 
 st.markdown(
     '<div class="hero">'
@@ -949,7 +972,7 @@ with ajustes:
                         prueba, "Responde únicamente con la palabra ok.",
                         "ok", maximo=200,
                     )
-                    st.success(f"{MODELO}: {eco[:60] or '(respuesta vacía)'}")
+                    st.success(f"{modelo_actual()}: {eco[:60] or '(respuesta vacía)'}")
                 except Exception as e:  # noqa: BLE001
                     st.error(f"{type(e).__name__}: {e}")
 
