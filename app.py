@@ -14,6 +14,9 @@ import unicodedata
 from collections import defaultdict
 from difflib import SequenceMatcher
 
+import urllib.error
+import urllib.request
+
 import streamlit as st
 import streamlit.components.v1 as components
 
@@ -336,6 +339,78 @@ NIVELES = {
 }
 
 
+# ---------------------------------------------------------------------------
+# DICCIONARIO COMPARTIDO
+# Los términos que la IA traduce sobre la marcha se guardan en un Gist de
+# GitHub, de modo que lo que descubre una persona lo aprovechan todas.
+# Es opcional: sin GIST_ID y GITHUB_TOKEN en los Secrets, la app funciona
+# igual, pero cada sesión empieza de cero.
+# ---------------------------------------------------------------------------
+
+ARCHIVO_GIST = "lexico.json"
+
+
+def _credenciales():
+    gist = st.secrets.get("GIST_ID") or os.environ.get("GIST_ID")
+    token = st.secrets.get("GITHUB_TOKEN") or os.environ.get("GITHUB_TOKEN")
+    return (gist, token) if gist and token else (None, None)
+
+
+def _peticion(url, token, datos=None, metodo="GET"):
+    cuerpo = json.dumps(datos).encode("utf-8") if datos is not None else None
+    p = urllib.request.Request(url, data=cuerpo, method=metodo)
+    p.add_header("Authorization", f"Bearer {token}")
+    p.add_header("Accept", "application/vnd.github+json")
+    if cuerpo:
+        p.add_header("Content-Type", "application/json")
+    with urllib.request.urlopen(p, timeout=10) as r:
+        return json.loads(r.read().decode("utf-8"))
+
+
+@st.cache_data(ttl=300, show_spinner=False)
+def lexico_compartido():
+    """Términos que ya han aprendido otras personas. Se refresca cada 5 min."""
+    gist, token = _credenciales()
+    if not gist:
+        return {}
+    try:
+        datos = _peticion(f"https://api.github.com/gists/{gist}", token)
+        contenido = datos["files"][ARCHIVO_GIST]["content"]
+        return {str(k): str(v) for k, v in json.loads(contenido).items()}
+    except Exception:  # noqa: BLE001  sin conexión o gist vacío
+        return {}
+
+
+def guarda_termino(clave, valor):
+    """Añade un término al diccionario compartido, sin pisar lo de los demás."""
+    gist, token = _credenciales()
+    if not gist:
+        return False
+    try:
+        actual = dict(lexico_compartido())
+        if actual.get(clave) == valor:
+            return True
+        actual[clave] = valor
+        _peticion(
+            f"https://api.github.com/gists/{gist}", token,
+            datos={"files": {ARCHIVO_GIST: {
+                "content": json.dumps(actual, ensure_ascii=False, indent=1, sort_keys=True)
+            }}},
+            metodo="PATCH",
+        )
+        lexico_compartido.clear()      # que el resto lo vea en el próximo refresco
+        return True
+    except Exception:  # noqa: BLE001
+        return False
+
+
+def diccionario():
+    """Los sinónimos del código más lo aprendido por todo el equipo."""
+    fusion = dict(lexico_compartido())
+    fusion.update(SINONIMOS)           # lo fijado a mano manda
+    return fusion
+
+
 def normaliza(t):
     return "".join(
         c for c in unicodedata.normalize("NFD", t) if unicodedata.category(c) != "Mn"
@@ -463,7 +538,8 @@ def desconocidas(consulta):
             continue
         if any(v.startswith(r) or r.startswith(v) for v in IDX["vocab_raiz"] if len(v) > 3):
             continue
-        if w in SINONIMOS or any(w in c.split() for c in SINONIMOS if " " in c):
+        vocabulario = diccionario()
+        if w in vocabulario or any(w in c.split() for c in vocabulario if " " in c):
             continue
         fuera.append(w)
     return fuera
@@ -476,7 +552,7 @@ def busca(consulta, tope=20):
         if len(w) > 2 and w not in VACIAS:
             terminos[w] = 1.0
     palabras_q = set(re.findall(r"\w+", q))
-    for clave, expansion in SINONIMOS.items():
+    for clave, expansion in diccionario().items():
         # clave de una palabra: coincidencia exacta ("ele" no debe saltar con
         # "elementos"). Clave de varias: basta con que aparezca la expresión.
         if (clave in palabras_q) if " " not in clave else (clave in q):
@@ -716,6 +792,7 @@ def traduce_jerga(cli, palabras, contexto):
     if not limpio:
         return "", f"Traducción de «{clave}»: el modelo devolvió una respuesta vacía."
     lexico[clave] = limpio
+    guarda_termino(clave, limpio)      # queda para todo el equipo
     return limpio, ""
 
 
@@ -858,21 +935,127 @@ def bajar():
     )
 
 
-def pinta_tarjeta(i, o, destacada=False):
-    clase = "tarjeta top" if destacada else "tarjeta"
-    etiqueta = "etiqueta destacada" if destacada else "etiqueta"
-    motivo = f'<div class="motivo">{o["motivo"]}</div>' if o["motivo"] else ""
-    st.markdown(
-        f'<div class="{clase}">'
-        f'  <div class="fila">'
-        f'    <span class="orden">{i:02d}</span>'
-        f'    <span class="codigo">{o["codigo"]}</span>'
-        f'    <span class="{etiqueta}">Nivel {o["nivel"]} &middot; {o["nivel_texto"]}</span>'
-        f'  </div>'
-        f'  <div class="denominacion">{o["denominacion"]}</div>'
-        f'  {motivo}'
-        f'</div>',
-        unsafe_allow_html=True,
+ESTILO_TARJETAS = """
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap');
+*{ box-sizing:border-box; }
+body{
+  margin:0; background:transparent; font-family:'Inter',system-ui,sans-serif;
+  --tinta:#0E1116; --cobalto:#1F3BFF; --coral:#FF5A36;
+  --hueso:#F3F1EC; --humo:#6B6F76; --borde:#E4E0D8;
+  color:var(--tinta);
+}
+.tarjeta{
+  background:#fff; border:1px solid var(--borde); border-radius:18px;
+  padding:1.15rem 1.3rem; margin-bottom:.7rem;
+  animation:entrar .32s cubic-bezier(.22,.9,.3,1) both;
+}
+.tarjeta.top{ border:1.5px solid var(--tinta); }
+.tarjeta:nth-of-type(2){ animation-delay:.04s; }
+.tarjeta:nth-of-type(3){ animation-delay:.08s; }
+@keyframes entrar{ from{ opacity:0; transform:translateY(10px);} to{ opacity:1; transform:none;} }
+@media (prefers-reduced-motion:reduce){ .tarjeta{ animation:none; } }
+
+.fila{ display:flex; align-items:center; gap:.6rem; flex-wrap:wrap; }
+.orden{
+  font-family:'JetBrains Mono',monospace; font-size:.7rem; color:var(--humo);
+  border:1px solid var(--borde); border-radius:99px; padding:.12rem .5rem;
+}
+.codigo{
+  font-family:'JetBrains Mono',monospace; font-weight:700;
+  font-size:clamp(1.35rem,4.4vw,1.7rem); letter-spacing:.1em; color:var(--cobalto);
+}
+.tarjeta.top .codigo{ color:var(--tinta); }
+.copiar{
+  font-family:'Inter',sans-serif; font-size:.68rem; font-weight:500;
+  color:var(--humo); background:var(--hueso); border:1px solid var(--borde);
+  border-radius:99px; padding:.22rem .6rem; cursor:pointer;
+  transition:all .15s ease; white-space:nowrap;
+}
+.copiar:hover{ background:var(--tinta); border-color:var(--tinta); color:#fff; }
+.copiar.hecho{ background:var(--coral); border-color:var(--coral); color:#fff; }
+.denominacion{
+  font-family:'Space Grotesk',sans-serif; font-weight:500; font-size:1.02rem;
+  line-height:1.35; letter-spacing:-.01em; margin:.45rem 0 .55rem;
+}
+.motivo{ font-size:.86rem; color:var(--humo); line-height:1.5; }
+.etiqueta{
+  display:inline-block; font-family:'JetBrains Mono',monospace; font-size:.66rem;
+  letter-spacing:.09em; text-transform:uppercase; padding:.2rem .55rem;
+  border-radius:99px; background:var(--hueso); border:1px solid var(--borde); color:var(--humo);
+}
+.etiqueta.destacada{ background:var(--coral); border-color:var(--coral); color:#fff; }
+"""
+
+GUION_COPIAR = """
+function copiar(boton, codigo){
+  const listo = function(){
+    const antes = boton.textContent;
+    boton.textContent = 'Copiado';
+    boton.classList.add('hecho');
+    setTimeout(function(){ boton.textContent = antes; boton.classList.remove('hecho'); }, 1400);
+  };
+  if (navigator.clipboard && window.isSecureContext){
+    navigator.clipboard.writeText(codigo).then(listo).catch(function(){ viejo(codigo, listo); });
+  } else {
+    viejo(codigo, listo);
+  }
+}
+function viejo(codigo, listo){
+  const caja = document.createElement('textarea');
+  caja.value = codigo;
+  caja.style.position = 'fixed';
+  caja.style.opacity = '0';
+  document.body.appendChild(caja);
+  caja.select();
+  try { document.execCommand('copy'); listo(); } catch (e) {}
+  document.body.removeChild(caja);
+}
+function alto(){
+  parent.postMessage(
+    {type:'streamlit:setFrameHeight', height: document.documentElement.scrollHeight + 4},
+    '*'
+  );
+}
+document.querySelectorAll('.copiar').forEach(function (b) {
+  b.addEventListener('click', function () { copiar(b, b.dataset.cod); });
+});
+window.addEventListener('load', alto);
+setTimeout(alto, 60); setTimeout(alto, 400); setTimeout(alto, 1200);
+"""
+
+
+def pinta_tarjetas(ocupaciones):
+    """Todas las fichas de un resultado, en un solo marco con botón de copiar."""
+    if not ocupaciones:
+        return
+
+    trozos = []
+    for i, o in enumerate(ocupaciones, 1):
+        clase = "tarjeta top" if i == 1 else "tarjeta"
+        etiqueta = "etiqueta destacada" if i == 1 else "etiqueta"
+        motivo = f'<div class="motivo">{o["motivo"]}</div>' if o.get("motivo") else ""
+        trozos.append(
+            f'<div class="{clase}">'
+            f'  <div class="fila">'
+            f'    <span class="orden">{i:02d}</span>'
+            f'    <span class="codigo">{o["codigo"]}</span>'
+            f'    <button class="copiar" data-cod="{o["codigo"]}">Copiar</button>'
+            f'    <span class="{etiqueta}">Nivel {o["nivel"]} &middot; {o["nivel_texto"]}</span>'
+            f'  </div>'
+            f'  <div class="denominacion">{o["denominacion"]}</div>'
+            f'  {motivo}'
+            f'</div>'
+        )
+
+    # Altura inicial aproximada; el guion la corrige al cargar.
+    estimada = 40 + sum(
+        118 + 22 * (len(o["denominacion"]) // 46) + (20 if o.get("motivo") else 0)
+        for o in ocupaciones
+    )
+    components.html(
+        f"<style>{ESTILO_TARJETAS}</style>{''.join(trozos)}"
+        f"<script>{GUION_COPIAR}</script>",
+        height=estimada,
     )
 
 
@@ -892,8 +1075,7 @@ def pinta_resultado(payload, estado=None, avance=0.06, interactivo=False, consul
         )
         return
 
-    for i, o in enumerate(ocupaciones, 1):
-        pinta_tarjeta(i, o, destacada=(i == 1))
+    pinta_tarjetas(ocupaciones)
 
     if payload.get("pregunta"):
         st.markdown(
@@ -1138,15 +1320,26 @@ with ajustes:
                 except Exception as e:  # noqa: BLE001
                     st.error(f"{type(e).__name__}: {e}")
 
-        if st.session_state.get("lexico"):
+        compartido = lexico_compartido()
+        gist_activo, _ = _credenciales()
+
+        if gist_activo:
+            st.markdown("**Diccionario compartido**")
+            st.caption(
+                f"{len(compartido)} términos aprendidos entre todas. "
+                "Se guardan solos al aparecer."
+            )
+        elif st.session_state.get("lexico"):
             st.markdown("**Términos aprendidos**")
-            st.caption("Pégalos en SINONIMOS para no volver a traducirlos.")
+            st.caption("Solo en esta sesión. Pégalos en SINONIMOS para conservarlos.")
+
+        vistos = {**compartido, **st.session_state.get("lexico", {})}
+        if vistos:
             st.code(
-                "\n".join(
-                    f'"{k}": "{v}",' for k, v in st.session_state["lexico"].items() if v
-                ),
+                "\n".join(f'"{k}": "{v}",' for k, v in sorted(vistos.items()) if v),
                 language=None,
             )
+
         st.caption(
             f"{len(IDX['registros'])} ocupaciones cargadas"
             + (f", {IDX['ampliado']} con vocabulario ampliado. " if IDX.get("ampliado")
