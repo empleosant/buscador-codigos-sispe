@@ -86,7 +86,7 @@ def sin_cuota(e):
 st.set_page_config(
     page_title="Codificador de ocupaciones",
     page_icon="◉",
-    layout="centered",
+    layout="wide",
     initial_sidebar_state="collapsed",
 )
 
@@ -96,139 +96,108 @@ st.set_page_config(
 
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap');
 
 :root{
-  --tinta:#0E1116;
-  --cobalto:#1F3BFF;
-  --coral:#FF5A36;
-  --hueso:#F3F1EC;
-  --humo:#6B6F76;
-  --borde:#E4E0D8;
+  --tinta:#1B2B33;
+  --verde:#0E7C6B;
+  --verde-claro:#D8EFE9;
+  --verde-oscuro:#0B5A4E;
+  --fondo:#EEF2F4;
+  --humo:#6E818A;
+  --tenue:#9AAAB2;
+  --linea:#DDE5E9;
 }
 
-.stApp{ background:var(--hueso); }
-html,body,[class*="css"],.stMarkdown{ font-family:'Inter',system-ui,sans-serif; color:var(--tinta); }
-.block-container{ padding-top:1.6rem; padding-bottom:5rem; max-width:760px; }
+.stApp{ background:var(--fondo); }
+html,body,[class*="css"],.stMarkdown{ font-family:Figtree,system-ui,sans-serif; color:var(--tinta); }
+.block-container{ padding-top:2rem; padding-bottom:3rem; max-width:1180px; }
 #MainMenu, footer, header[data-testid="stHeader"]{ visibility:hidden; height:0; }
 
-/* ---------- Cabecera ---------- */
-.hero{
-  background:var(--tinta); border-radius:22px; padding:1.9rem 1.8rem 1.6rem;
-  position:relative; overflow:hidden; margin-bottom:1.4rem;
+/* ---------- Portada ---------- */
+.portada{ text-align:center; padding:3.5rem 0 1.2rem; animation:surgir .5s ease both; }
+.portada h1{
+  font-size:clamp(2rem,4.5vw,2.9rem); font-weight:700; letter-spacing:-.03em;
+  color:var(--tinta); margin:0 0 .5rem;
 }
-.hero::after{
-  content:""; position:absolute; right:-70px; top:-70px; width:230px; height:230px;
-  border-radius:50%; background:radial-gradient(circle at 30% 30%, var(--cobalto), transparent 68%);
-  opacity:.55;
-}
-.hero .eyebrow{
-  font-family:'JetBrains Mono',monospace; font-size:.66rem; letter-spacing:.2em;
-  text-transform:uppercase; color:var(--coral); margin-bottom:.55rem;
-}
-.hero h1{
-  font-family:'Space Grotesk',sans-serif; font-weight:700;
-  font-size:clamp(1.8rem,5vw,2.6rem); line-height:1.05; letter-spacing:-.035em;
-  color:#fff; margin:0;
-}
-.hero p{
-  color:#A8ADB6; font-size:.95rem; margin:.7rem 0 0; max-width:33ch; position:relative; z-index:1;
-}
+.portada h1 span{ color:var(--verde); }
+.portada p{ color:var(--humo); font-size:1.02rem; margin:0; }
+
+/* ---------- Columna izquierda ---------- */
+.marca{ font-size:1.35rem; font-weight:700; letter-spacing:-.02em; margin:0 0 .15rem; }
+.marca span{ color:var(--verde); }
+.marca-sub{ color:var(--tenue); font-size:.82rem; margin:0 0 1.4rem; }
 
 /* ---------- Consulta ---------- */
 .consulta{
-  font-family:'Space Grotesk',sans-serif; font-size:1.32rem; font-weight:500;
-  letter-spacing:-.02em; line-height:1.3; margin:2.2rem 0 1rem;
-  padding-left:.9rem; border-left:3px solid var(--coral);
+  font-size:1.05rem; font-weight:600; letter-spacing:-.01em; color:var(--tinta);
+  margin:0 0 .8rem; display:flex; align-items:center; gap:.5rem;
+}
+.consulta::before{
+  content:""; width:6px; height:6px; border-radius:50%;
+  background:var(--verde); flex:none;
 }
 
-/* ---------- Tarjeta de resultado ---------- */
-.tarjeta{
-  background:#fff; border:1px solid var(--borde); border-radius:18px;
-  padding:1.15rem 1.3rem; margin-bottom:.7rem;
-  transition:transform .16s ease, box-shadow .16s ease;
-}
-.tarjeta:hover{ transform:translateY(-2px); box-shadow:0 10px 26px rgba(14,17,22,.07); }
-.tarjeta.top{ border:1.5px solid var(--tinta); }
-
-.fila{ display:flex; align-items:baseline; gap:.7rem; flex-wrap:wrap; }
-.orden{
-  font-family:'JetBrains Mono',monospace; font-size:.7rem; color:var(--humo);
-  border:1px solid var(--borde); border-radius:99px; padding:.12rem .5rem;
-}
-.codigo{
-  font-family:'JetBrains Mono',monospace; font-weight:700;
-  font-size:clamp(1.35rem,4.4vw,1.7rem); letter-spacing:.1em; color:var(--cobalto);
-}
-.tarjeta.top .codigo{ color:var(--tinta); }
-.denominacion{
-  font-family:'Space Grotesk',sans-serif; font-weight:500; font-size:1.02rem;
-  line-height:1.35; letter-spacing:-.01em; margin:.45rem 0 .55rem;
-}
-.motivo{ font-size:.86rem; color:var(--humo); line-height:1.5; }
-
-.etiqueta{
-  display:inline-block; font-family:'JetBrains Mono',monospace; font-size:.66rem;
-  letter-spacing:.09em; text-transform:uppercase; padding:.2rem .55rem;
-  border-radius:99px; background:var(--hueso); border:1px solid var(--borde); color:var(--humo);
-}
-.etiqueta.destacada{ background:var(--coral); border-color:var(--coral); color:#fff; }
-
-/* ---------- Pregunta de desambiguacion ---------- */
+/* ---------- Bloques ---------- */
 .pregunta{
-  background:#fff; border:1px dashed var(--cobalto); border-radius:18px;
-  padding:1.05rem 1.25rem; margin:.9rem 0 .4rem;
+  background:var(--verde-claro); border-radius:16px; padding:1rem 1.15rem; margin:.2rem 0 .6rem;
 }
 .pregunta .titulo{
-  font-family:'JetBrains Mono',monospace; font-size:.66rem; letter-spacing:.16em;
-  text-transform:uppercase; color:var(--cobalto); margin-bottom:.45rem;
+  font-size:.7rem; font-weight:600; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--verde-oscuro); margin-bottom:.35rem;
 }
-.pregunta .texto{ font-size:.97rem; line-height:1.45; }
+.pregunta .texto{ font-size:.97rem; line-height:1.45; color:var(--verde-oscuro); }
 
 .seccion{
-  font-family:'JetBrains Mono',monospace; font-size:.65rem; letter-spacing:.16em;
-  text-transform:uppercase; color:var(--humo); margin:1.5rem 0 .6rem;
+  font-size:.72rem; font-weight:600; letter-spacing:.11em; text-transform:uppercase;
+  color:var(--tenue); margin:1.4rem 0 .55rem;
 }
-.nota{ font-size:.78rem; color:var(--humo); margin-top:.4rem; }
+.nota{ font-size:.79rem; color:var(--tenue); margin:.3rem 0 .5rem; }
+.separa{ height:1px; background:var(--linea); margin:2rem 0 1.2rem; }
 
-/* Transiciones */
-.consulta, .tarjeta, .pregunta{ animation:entrar .32s cubic-bezier(.22,.9,.3,1) both; }
-.tarjeta:nth-of-type(2){ animation-delay:.04s; }
-.tarjeta:nth-of-type(3){ animation-delay:.08s; }
-@keyframes entrar{
-  from{ opacity:0; transform:translateY(10px); }
-  to{ opacity:1; transform:none; }
-}
-.cierre{ height:1px; background:var(--borde); margin:2rem 0 1.1rem; }
-#reinicio button, .stButton button[kind]{ transition:all .18s ease; }
+/* ---------- Transiciones ---------- */
+@keyframes surgir{ from{ opacity:0; transform:translateY(14px);} to{ opacity:1; transform:none;} }
+@keyframes entrar-lado{ from{ opacity:0; transform:translateX(18px);} to{ opacity:1; transform:none;} }
+.panel-izq{ animation:surgir .45s ease both; }
+.panel-der{ animation:entrar-lado .45s cubic-bezier(.22,.9,.3,1) both; }
+.consulta, .pregunta{ animation:surgir .3s ease both; }
 @media (prefers-reduced-motion:reduce){
-  .consulta, .tarjeta, .pregunta{ animation:none; }
+  .portada,.panel-izq,.panel-der,.consulta,.pregunta{ animation:none; }
 }
 
-/* Barra de progreso mientras responde el modelo */
+/* ---------- Controles ---------- */
+div[data-testid="stTextInput"] input{
+  background:#fff !important; border:none !important; border-radius:26px !important;
+  padding:.85rem 1.25rem !important; font-size:1rem !important; color:var(--tinta) !important;
+  box-shadow:0 1px 3px rgba(27,43,51,.07) !important;
+}
+div[data-testid="stTextInput"] input:focus{
+  box-shadow:0 0 0 2px var(--verde) !important;
+}
+div[data-testid="stTextInput"] input::placeholder{ color:var(--tenue) !important; }
+
+.stButton button, .stFormSubmitButton button{
+  border-radius:22px; border:none; background:#fff; color:var(--humo);
+  font-family:Figtree,sans-serif; font-size:.86rem; font-weight:500; padding:.5rem 1.1rem;
+  box-shadow:0 1px 2px rgba(27,43,51,.06); transition:all .16s ease;
+}
+.stButton button:hover, .stFormSubmitButton button:hover{
+  background:var(--verde); color:#fff; box-shadow:0 2px 8px rgba(14,124,107,.25);
+}
+.stFormSubmitButton button{ background:var(--verde); color:#fff; font-weight:600; }
+.stFormSubmitButton button:hover{ background:var(--verde-oscuro); color:#fff; }
+
 div[data-testid="stProgress"]{ margin:0 0 1rem; }
 div[data-testid="stProgress"] p{
-  font-family:'JetBrains Mono',monospace !important; font-size:.63rem !important;
-  letter-spacing:.16em; text-transform:uppercase; color:var(--humo) !important;
+  font-family:Figtree,sans-serif !important; font-size:.72rem !important; font-weight:600;
+  letter-spacing:.1em; text-transform:uppercase; color:var(--tenue) !important;
 }
-div[data-testid="stProgress"] div[role="progressbar"] > div{
-  background-color:var(--borde);
-}
+div[data-testid="stProgress"] div[role="progressbar"] > div{ background-color:var(--linea); }
 div[data-testid="stProgress"] div[role="progressbar"] > div > div{
-  background-color:var(--coral) !important; background-image:none !important;
+  background-color:var(--verde) !important; background-image:none !important;
 }
-
-/* ---------- Controles nativos ---------- */
-div[data-testid="stChatInput"] textarea{ font-family:'Inter',sans-serif !important; font-size:.98rem !important; }
-div[data-testid="stChatInput"]{ border-radius:16px; }
-.stButton button{
-  border-radius:99px; border:1px solid var(--borde); background:#fff; color:var(--tinta);
-  font-family:'Inter',sans-serif; font-size:.83rem; font-weight:500; padding:.35rem 1rem;
-  transition:all .15s ease;
-}
-.stButton button:hover{ border-color:var(--tinta); background:var(--tinta); color:#fff; }
 div[data-testid="stExpander"]{ border:none; background:transparent; }
-div[data-testid="stExpander"] summary{ font-size:.83rem; color:var(--humo); }
+div[data-testid="stExpander"] summary{ font-size:.84rem; color:var(--humo); }
 </style>
 """, unsafe_allow_html=True)
 
@@ -792,7 +761,9 @@ def traduce_jerga(cli, palabras, contexto):
     if not limpio:
         return "", f"Traducción de «{clave}»: el modelo devolvió una respuesta vacía."
     lexico[clave] = limpio
-    guarda_termino(clave, limpio)      # queda para todo el equipo
+    # No se guarda ahora: publicarlo son dos viajes a GitHub y el usuario
+    # estaría esperando. Se encola y se envía cuando ya ve el resultado.
+    st.session_state.setdefault("por_guardar", []).append((clave, limpio))
     return limpio, ""
 
 
@@ -936,54 +907,47 @@ def bajar():
 
 
 ESTILO_TARJETAS = """
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap');
 *{ box-sizing:border-box; }
 body{
-  margin:0; background:transparent; font-family:'Inter',system-ui,sans-serif;
-  --tinta:#0E1116; --cobalto:#1F3BFF; --coral:#FF5A36;
-  --hueso:#F3F1EC; --humo:#6B6F76; --borde:#E4E0D8;
+  margin:0; background:transparent; font-family:Figtree,system-ui,sans-serif;
+  --tinta:#1B2B33; --verde:#0E7C6B; --verde-claro:#D8EFE9; --verde-oscuro:#0B5A4E;
+  --humo:#6E818A; --tenue:#9AAAB2; --gris:#E4EAED; --gris-texto:#3F5560;
   color:var(--tinta);
 }
 .tarjeta{
-  background:#fff; border:1px solid var(--borde); border-radius:18px;
-  padding:1.15rem 1.3rem; margin-bottom:.7rem;
-  animation:entrar .32s cubic-bezier(.22,.9,.3,1) both;
+  background:#fff; border-radius:16px; padding:.9rem 1.05rem; margin-bottom:.6rem;
+  box-shadow:0 1px 3px rgba(27,43,51,.07);
+  animation:entrar .34s cubic-bezier(.22,.9,.3,1) both;
 }
-.tarjeta.top{ border:1.5px solid var(--tinta); }
-.tarjeta:nth-of-type(2){ animation-delay:.04s; }
-.tarjeta:nth-of-type(3){ animation-delay:.08s; }
-@keyframes entrar{ from{ opacity:0; transform:translateY(10px);} to{ opacity:1; transform:none;} }
+.tarjeta:last-child{ margin-bottom:0; }
+.tarjeta:nth-of-type(2){ animation-delay:.05s; }
+.tarjeta:nth-of-type(3){ animation-delay:.1s; }
+@keyframes entrar{ from{ opacity:0; transform:translateY(9px);} to{ opacity:1; transform:none;} }
 @media (prefers-reduced-motion:reduce){ .tarjeta{ animation:none; } }
 
-.fila{ display:flex; align-items:center; gap:.6rem; flex-wrap:wrap; }
-.orden{
-  font-family:'JetBrains Mono',monospace; font-size:.7rem; color:var(--humo);
-  border:1px solid var(--borde); border-radius:99px; padding:.12rem .5rem;
-}
+.fila{ display:flex; align-items:center; gap:9px; flex-wrap:wrap; }
+.orden{ display:none; }
 .codigo{
-  font-family:'JetBrains Mono',monospace; font-weight:700;
-  font-size:clamp(1.35rem,4.4vw,1.7rem); letter-spacing:.1em; color:var(--cobalto);
+  font-size:1.28rem; font-weight:700; letter-spacing:.045em; color:var(--verde);
+  font-variant-numeric:tabular-nums;
 }
-.tarjeta.top .codigo{ color:var(--tinta); }
+.tarjeta.top .codigo{ color:var(--verde); }
+.tarjeta:not(.top) .codigo{ color:#43606B; }
 .copiar{
-  font-family:'Inter',sans-serif; font-size:.68rem; font-weight:500;
-  color:var(--humo); background:var(--hueso); border:1px solid var(--borde);
-  border-radius:99px; padding:.22rem .6rem; cursor:pointer;
-  transition:all .15s ease; white-space:nowrap;
+  font-family:Figtree,sans-serif; font-size:.72rem; font-weight:500;
+  color:var(--humo); background:#F1F5F7; border:none; border-radius:20px;
+  padding:.25rem .7rem; cursor:pointer; transition:all .15s ease; white-space:nowrap;
 }
-.copiar:hover{ background:var(--tinta); border-color:var(--tinta); color:#fff; }
-.copiar.hecho{ background:var(--coral); border-color:var(--coral); color:#fff; }
-.denominacion{
-  font-family:'Space Grotesk',sans-serif; font-weight:500; font-size:1.02rem;
-  line-height:1.35; letter-spacing:-.01em; margin:.45rem 0 .55rem;
-}
-.motivo{ font-size:.86rem; color:var(--humo); line-height:1.5; }
+.copiar:hover{ background:var(--verde); color:#fff; }
+.copiar.hecho{ background:var(--verde-oscuro); color:#fff; }
+.denominacion{ font-size:.94rem; font-weight:600; line-height:1.35; margin:.4rem 0 .2rem; }
+.motivo{ font-size:.85rem; color:var(--humo); line-height:1.45; }
 .etiqueta{
-  display:inline-block; font-family:'JetBrains Mono',monospace; font-size:.66rem;
-  letter-spacing:.09em; text-transform:uppercase; padding:.2rem .55rem;
-  border-radius:99px; background:var(--hueso); border:1px solid var(--borde); color:var(--humo);
+  display:inline-block; font-size:.7rem; font-weight:600; padding:.2rem .6rem;
+  border-radius:20px; background:var(--gris); color:var(--gris-texto);
 }
-.etiqueta.destacada{ background:var(--coral); border-color:var(--coral); color:#fff; }
+.etiqueta.destacada{ background:var(--verde-claro); color:var(--verde-oscuro); }
 """
 
 GUION_COPIAR = """
@@ -1047,11 +1011,15 @@ def pinta_tarjetas(ocupaciones):
             f'</div>'
         )
 
-    # Altura inicial aproximada; el guion la corrige al cargar.
-    estimada = 40 + sum(
-        118 + 22 * (len(o["denominacion"]) // 46) + (20 if o.get("motivo") else 0)
-        for o in ocupaciones
-    )
+    # Altura del marco. Medida sobre el diseño real, no a ojo:
+    #   relleno 36,8 + bordes 2 + fila del código 27 + márgenes del título 16
+    #   + 22 por línea de denominación + 21 si hay motivo + 11,2 de separación.
+    def mide(o):
+        lineas = 1 + len(o["denominacion"]) // 58
+        return 104 + 22 * (lineas - 1) + (21 if o.get("motivo") else 0) + 11
+
+    estimada = sum(mide(o) for o in ocupaciones) - 11 + 6
+
     components.html(
         f"<style>{ESTILO_TARJETAS}</style>{''.join(trozos)}"
         f"<script>{GUION_COPIAR}</script>",
@@ -1194,7 +1162,17 @@ def resuelve(texto, zona, usar_ia=True, contexto="", busqueda=None):
     # Si la consulta trae jerga o marcas, se traduce a vocabulario del catálogo
     interpretado, aviso = None, ""
     jerga = desconocidas(texto)
-    if jerga:
+
+    # Traducir cuesta un viaje extra al modelo. Solo merece la pena si la jerga
+    # es una parte importante de la consulta; si es una palabra suelta entre
+    # otras que el catálogo sí entiende, la búsqueda ya suele ser buena.
+    contenido = [
+        w for w in re.findall(r"\w+", normaliza(texto))
+        if len(w) > 3 and w not in VACIAS
+    ]
+    pesa = bool(jerga) and len(jerga) >= max(1, len(contenido) * 0.5)
+
+    if jerga and pesa:
         with zona.container():
             pinta_resultado(provisional, estado="Interpretando el oficio")
         extra, error = traduce_jerga(cli, jerga, texto)
@@ -1273,18 +1251,28 @@ st.session_state.setdefault("cache", {})
 st.session_state.setdefault("lexico", {})
 st.session_state.setdefault("modelo_ok", 0)
 st.session_state.setdefault("respuesta", None)
+st.session_state.setdefault("por_guardar", [])
 
-st.markdown(
-    '<div class="hero">'
-    '<div class="eyebrow">Catálogo SISPE</div>'
-    '<h1>Codificador<br>de ocupaciones</h1>'
-    '<p>Describe el puesto y obtén los códigos oficiales listos para grabar en SilcoiWeb.</p>'
-    '</div>',
-    unsafe_allow_html=True,
-)
+EJEMPLOS = [
+    "Camarera de barra en cafetería",
+    "Reparto en moto para Glovo",
+    "Auxiliar administrativa: facturación",
+    "Carretillero en almacén",
+]
 
-_, ajustes = st.columns([3, 1])
-with ajustes:
+
+def caja_busqueda(clave, etiqueta="Buscar"):
+    """Cuadro de texto con envío al pulsar Enter."""
+    with st.form(clave, clear_on_submit=True, border=False):
+        texto = st.text_input(
+            "Consulta", label_visibility="collapsed",
+            placeholder="Puesto, funciones o experiencia. También un código de 8 cifras.",
+        )
+        enviado = st.form_submit_button(etiqueta, use_container_width=True)
+    return texto.strip() if (enviado and texto.strip()) else None
+
+
+def panel_ajustes():
     with st.popover("Ajustes", use_container_width=True):
         st.session_state["usar_ia"] = st.toggle(
             "Afinar con IA", value=st.session_state["usar_ia"],
@@ -1300,12 +1288,11 @@ with ajustes:
                     " | ".join(o["codigo"] for o in payload.get("ocupaciones", [])),
                 ])
             st.download_button(
-                "Descargar sesión",
-                buffer.getvalue().encode("utf-8-sig"),
-                file_name="codificaciones.csv",
-                mime="text/csv",
+                "Descargar sesión", buffer.getvalue().encode("utf-8-sig"),
+                file_name="codificaciones.csv", mime="text/csv",
                 use_container_width=True,
             )
+
         if st.button("Probar la conexión con la IA", use_container_width=True):
             prueba = cliente()
             if prueba is None:
@@ -1322,7 +1309,6 @@ with ajustes:
 
         compartido = lexico_compartido()
         gist_activo, _ = _credenciales()
-
         if gist_activo:
             st.markdown("**Diccionario compartido**")
             st.caption(
@@ -1344,46 +1330,18 @@ with ajustes:
             f"{len(IDX['registros'])} ocupaciones cargadas"
             + (f", {IDX['ampliado']} con vocabulario ampliado. " if IDX.get("ampliado")
                else " (sin vocabulario ampliado). ")
-            + "Describe solo el puesto: "
-            "sin nombres, DNI ni datos identificativos de la persona."
+            + "Describe solo el puesto: sin nombres, DNI ni datos identificativos."
         )
 
-# Ejemplos, solo mientras no hay consultas
-if not st.session_state["historial"]:
-    st.markdown('<div class="seccion">Prueba con</div>', unsafe_allow_html=True)
-    ejemplos = [
-        "Camarera de barra en cafetería",
-        "Reparto en moto para Glovo",
-        "Auxiliar administrativa: facturación y teléfono",
-        "Carretillero en almacén",
-    ]
-    for fila in (ejemplos[:2], ejemplos[2:]):
-        cols = st.columns(len(fila))
-        for col, ej in zip(cols, fila):
-            if col.button(ej, use_container_width=True, key=f"ej_{ej}"):
-                st.session_state["pendiente"] = ej
-                st.rerun()
 
-ultimo = len(st.session_state["historial"]) - 1
-for i, (consulta, payload) in enumerate(st.session_state["historial"]):
-    st.markdown(f'<div class="consulta">{consulta}</div>', unsafe_allow_html=True)
-    pinta_resultado(payload, interactivo=(i == ultimo), consulta=consulta)
+# ---------------------------------------------------------------------------
+# Respuesta a una pregunta de desambiguación
+# ---------------------------------------------------------------------------
 
-if st.session_state["historial"]:
-    st.markdown('<div class="cierre"></div>', unsafe_allow_html=True)
-    if st.button(
-        f"Empezar de nuevo  ·  {len(st.session_state['historial'])} consultas",
-        use_container_width=True, key="reinicio",
-    ):
-        st.session_state["historial"] = []
-        st.rerun()
+entrada, contexto, busqueda, rotulo = None, "", None, None
 
-entrada = st.chat_input("Puesto, funciones o experiencia. También admite un código de 8 cifras.")
-entrada = entrada or st.session_state.pop("pendiente", None)
-
-contexto, busqueda, rotulo = "", None, None
 respuesta = st.session_state.pop("respuesta", None)
-if respuesta and not entrada:
+if respuesta:
     original, pregunta, afirmativa = respuesta
     entrada = original
     rotulo = f"{original}  ·  {'Sí' if afirmativa else 'No'}"
@@ -1393,20 +1351,102 @@ if respuesta and not entrada:
         f"vuelvas a plantear la misma duda."
     )
     if afirmativa:
-        # si confirma, las palabras de la pregunta ayudan a buscar
         busqueda = f"{original} {pregunta}"
 
-if entrada:
-    st.markdown(f'<div class="consulta">{rotulo or entrada}</div>', unsafe_allow_html=True)
-    zona = st.empty()
-    payload = resuelve(
-        entrada, zona,
-        usar_ia=st.session_state["usar_ia"],
-        contexto=contexto, busqueda=busqueda,
-    )
-    st.session_state["historial"].append((rotulo or entrada, payload))
-    st.session_state["ir_al_final"] = True
-    st.rerun()   # redibuja la página para que los controles sigan vivos
+if not entrada:
+    entrada = st.session_state.pop("pendiente", None)
 
-if st.session_state.pop("ir_al_final", False):
-    bajar()
+# ---------------------------------------------------------------------------
+# Portada: buscador centrado mientras no hay resultados
+# ---------------------------------------------------------------------------
+
+portada = st.empty()
+
+if not st.session_state["historial"] and not entrada:
+    with portada.container():
+        st.markdown(
+            '<div class="portada"><h1>Codificador de <span>ocupaciones</span></h1>'
+            '<p>Describe el puesto y obtén los códigos oficiales del catálogo SISPE.</p></div>',
+            unsafe_allow_html=True,
+        )
+        _, centro, _ = st.columns([1, 2.2, 1])
+        with centro:
+            entrada = caja_busqueda("inicio", "Buscar")
+            st.markdown('<div class="seccion">Prueba con</div>', unsafe_allow_html=True)
+            for fila in (EJEMPLOS[:2], EJEMPLOS[2:]):
+                cols = st.columns(len(fila))
+                for col, ej in zip(cols, fila):
+                    if col.button(ej, use_container_width=True, key=f"ej_{ej}"):
+                        st.session_state["pendiente"] = ej
+                        st.rerun()
+            st.write("")
+            _, ajus, _ = st.columns([1, 1, 1])
+            with ajus:
+                panel_ajustes()
+
+    if not entrada:
+        st.stop()
+
+    portada.empty()      # se retira la portada y entra la vista de trabajo
+
+# ---------------------------------------------------------------------------
+# Vista de trabajo: buscador a la izquierda, resultados a la derecha
+# ---------------------------------------------------------------------------
+
+izquierda, derecha = st.columns([1, 1.45], gap="large")
+
+with izquierda:
+    st.markdown(
+        '<div class="panel-izq"><div class="marca">Codificador de <span>ocupaciones</span></div>'
+        '<div class="marca-sub">Catálogo SISPE · SilcoiWeb</div></div>',
+        unsafe_allow_html=True,
+    )
+    nueva_consulta = caja_busqueda("lateral", "Buscar")
+    if nueva_consulta and not entrada:
+        entrada = nueva_consulta
+        contexto, busqueda, rotulo = "", None, None
+
+    st.markdown('<div class="seccion">Prueba con</div>', unsafe_allow_html=True)
+    for ej in EJEMPLOS:
+        if st.button(ej, use_container_width=True, key=f"lat_{ej}"):
+            st.session_state["pendiente"] = ej
+            st.rerun()
+
+    st.markdown('<div class="separa"></div>', unsafe_allow_html=True)
+    panel_ajustes()
+
+    if st.session_state["historial"]:
+        if st.button(
+            f"Empezar de nuevo · {len(st.session_state['historial'])}",
+            use_container_width=True, key="reinicio",
+        ):
+            st.session_state["historial"] = []
+            st.rerun()
+
+with derecha:
+    st.markdown('<div class="panel-der"></div>', unsafe_allow_html=True)
+
+    if entrada:
+        st.markdown(
+            f'<div class="consulta">{rotulo or entrada}</div>', unsafe_allow_html=True
+        )
+        zona = st.empty()
+        payload = resuelve(
+            entrada, zona,
+            usar_ia=st.session_state["usar_ia"],
+            contexto=contexto, busqueda=busqueda,
+        )
+        st.session_state["historial"].append((rotulo or entrada, payload))
+        st.rerun()
+
+    # Lo más reciente arriba: así no hay que desplazarse
+    total = len(st.session_state["historial"])
+    for orden, (consulta, payload) in enumerate(reversed(st.session_state["historial"])):
+        st.markdown(f'<div class="consulta">{consulta}</div>', unsafe_allow_html=True)
+        pinta_resultado(payload, interactivo=(orden == 0), consulta=consulta)
+        if orden < total - 1:
+            st.markdown('<div class="separa"></div>', unsafe_allow_html=True)
+
+# Con el resultado ya en pantalla, se publica lo aprendido para el resto
+for clave, valor in st.session_state.pop("por_guardar", []):
+    guarda_termino(clave, valor)
