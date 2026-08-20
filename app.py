@@ -39,7 +39,7 @@ PROVEEDOR = "gemini"
 PROVEEDORES = {
     "gemini": {
         "clave": "GEMINI_API_KEY",
-        "modelo": "gemini-3.6-flash",
+        "modelo": "gemini-3.5-flash-lite",
     },
     "groq": {
         "clave": "GROQ_API_KEY",
