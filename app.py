@@ -376,6 +376,28 @@ def parecidas(palabra, umbral=0.84, tope=3):
     return salida[:tope]
 
 
+def desconocidas(consulta):
+    """Palabras con contenido que el catálogo no reconoce de ninguna forma.
+
+    Son la señal de que hay jerga, una marca comercial o un tecnicismo:
+    'pladur', 'glovo', 'kelly'. El diccionario nunca las tendrá todas.
+    """
+    q = normaliza(consulta)
+    fuera = []
+    for w in re.findall(r"\w+", q):
+        if len(w) <= 3 or w in VACIAS or w in fuera:
+            continue
+        r = raiz(w)
+        if w in IDX["inv"] or r in IDX["inv_raiz"]:
+            continue
+        if any(v.startswith(r) or r.startswith(v) for v in IDX["vocab_raiz"] if len(v) > 3):
+            continue
+        if any(clave in q for clave in SINONIMOS if w in clave or clave in w):
+            continue
+        fuera.append(w)
+    return fuera
+
+
 def busca(consulta, tope=20):
     q = normaliza(consulta)
     terminos = {}
@@ -534,6 +556,61 @@ def _flujo_openai(cli, prompt):
         texto = trozo.choices[0].delta.content
         if texto:
             yield texto
+
+
+TRADUCTOR = """Eres experto en la Clasificación Nacional de Ocupaciones española.
+Recibes palabras coloquiales, marcas comerciales o jerga de oficio.
+Devuelve SOLO entre 6 y 12 palabras sueltas separadas por espacios: los términos
+que usaría la clasificación oficial para esa actividad (nombre formal del oficio,
+materiales, herramientas, tareas). Sin comas, sin frases, sin explicaciones.
+
+Ejemplo. Entrada: pladur
+Salida: prefabricados ligeros colocadores escayolista tabiques yeso laminado construccion
+"""
+
+
+def pregunta_corta(cli, sistema, prompt, maximo=220):
+    """Una respuesta breve, sin streaming. Sirve para traducir vocabulario."""
+    if PROVEEDOR == "gemini":
+        cfg = dict(system_instruction=sistema, max_output_tokens=maximo)
+        try:
+            cfg["thinking_config"] = types.ThinkingConfig(thinking_level="minimal")
+        except Exception:  # noqa: BLE001
+            pass
+        r = cli.models.generate_content(
+            model=MODELO, contents=prompt,
+            config=types.GenerateContentConfig(**cfg),
+        )
+        return (getattr(r, "text", "") or "").strip()
+
+    r = cli.chat.completions.create(
+        model=MODELO,
+        messages=[
+            {"role": "system", "content": sistema},
+            {"role": "user", "content": prompt},
+        ],
+        max_tokens=maximo,
+        temperature=0,
+    )
+    return (r.choices[0].message.content or "").strip()
+
+
+def traduce_jerga(cli, palabras, contexto):
+    """Convierte jerga en vocabulario del catálogo. Se recuerda en la sesión."""
+    clave = " ".join(sorted(palabras))
+    lexico = st.session_state["lexico"]
+    if clave in lexico:
+        return lexico[clave]
+    try:
+        bruto = pregunta_corta(
+            cli, TRADUCTOR,
+            f"Entrada: {clave}\nContexto en el que aparece: {contexto}",
+        )
+    except Exception:  # noqa: BLE001
+        return ""
+    limpio = " ".join(re.findall(r"[a-zñáéíóúü]+", normaliza(bruto))[:14])
+    lexico[clave] = limpio
+    return limpio
 
 
 def flujo_modelo(cli, texto, candidatos):
@@ -759,6 +836,23 @@ def resuelve(texto, zona, usar_ia=True):
     with zona.container():
         pinta_resultado(provisional, estado="Afinando el resultado")
 
+    # Si la consulta trae jerga o marcas, se traduce a vocabulario del catálogo
+    jerga = desconocidas(texto)
+    if jerga:
+        with zona.container():
+            pinta_resultado(provisional, estado="Interpretando el oficio")
+        extra = traduce_jerga(cli, jerga, texto)
+        if extra:
+            mejores = busca(f"{texto} {extra}", tope=N_CANDIDATOS)
+            if mejores:
+                encontrados = mejores
+                provisional = {
+                    "ocupaciones": _basica(encontrados),
+                    "otras": [(c, d) for _, c, d in encontrados[5:12]],
+                }
+                with zona.container():
+                    pinta_resultado(provisional, estado="Afinando el resultado")
+
     bruto, mostradas = "", 0
     try:
         for trozo in flujo_modelo(cli, texto, "\n".join(f"{c}:{d}" for _, c, d in encontrados)):
@@ -798,6 +892,7 @@ st.session_state.setdefault("historial", [])
 st.session_state.setdefault("pendiente", None)
 st.session_state.setdefault("usar_ia", True)
 st.session_state.setdefault("cache", {})
+st.session_state.setdefault("lexico", {})
 
 st.markdown(
     '<div class="hero">'
@@ -834,6 +929,15 @@ with ajustes:
             if st.button("Empezar de nuevo", use_container_width=True):
                 st.session_state["historial"] = []
                 st.rerun()
+        if st.session_state.get("lexico"):
+            st.markdown("**Términos aprendidos**")
+            st.caption("Pégalos en SINONIMOS para no volver a traducirlos.")
+            st.code(
+                "\n".join(
+                    f'"{k}": "{v}",' for k, v in st.session_state["lexico"].items() if v
+                ),
+                language=None,
+            )
         st.caption(
             f"{len(IDX['registros'])} ocupaciones cargadas. Describe solo el puesto: "
             "sin nombres, DNI ni datos identificativos de la persona."
