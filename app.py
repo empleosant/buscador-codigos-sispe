@@ -516,7 +516,7 @@ def _configuraciones():
     """Solo Gemini. De la más rápida a la más lenta; la que sirva se recuerda."""
     base = dict(
         system_instruction=INSTRUCCIONES,
-        max_output_tokens=900,
+        max_output_tokens=2048,
         response_mime_type="application/json",
     )
     opciones = []
@@ -567,7 +567,7 @@ def _flujo_openai(cli, prompt):
             {"role": "system", "content": INSTRUCCIONES},
             {"role": "user", "content": prompt},
         ],
-        max_tokens=900,
+        max_tokens=2048,
         temperature=0,
         response_format={"type": "json_object"},
         stream=True,
@@ -591,7 +591,7 @@ Salida: prefabricados ligeros colocadores escayolista tabiques yeso laminado con
 """
 
 
-def pregunta_corta(cli, sistema, prompt, maximo=220):
+def pregunta_corta(cli, sistema, prompt, maximo=2048):
     """Una respuesta breve, sin streaming. Sirve para traducir vocabulario."""
     if PROVEEDOR == "gemini":
         cfg = dict(system_instruction=sistema, max_output_tokens=maximo)
@@ -618,21 +618,24 @@ def pregunta_corta(cli, sistema, prompt, maximo=220):
 
 
 def traduce_jerga(cli, palabras, contexto):
-    """Convierte jerga en vocabulario del catálogo. Se recuerda en la sesión."""
+    """Convierte jerga en vocabulario del catálogo. Devuelve (términos, error)."""
     clave = " ".join(sorted(palabras))
     lexico = st.session_state["lexico"]
     if clave in lexico:
-        return lexico[clave]
+        return lexico[clave], ""
     try:
         bruto = pregunta_corta(
             cli, TRADUCTOR,
             f"Entrada: {clave}\nContexto en el que aparece: {contexto}",
         )
-    except Exception:  # noqa: BLE001
-        return ""
+    except Exception as e:  # noqa: BLE001
+        return "", f"Traducción de «{clave}»: {type(e).__name__}: {e}"
+
     limpio = " ".join(re.findall(r"[a-zñáéíóúü]+", normaliza(bruto))[:14])
+    if not limpio:
+        return "", f"Traducción de «{clave}»: el modelo devolvió una respuesta vacía."
     lexico[clave] = limpio
-    return limpio
+    return limpio, ""
 
 
 def flujo_modelo(cli, texto, candidatos):
@@ -790,6 +793,13 @@ def pinta_resultado(payload, estado=None, avance=0.06):
                     unsafe_allow_html=True,
                 )
 
+    if payload.get("interpretado"):
+        origen, destino = payload["interpretado"]
+        st.markdown(
+            f'<div class="nota">Interpretado <b>{origen}</b> como: {destino}</div>',
+            unsafe_allow_html=True,
+        )
+
     if payload.get("fallo"):
         st.markdown(
             '<div class="nota">La IA no ha respondido: estas son las coincidencias '
@@ -868,18 +878,24 @@ def resuelve(texto, zona, usar_ia=True):
         pinta_resultado(provisional, estado="Afinando el resultado")
 
     # Si la consulta trae jerga o marcas, se traduce a vocabulario del catálogo
+    interpretado, aviso = None, ""
     jerga = desconocidas(texto)
     if jerga:
         with zona.container():
             pinta_resultado(provisional, estado="Interpretando el oficio")
-        extra = traduce_jerga(cli, jerga, texto)
+        extra, error = traduce_jerga(cli, jerga, texto)
+        if error:
+            aviso = error
+            provisional["fallo"] = error
         if extra:
-            mejores = busca(f"{texto} {extra}", tope=N_CANDIDATOS)
+            interpretado = (" ".join(jerga), extra)
+            mejores = busca(f"{texto} {extra}", tope=N_CANDIDATOS + 6)
             if mejores:
                 encontrados = mejores
                 provisional = {
                     "ocupaciones": _basica(encontrados),
                     "otras": [(c, d) for _, c, d in encontrados[5:12]],
+                    "interpretado": interpretado,
                 }
                 with zona.container():
                     pinta_resultado(provisional, estado="Afinando el resultado")
@@ -904,6 +920,10 @@ def resuelve(texto, zona, usar_ia=True):
         return provisional
 
     payload = interpreta(bruto)
+    if interpretado:
+        payload["interpretado"] = interpretado
+    if aviso:
+        payload["fallo"] = aviso
     if not payload["ocupaciones"]:
         payload["ocupaciones"] = provisional["ocupaciones"]
     elegidos = {o["codigo"] for o in payload["ocupaciones"]}
@@ -970,7 +990,7 @@ with ajustes:
                 try:
                     eco = pregunta_corta(
                         prueba, "Responde únicamente con la palabra ok.",
-                        "ok", maximo=200,
+                        "ok", maximo=2048,
                     )
                     st.success(f"{modelo_actual()}: {eco[:60] or '(respuesta vacía)'}")
                 except Exception as e:  # noqa: BLE001
