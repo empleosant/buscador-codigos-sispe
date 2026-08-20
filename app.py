@@ -39,7 +39,7 @@ PROVEEDOR = "gemini"
 PROVEEDORES = {
     "gemini": {
         "clave": "GEMINI_API_KEY",
-        "modelo": "gemini-3.5-flash-lite",
+        "modelo": "gemini-3.6-flash",
     },
     "groq": {
         "clave": "GROQ_API_KEY",
@@ -200,6 +200,11 @@ VACIAS = {
     "un", "una", "al", "sin", "que", "su", "mas", "general", "asalariados",
     "otros", "otras", "clasificados", "anteriormente", "tanto", "cuenta",
     "trabajado", "trabajo", "anos", "experiencia", "he", "soy", "estuve",
+    # ruido de la propia consulta
+    "dame", "dime", "busca", "buscar", "quiero", "necesito", "ocupacion",
+    "ocupaciones", "codigo", "codigos", "puesto", "persona", "personas",
+    "gente", "alguien", "senor", "senora", "chico", "chica", "tiene", "tenia",
+    "hacia", "hace", "estado", "sido", "una", "unos", "unas", "casa", "casas",
 }
 
 SINONIMOS = {
@@ -251,6 +256,16 @@ SINONIMOS = {
     "frances": "idiomas profesores",
     "aleman": "idiomas profesores",
     "ele": "idiomas profesores",
+    # entorno de trabajo: domicilio frente a institucion
+    "casa": "domiciliarios domicilio hogar",
+    "domicilio": "domiciliarios hogar",
+    "particular": "hogar domiciliarios",
+    "hogar": "hogar domiciliarios",
+    "mayores": "dependencia domiciliarios asistentes acompanantes",
+    "dependencia": "dependencia domiciliarios asistentes",
+    "dependiente": "dependencia domiciliarios asistentes",
+    "residencia": "instituciones geriatrico dependencia cuidadores",
+    "geriatrico": "instituciones dependencia cuidadores",
 }
 
 NIVELES = {
@@ -434,7 +449,9 @@ REGLAS
 1. Usa únicamente códigos y denominaciones literales de la lista de candidatos. No inventes ni modifiques ninguno.
 2. Nivel profesional: 90 aprendices (sin experiencia) / 00 técnicos o sin categoría (estándar con experiencia) / 10 dirección / 20 mandos intermedios / 30 jefes de equipo / 70 auxiliares / 80 peones.
 3. El campo "motivo" explica en menos de 10 palabras por qué encaja, en español con acentuación correcta.
-4. Rellena "pregunta" solo si faltan datos para decidir entre dos ocupaciones; si no, déjalo vacío.
+4. No propongas ocupaciones de dirección, jefatura ni mando (niveles 10, 20, 30) salvo que la descripción diga expresamente que dirigía equipos, centros o departamentos.
+5. Respeta el entorno de trabajo que indique la descripción: domicilio particular frente a institución, centro o residencia. Si dice "en su casa" o "a domicilio", descarta las ocupaciones que digan "en instituciones".
+6. Rellena "pregunta" solo si faltan datos para decidir entre dos ocupaciones; si no, déjalo vacío.
 
 Responde solo con este JSON:
 {"ocupaciones":[{"codigo":"12345678","denominacion":"...","nivel":"00","motivo":"..."}],"pregunta":""}
@@ -742,8 +759,8 @@ def resuelve(texto, zona, usar_ia=True):
                         avance=0.06 + 0.19 * mostradas,
                     )
     except Exception:  # noqa: BLE001
-        with zona.container():
-            pinta_resultado(provisional)
+        zona.empty()
+        pinta_resultado(provisional)
         return provisional
 
     payload = interpreta(bruto)
@@ -752,8 +769,8 @@ def resuelve(texto, zona, usar_ia=True):
     elegidos = {o["codigo"] for o in payload["ocupaciones"]}
     payload["otras"] = [(c, d) for _, c, d in encontrados if c not in elegidos][:7]
 
-    with zona.container():
-        pinta_resultado(payload)
+    zona.empty()          # retira el bloque provisional antes del definitivo
+    pinta_resultado(payload)
     memoria[clave] = payload
     return payload
 
