@@ -125,9 +125,18 @@ html,body,[class*="css"],.stMarkdown{ font-family:Figtree,system-ui,sans-serif; 
 .portada p{ color:var(--humo); font-size:1.02rem; margin:0; }
 
 /* ---------- Columna izquierda ---------- */
-.marca{ font-size:1.35rem; font-weight:700; letter-spacing:-.02em; margin:0 0 .15rem; }
-.marca span{ color:var(--verde); }
-.marca-sub{ color:var(--tenue); font-size:.82rem; margin:0 0 1.4rem; }
+.marca-sub{ color:var(--tenue); font-size:.82rem; margin:-.2rem 0 1.4rem .1rem; }
+
+/* El título de la columna izquierda es un botón que vuelve a la portada */
+.st-key-marca button{
+  background:transparent !important; box-shadow:none !important; border:none !important;
+  padding:0 !important; justify-content:flex-start !important;
+}
+.st-key-marca button p{
+  font-size:1.35rem !important; font-weight:700 !important; letter-spacing:-.02em;
+  color:var(--tinta) !important; margin:0 !important; text-align:left !important;
+}
+.st-key-marca button:hover p{ color:var(--verde) !important; }
 
 /* ---------- Consulta ---------- */
 .consulta{
@@ -175,9 +184,26 @@ div[data-baseweb="input"], div[data-baseweb="base-input"]{
   background:#fff !important; border:none !important; border-radius:26px !important;
   box-shadow:0 1px 3px rgba(27,43,51,.07) !important;
 }
-div[data-baseweb="input"]:focus-within{
+div[data-baseweb="textarea"], div[data-baseweb="base-input"] textarea{
+  background:#fff !important; border:none !important; border-radius:20px !important;
+  box-shadow:0 1px 3px rgba(27,43,51,.07) !important;
+}
+/* El rojo por defecto de Streamlit sale por el borde del contenedor */
+div[data-baseweb="input"], div[data-baseweb="textarea"],
+div[data-baseweb="input"]:focus-within, div[data-baseweb="textarea"]:focus-within,
+div[data-baseweb="input"]:hover, div[data-baseweb="textarea"]:hover{
+  border-color:transparent !important; outline:none !important;
+}
+div[data-baseweb="input"]:focus-within, div[data-baseweb="textarea"]:focus-within{
   box-shadow:0 0 0 2px var(--verde) !important;
 }
+div[data-testid="stTextArea"] textarea{
+  font-family:Figtree,sans-serif !important; font-size:1rem !important;
+  line-height:1.5 !important; color:var(--tinta) !important;
+  padding:.85rem 1.15rem !important; resize:none !important;
+}
+div[data-testid="stTextArea"] textarea::placeholder{ color:var(--tenue) !important; }
+div[data-testid="stTextArea"] textarea:focus{ box-shadow:none !important; }
 
 div[data-testid="stTextInput"] input{
   background:#fff !important; border:none !important; border-radius:26px !important;
@@ -1293,9 +1319,12 @@ EJEMPLOS = [
 def caja_busqueda(clave, etiqueta="Buscar"):
     """Cuadro de texto con envío al pulsar Enter."""
     with st.form(clave, clear_on_submit=True, border=False):
-        texto = st.text_input(
-            "Consulta", label_visibility="collapsed",
-            placeholder="Puesto, funciones o experiencia. También un código de 8 cifras.",
+        texto = st.text_area(
+            "Consulta", label_visibility="collapsed", height=96,
+            placeholder=(
+                "Describe el puesto con las palabras de la persona: qué hacía, "
+                "dónde y con qué. También admite un código de 8 cifras."
+            ),
         )
         enviado = st.form_submit_button(etiqueta, use_container_width=True)
     return texto.strip() if (enviado and texto.strip()) else None
@@ -1398,17 +1427,20 @@ if not st.session_state["actual"] and not entrada:
         _, centro, _ = st.columns([1, 2.2, 1])
         with centro:
             entrada = caja_busqueda("inicio", "Buscar")
-            st.markdown('<div class="seccion">Prueba con</div>', unsafe_allow_html=True)
-            for fila in (EJEMPLOS[:2], EJEMPLOS[2:]):
-                cols = st.columns(len(fila))
-                for col, ej in zip(cols, fila):
-                    if col.button(ej, use_container_width=True, key=f"ej_{ej}"):
-                        st.session_state["pendiente"] = ej
-                        st.rerun()
-            st.write("")
-            _, ajus, _ = st.columns([1, 1, 1])
-            with ajus:
-                panel_ajustes()
+            # Si ya hay consulta, no se crean más controles: la vista de
+            # trabajo los volvería a crear y Streamlit rechaza los duplicados.
+            if not entrada:
+                st.markdown('<div class="seccion">Prueba con</div>', unsafe_allow_html=True)
+                for fila in (EJEMPLOS[:2], EJEMPLOS[2:]):
+                    cols = st.columns(len(fila))
+                    for col, ej in zip(cols, fila):
+                        if col.button(ej, use_container_width=True, key=f"ej_{ej}"):
+                            st.session_state["pendiente"] = ej
+                            st.rerun()
+                st.write("")
+                _, ajus, _ = st.columns([1, 1, 1])
+                with ajus:
+                    panel_ajustes()
 
     if not entrada:
         st.stop()
@@ -1422,9 +1454,11 @@ if not st.session_state["actual"] and not entrada:
 izquierda, derecha = st.columns([1, 1.45], gap="large")
 
 with izquierda:
+    if st.button("Codificador de ocupaciones", key="marca", use_container_width=True):
+        st.session_state["actual"] = None
+        st.rerun()
     st.markdown(
-        '<div class="panel-izq"><div class="marca">Codificador de <span>ocupaciones</span></div>'
-        '<div class="marca-sub">Catálogo SISPE · SilcoiWeb</div></div>',
+        '<div class="marca-sub">Catálogo SISPE · SilcoiWeb</div>',
         unsafe_allow_html=True,
     )
     nueva_consulta = caja_busqueda("lateral", "Buscar")
