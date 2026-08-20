@@ -185,6 +185,22 @@ html,body,[class*="css"],.stMarkdown{ font-family:'Inter',system-ui,sans-serif; 
 }
 .nota{ font-size:.78rem; color:var(--humo); margin-top:.4rem; }
 
+/* Transiciones */
+html{ scroll-behavior:smooth; }
+.consulta, .tarjeta, .pregunta{ animation:entrar .32s cubic-bezier(.22,.9,.3,1) both; }
+.tarjeta:nth-of-type(2){ animation-delay:.04s; }
+.tarjeta:nth-of-type(3){ animation-delay:.08s; }
+@keyframes entrar{
+  from{ opacity:0; transform:translateY(10px); }
+  to{ opacity:1; transform:none; }
+}
+.cierre{ height:1px; background:var(--borde); margin:2rem 0 1.1rem; }
+#reinicio button, .stButton button[kind]{ transition:all .18s ease; }
+@media (prefers-reduced-motion:reduce){
+  html{ scroll-behavior:auto; }
+  .consulta, .tarjeta, .pregunta{ animation:none; }
+}
+
 /* Barra de progreso mientras responde el modelo */
 div[data-testid="stProgress"]{ margin:0 0 1rem; }
 div[data-testid="stProgress"] p{
@@ -1033,9 +1049,6 @@ with ajustes:
                 mime="text/csv",
                 use_container_width=True,
             )
-            if st.button("Empezar de nuevo", use_container_width=True):
-                st.session_state["historial"] = []
-                st.rerun()
         if st.button("Probar la conexión con la IA", use_container_width=True):
             prueba = cliente()
             if prueba is None:
@@ -1087,6 +1100,15 @@ for consulta, payload in st.session_state["historial"]:
     st.markdown(f'<div class="consulta">{consulta}</div>', unsafe_allow_html=True)
     pinta_resultado(payload)
 
+if st.session_state["historial"]:
+    st.markdown('<div class="cierre"></div>', unsafe_allow_html=True)
+    if st.button(
+        f"Empezar de nuevo  ·  {len(st.session_state['historial'])} consultas",
+        use_container_width=True, key="reinicio",
+    ):
+        st.session_state["historial"] = []
+        st.rerun()
+
 entrada = st.chat_input("Puesto, funciones o experiencia. También admite un código de 8 cifras.")
 entrada = entrada or st.session_state.pop("pendiente", None)
 
@@ -1095,3 +1117,4 @@ if entrada:
     zona = st.empty()
     payload = resuelve(entrada, zona, usar_ia=st.session_state["usar_ia"])
     st.session_state["historial"].append((entrada, payload))
+    st.rerun()   # redibuja la página para que los controles sigan vivos
