@@ -189,7 +189,6 @@ html,body,[class*="css"],.stMarkdown{ font-family:'Inter',system-ui,sans-serif; 
 .nota{ font-size:.78rem; color:var(--humo); margin-top:.4rem; }
 
 /* Transiciones */
-html{ scroll-behavior:smooth; }
 .consulta, .tarjeta, .pregunta{ animation:entrar .32s cubic-bezier(.22,.9,.3,1) both; }
 .tarjeta:nth-of-type(2){ animation-delay:.04s; }
 .tarjeta:nth-of-type(3){ animation-delay:.08s; }
@@ -200,7 +199,6 @@ html{ scroll-behavior:smooth; }
 .cierre{ height:1px; background:var(--borde); margin:2rem 0 1.1rem; }
 #reinicio button, .stButton button[kind]{ transition:all .18s ease; }
 @media (prefers-reduced-motion:reduce){
-  html{ scroll-behavior:auto; }
   .consulta, .tarjeta, .pregunta{ animation:none; }
 }
 
@@ -818,26 +816,42 @@ def interpreta(bruto):
 # ---------------------------------------------------------------------------
 
 def bajar():
-    """Lleva la vista al final de la página. Streamlit no lo hace solo."""
+    """Lleva la vista al final una sola vez, y se aparta si el usuario se mueve.
+
+    Streamlit no desplaza solo. El desplazamiento es instantáneo a propósito:
+    una animación larga compite con el usuario si decide subir mientras tanto.
+    """
     components.html(
         f"""
         <script>
-          const doc = window.parent.document;
-          const marca = "{time.time()}";
-          setTimeout(function () {{
-            const zonas = [
-              doc.querySelector('section.main'),
-              doc.querySelector('[data-testid="stAppViewContainer"] > section'),
-              doc.querySelector('[data-testid="stMain"]'),
-              doc.scrollingElement,
-            ];
-            for (const z of zonas) {{
-              if (z) {{
-                try {{ z.scrollTo({{ top: z.scrollHeight, behavior: "smooth" }}); }}
-                catch (e) {{}}
+          (function () {{
+            const marca = "{time.time()}";
+            const ventana = window.parent;
+            const doc = ventana.document;
+            let cancelado = false;
+
+            // Cualquier gesto del usuario tiene prioridad sobre el automatismo
+            const parar = function () {{ cancelado = true; }};
+            ["wheel", "touchstart", "keydown", "mousedown"].forEach(function (ev) {{
+              ventana.addEventListener(ev, parar, {{ once: true, passive: true }});
+            }});
+
+            setTimeout(function () {{
+              if (cancelado) return;
+              const zonas = [
+                doc.querySelector('[data-testid="stMain"]'),
+                doc.querySelector('section.main'),
+                doc.querySelector('[data-testid="stAppViewContainer"] > section'),
+                doc.scrollingElement,
+              ];
+              for (const z of zonas) {{
+                if (z && z.scrollHeight > z.clientHeight + 40) {{
+                  z.scrollTo({{ top: z.scrollHeight, behavior: "auto" }});
+                  return;                       // solo una zona, sin peleas
+                }}
               }}
-            }}
-          }}, 150);
+            }}, 120);
+          }})();
         </script>
         """,
         height=0,
@@ -1191,7 +1205,6 @@ if respuesta and not entrada:
 
 if entrada:
     st.markdown(f'<div class="consulta">{rotulo or entrada}</div>', unsafe_allow_html=True)
-    bajar()
     zona = st.empty()
     payload = resuelve(
         entrada, zona,
