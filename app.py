@@ -96,163 +96,114 @@ st.set_page_config(
 
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@400;500;600;700&display=swap');
 
 :root{
-  --tinta:#1B2B33;
-  --verde:#0E7C6B;
-  --verde-claro:#D8EFE9;
-  --verde-oscuro:#0B5A4E;
-  --fondo:#EEF2F4;
-  --humo:#6E818A;
-  --tenue:#9AAAB2;
-  --linea:#DDE5E9;
+  --negro:#0A0A0A;
+  --rojo:#D1122E;          /* rojo corporativo; ajústalo si tienes el exacto */
+  --rojo-oscuro:#A50E24;
+  --texto:#1A1A1A;
+  --suave:#6B6B6B;
+  --tenue:#9A9A9A;
+  --linea:#D8D8D8;
+  --gris:#F2F2F2;
 }
 
-.stApp{ background:var(--fondo); }
-html,body,[class*="css"],.stMarkdown{ font-family:Figtree,system-ui,sans-serif; color:var(--tinta); }
-.block-container{ padding-top:2rem; padding-bottom:3rem; max-width:1180px; }
+.stApp{ background:#fff; }
+html,body,[class*="css"],.stMarkdown{
+  font-family:'Libre Franklin',system-ui,sans-serif; color:var(--texto);
+}
+.block-container{ padding:0 0 3rem; max-width:1180px; }
 #MainMenu, footer, header[data-testid="stHeader"]{ visibility:hidden; height:0; }
-
-/* ---------- Portada ---------- */
-.portada{ text-align:center; padding:3.5rem 0 1.2rem; animation:surgir .5s ease both; }
-.portada h1{
-  font-size:clamp(2rem,4.5vw,2.9rem); font-weight:700; letter-spacing:-.03em;
-  color:var(--tinta) !important; margin:0 0 .5rem;
-}
-.portada h1 span{ color:var(--verde) !important; }
-.marca span{ color:var(--verde) !important; }
-.portada p{ color:var(--humo); font-size:1.02rem; margin:0; }
-
-/* ---------- Columna izquierda ---------- */
-.marca-sub{ color:var(--tenue); font-size:.82rem; margin:-.2rem 0 1.4rem .1rem; }
-
-/* El título de la columna izquierda es un botón que vuelve a la portada */
-.st-key-marca button{
-  background:transparent !important; box-shadow:none !important; border:none !important;
-  padding:0 !important; justify-content:flex-start !important;
-}
-.st-key-marca button p{
-  font-size:1.35rem !important; font-weight:700 !important; letter-spacing:-.02em;
-  color:var(--tinta) !important; margin:0 !important; text-align:left !important;
-}
-.st-key-marca button:hover p{ color:var(--verde) !important; }
-
-/* ---------- Consulta ---------- */
-.consulta{
-  font-size:1.05rem; font-weight:600; letter-spacing:-.01em; color:var(--tinta);
-  margin:0 0 .8rem; display:flex; align-items:center; gap:.5rem;
-}
-.consulta::before{
-  content:""; width:6px; height:6px; border-radius:50%;
-  background:var(--verde); flex:none;
-}
-
-/* ---------- Bloques ---------- */
-.pregunta{
-  background:var(--verde-claro); border-radius:16px; padding:1rem 1.15rem; margin:.2rem 0 .6rem;
-}
-.pregunta .titulo{
-  font-size:.7rem; font-weight:600; letter-spacing:.1em; text-transform:uppercase;
-  color:var(--verde-oscuro); margin-bottom:.35rem;
-}
-.pregunta .texto{ font-size:.97rem; line-height:1.45; color:var(--verde-oscuro); }
-
-.seccion{
-  font-size:.72rem; font-weight:600; letter-spacing:.11em; text-transform:uppercase;
-  color:var(--tenue); margin:1.4rem 0 .55rem;
-}
-.nota{ font-size:.79rem; color:var(--tenue); margin:.3rem 0 .5rem; }
-.separa{ height:1px; background:var(--linea); margin:2rem 0 1.2rem; }
-
-/* ---------- Transiciones ---------- */
-@keyframes surgir{ from{ opacity:0; transform:translateY(14px);} to{ opacity:1; transform:none;} }
-@keyframes entrar-lado{ from{ opacity:0; transform:translateX(18px);} to{ opacity:1; transform:none;} }
-.panel-izq{ animation:surgir .45s ease both; }
-.panel-der{ animation:entrar-lado .45s cubic-bezier(.22,.9,.3,1) both; }
-.consulta, .pregunta{ animation:surgir .3s ease both; }
-@media (prefers-reduced-motion:reduce){
-  .portada,.panel-izq,.panel-der,.consulta,.pregunta{ animation:none; }
-}
-
-/* ---------- Controles ---------- */
-/* Streamlit escribe "Press Enter to submit form" encima del marcador */
+[data-testid="stHeaderActionElements"]{ display:none !important; }
+h1 > a, h2 > a, h3 > a, .stMarkdown a.anchor-link{ display:none !important; }
 div[data-testid="InputInstructions"]{ display:none !important; }
 
-/* El marco del campo lo pinta BaseWeb, no el input */
-div[data-baseweb="input"], div[data-baseweb="base-input"]{
-  background:#fff !important; border:none !important; border-radius:26px !important;
-  box-shadow:0 1px 3px rgba(27,43,51,.07) !important;
+/* ---------- Banda de cabecera ---------- */
+.st-key-cabecera{
+  background:var(--negro); padding:1.9rem 2rem 1.7rem; margin-bottom:1.8rem;
 }
-div[data-baseweb="textarea"], div[data-baseweb="base-input"] textarea{
-  background:#fff !important; border:none !important; border-radius:20px !important;
-  box-shadow:0 1px 3px rgba(27,43,51,.07) !important;
+.rotulo{
+  color:#fff; font-size:.68rem; font-weight:600; letter-spacing:.16em;
+  text-transform:uppercase; margin-bottom:.7rem;
 }
-/* El rojo por defecto de Streamlit sale por el borde del contenedor */
-div[data-baseweb="input"], div[data-baseweb="textarea"],
-div[data-baseweb="input"]:focus-within, div[data-baseweb="textarea"]:focus-within,
-div[data-baseweb="input"]:hover, div[data-baseweb="textarea"]:hover{
-  border-color:transparent !important; outline:none !important;
+.rotulo span{ color:var(--rojo); }
+.titulo{
+  color:#fff; font-size:clamp(1.7rem,4vw,2.4rem); font-weight:700;
+  letter-spacing:-.03em; line-height:1.1; margin:0 0 1.2rem;
 }
-div[data-baseweb="input"]:focus-within, div[data-baseweb="textarea"]:focus-within{
-  box-shadow:0 0 0 2px var(--verde) !important;
-}
-div[data-testid="stTextArea"] textarea{
-  font-family:Figtree,sans-serif !important; font-size:1rem !important;
-  line-height:1.5 !important; color:var(--tinta) !important;
-  padding:.85rem 1.15rem !important; resize:none !important;
-}
-div[data-testid="stTextArea"] textarea::placeholder{ color:var(--tenue) !important; }
-div[data-testid="stTextArea"] textarea:focus{ box-shadow:none !important; }
 
-div[data-testid="stTextInput"] input{
-  background:#fff !important; border:none !important; border-radius:30px !important;
-  padding:1.1rem 1.5rem !important; font-size:1.02rem !important; color:var(--tinta) !important;
-  box-shadow:none !important; height:auto !important;
+/* ---------- Campo de búsqueda: recto y pegado al botón ---------- */
+.st-key-cabecera div[data-testid="stTextInput"] div[data-baseweb="base-input"],
+.st-key-cabecera div[data-testid="stTextInput"] input,
+.st-key-cabecera div[data-testid="stTextInput"] input:focus,
+.st-key-cabecera div[data-testid="stTextInput"] input:hover{
+  background:transparent !important; border:none !important;
+  box-shadow:none !important; outline:none !important;
 }
-div[data-testid="stTextInput"] input:focus{ box-shadow:none !important; }
-div[data-testid="stTextInput"] input:focus{
-  box-shadow:0 0 0 2px var(--verde) !important;
+.st-key-cabecera div[data-testid="stTextInput"] div[data-baseweb="input"]{
+  background:#fff !important; border:1px solid #fff !important;
+  border-radius:0 !important; box-shadow:none !important;
+}
+.st-key-cabecera div[data-testid="stTextInput"] div[data-baseweb="input"]:focus-within{
+  border-color:var(--rojo) !important; box-shadow:0 0 0 2px var(--rojo) !important;
+}
+div[data-testid="stTextInput"] input{
+  padding:.95rem 1.1rem !important; font-size:1rem !important;
+  color:var(--texto) !important; font-family:'Libre Franklin',sans-serif !important;
 }
 div[data-testid="stTextInput"] input::placeholder{ color:var(--tenue) !important; }
 
-.stButton button, .stFormSubmitButton button{
-  border-radius:22px; border:none; background:#fff; color:var(--humo);
-  font-family:Figtree,sans-serif; font-size:.86rem; font-weight:500; padding:.5rem 1.1rem;
-  box-shadow:0 1px 2px rgba(27,43,51,.06); transition:all .16s ease;
+/* ---------- Botones ---------- */
+.stFormSubmitButton button{
+  background:var(--rojo) !important; color:#fff !important; border:none !important;
+  border-radius:0 !important; font-weight:700 !important; font-size:.95rem !important;
+  padding:.95rem 1rem !important; letter-spacing:.01em;
+  transition:background .15s ease;
 }
-.stButton button:hover, .stFormSubmitButton button:hover{
-  background:var(--verde); color:#fff; box-shadow:0 2px 8px rgba(14,124,107,.25);
-}
-.stFormSubmitButton button{ background:var(--verde); color:#fff; font-weight:600; }
-.stFormSubmitButton button:hover{ background:var(--verde-oscuro); color:#fff; }
+.stFormSubmitButton button:hover{ background:var(--rojo-oscuro) !important; }
 
+.stButton button{
+  background:#fff; color:var(--texto); border:1px solid var(--negro);
+  border-radius:0; font-family:'Libre Franklin',sans-serif; font-size:.86rem;
+  font-weight:600; padding:.55rem 1.1rem; transition:all .15s ease;
+}
+.stButton button:hover{ background:var(--negro); color:#fff; border-color:var(--negro); }
+
+/* ---------- Cuerpo ---------- */
+.cuerpo{ padding:0 2rem; }
+.consulta{
+  font-size:1.15rem; font-weight:700; letter-spacing:-.02em; color:var(--texto);
+  margin:.4rem 0 1rem; padding-bottom:.7rem; border-bottom:2px solid var(--negro);
+}
+.seccion{
+  font-size:.68rem; font-weight:700; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--suave); margin:1.6rem 0 .7rem;
+}
+.pregunta{
+  background:var(--gris); border-left:4px solid var(--negro);
+  padding:1rem 1.2rem; margin:.9rem 0 .5rem;
+}
+.pregunta .titulo{
+  font-size:.68rem; font-weight:700; letter-spacing:.13em; text-transform:uppercase;
+  color:var(--rojo); margin-bottom:.4rem;
+}
+.pregunta .texto{ font-size:.97rem; line-height:1.45; color:var(--texto); }
+.nota{ font-size:.79rem; color:var(--suave); margin:.4rem 0 .5rem; }
+.separa{ height:1px; background:var(--linea); margin:2rem 0 1.2rem; }
+
+/* ---------- Progreso ---------- */
 div[data-testid="stProgress"]{ margin:0 0 1rem; }
 div[data-testid="stProgress"] p{
-  font-family:Figtree,sans-serif !important; font-size:.72rem !important; font-weight:600;
-  letter-spacing:.1em; text-transform:uppercase; color:var(--tenue) !important;
+  font-family:'Libre Franklin',sans-serif !important; font-size:.68rem !important;
+  font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:var(--suave) !important;
 }
 div[data-testid="stProgress"] div[role="progressbar"] > div{ background-color:var(--linea); }
 div[data-testid="stProgress"] div[role="progressbar"] > div > div{
-  background-color:var(--verde) !important; background-image:none !important;
+  background-color:var(--rojo) !important; background-image:none !important;
 }
-.st-key-reinicio button{
-  width:46px !important; height:46px !important; border-radius:50% !important;
-  padding:0 !important; font-size:1.25rem !important; line-height:1 !important;
-  color:var(--humo) !important; background:#fff !important;
-  box-shadow:0 1px 3px rgba(27,43,51,.09) !important;
-}
-.st-key-reinicio button:hover{
-  background:var(--verde) !important; color:#fff !important; transform:rotate(-90deg);
-}
-.st-key-reinicio button p{ font-size:1.25rem !important; }
-.reinicio-pie{
-  display:flex; align-items:center; gap:.7rem; margin-top:1.6rem;
-  font-size:.8rem; color:var(--tenue);
-}
-
 div[data-testid="stExpander"]{ border:none; background:transparent; }
-div[data-testid="stExpander"] summary{ font-size:.84rem; color:var(--humo); }
+div[data-testid="stExpander"] summary{ font-size:.85rem; color:var(--suave); }
 </style>
 """, unsafe_allow_html=True)
 
@@ -1016,47 +967,47 @@ def bajar():
 
 
 ESTILO_TARJETAS = """
-@import url('https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@400;500;600;700&display=swap');
 *{ box-sizing:border-box; }
 body{
-  margin:0; background:transparent; font-family:Figtree,system-ui,sans-serif;
-  --tinta:#1B2B33; --verde:#0E7C6B; --verde-claro:#D8EFE9; --verde-oscuro:#0B5A4E;
-  --humo:#6E818A; --tenue:#9AAAB2; --gris:#E4EAED; --gris-texto:#3F5560;
-  color:var(--tinta);
+  margin:0; background:transparent; font-family:'Libre Franklin',system-ui,sans-serif;
+  --negro:#0A0A0A; --rojo:#D1122E; --texto:#1A1A1A; --suave:#6B6B6B;
+  --linea:#D8D8D8; --gris:#F2F2F2;
+  color:var(--texto);
 }
 .tarjeta{
-  background:#fff; border-radius:16px; padding:.9rem 1.05rem; margin-bottom:.6rem;
-  box-shadow:0 1px 3px rgba(27,43,51,.07);
-  animation:entrar .34s cubic-bezier(.22,.9,.3,1) both;
+  background:#fff; border:1px solid var(--linea); border-left:4px solid #C9C9C9;
+  padding:.9rem 1.1rem; margin-bottom:.55rem;
+  animation:entrar .3s ease both;
 }
+.tarjeta.top{ border-left-color:var(--rojo); }
 .tarjeta:last-child{ margin-bottom:0; }
 .tarjeta:nth-of-type(2){ animation-delay:.05s; }
 .tarjeta:nth-of-type(3){ animation-delay:.1s; }
-@keyframes entrar{ from{ opacity:0; transform:translateY(9px);} to{ opacity:1; transform:none;} }
+@keyframes entrar{ from{ opacity:0; transform:translateY(8px);} to{ opacity:1; transform:none;} }
 @media (prefers-reduced-motion:reduce){ .tarjeta{ animation:none; } }
 
-.fila{ display:flex; align-items:center; gap:9px; flex-wrap:wrap; }
+.fila{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
 .orden{ display:none; }
 .codigo{
-  font-size:1.28rem; font-weight:700; letter-spacing:.045em; color:var(--verde);
+  font-size:1.3rem; font-weight:700; letter-spacing:.045em; color:var(--negro);
   font-variant-numeric:tabular-nums;
 }
-.tarjeta.top .codigo{ color:var(--verde); }
-.tarjeta:not(.top) .codigo{ color:#43606B; }
 .copiar{
-  font-family:Figtree,sans-serif; font-size:.72rem; font-weight:500;
-  color:var(--humo); background:#F1F5F7; border:none; border-radius:20px;
-  padding:.25rem .7rem; cursor:pointer; transition:all .15s ease; white-space:nowrap;
+  font-family:'Libre Franklin',sans-serif; font-size:.7rem; font-weight:600;
+  color:var(--texto); background:#fff; border:1px solid var(--negro); border-radius:0;
+  padding:.24rem .7rem; cursor:pointer; transition:all .15s ease; white-space:nowrap;
 }
-.copiar:hover{ background:var(--verde); color:#fff; }
-.copiar.hecho{ background:var(--verde-oscuro); color:#fff; }
-.denominacion{ font-size:.94rem; font-weight:600; line-height:1.35; margin:.4rem 0 .2rem; }
-.motivo{ font-size:.85rem; color:var(--humo); line-height:1.45; }
+.copiar:hover{ background:var(--negro); color:#fff; }
+.copiar.hecho{ background:var(--rojo); border-color:var(--rojo); color:#fff; }
+.denominacion{ font-size:.95rem; font-weight:600; line-height:1.35; margin:.45rem 0 .2rem; }
+.motivo{ font-size:.85rem; color:var(--suave); line-height:1.45; }
 .etiqueta{
-  display:inline-block; font-size:.7rem; font-weight:600; padding:.2rem .6rem;
-  border-radius:20px; background:var(--gris); color:var(--gris-texto);
+  display:inline-block; font-size:.65rem; font-weight:700; letter-spacing:.09em;
+  text-transform:uppercase; padding:.22rem .55rem; border-radius:0;
+  background:var(--gris); color:var(--suave);
 }
-.etiqueta.destacada{ background:var(--verde-claro); color:var(--verde-oscuro); }
+.etiqueta.destacada{ background:var(--rojo); color:#fff; }
 """
 
 GUION_COPIAR = """
@@ -1371,20 +1322,6 @@ EJEMPLOS = [
 ]
 
 
-def caja_busqueda(clave, etiqueta="Buscar"):
-    """Cuadro de texto con envío al pulsar Enter."""
-    with st.form(clave, clear_on_submit=True, border=False):
-        texto = st.text_input(
-            "Consulta", label_visibility="collapsed",
-            placeholder=(
-                "Describe el puesto: qué hacía, dónde y con qué. "
-                "También admite un código de 8 cifras."
-            ),
-        )
-        enviado = st.form_submit_button(etiqueta, use_container_width=True)
-    return texto.strip() if (enviado and texto.strip()) else None
-
-
 def panel_ajustes():
     with st.popover("Ajustes", use_container_width=True):
         st.session_state["usar_ia"] = st.toggle(
@@ -1470,105 +1407,79 @@ if not entrada:
     entrada = st.session_state.pop("pendiente", None)
 
 # ---------------------------------------------------------------------------
-# Portada: buscador centrado mientras no hay resultados
+# Banda de cabecera: el buscador vive aquí y no se mueve nunca
 # ---------------------------------------------------------------------------
 
-portada = st.empty()
+try:
+    banda = st.container(key="cabecera")
+except TypeError:          # Streamlit anterior a la versión con claves
+    banda = st.container()
 
-if not st.session_state["actual"] and not entrada:
-    with portada.container():
-        st.markdown(
-            '<div class="portada"><h1>Codificador de <span>ocupaciones</span></h1>'
-            '<p>Describe el puesto y obtén los códigos oficiales del catálogo SISPE.</p></div>',
-            unsafe_allow_html=True,
-        )
-        _, centro, _ = st.columns([0.5, 4, 0.5])
-        with centro:
-            entrada = caja_busqueda("inicio", "Buscar")
-            # Si ya hay consulta, no se crean más controles: la vista de
-            # trabajo los volvería a crear y Streamlit rechaza los duplicados.
-            if not entrada:
-                st.markdown('<div class="seccion">Prueba con</div>', unsafe_allow_html=True)
-                for fila in (EJEMPLOS[:2], EJEMPLOS[2:]):
-                    cols = st.columns(len(fila))
-                    for col, ej in zip(cols, fila):
-                        if col.button(ej, use_container_width=True, key=f"ej_{ej}"):
-                            st.session_state["pendiente"] = ej
-                            st.rerun()
-                st.write("")
-                _, ajus, _ = st.columns([1, 1, 1])
-                with ajus:
-                    panel_ajustes()
-
-    if not entrada:
-        st.stop()
-
-    portada.empty()      # se retira la portada y entra la vista de trabajo
-
-# ---------------------------------------------------------------------------
-# Vista de trabajo: buscador a la izquierda, resultados a la derecha
-# ---------------------------------------------------------------------------
-
-izquierda, derecha = st.columns([1, 1.45], gap="large")
-
-with izquierda:
-    if st.button("Codificador de ocupaciones", key="marca", use_container_width=True):
-        st.session_state["actual"] = None
-        st.rerun()
+with banda:
     st.markdown(
-        '<div class="marca-sub">Catálogo SISPE · SilcoiWeb</div>',
+        '<div class="rotulo">Catálogo SISPE <span>&middot;</span> SilcoiWeb</div>'
+        '<div class="titulo">Codificador de ocupaciones</div>',
         unsafe_allow_html=True,
     )
-    nueva_consulta = caja_busqueda("lateral", "Buscar")
-    if nueva_consulta and not entrada:
-        entrada = nueva_consulta
+    with st.form("buscador", clear_on_submit=True, border=False):
+        campo, boton = st.columns([5, 1], gap="small")
+        with campo:
+            texto = st.text_input(
+                "Consulta", label_visibility="collapsed",
+                placeholder="Describe el puesto: qué hacía, dónde y con qué. También un código de 8 cifras.",
+            )
+        with boton:
+            enviado = st.form_submit_button("Buscar", use_container_width=True)
+
+    if enviado and texto.strip() and not entrada:
+        entrada = texto.strip()
         contexto, busqueda, rotulo = "", None, None
 
-    st.markdown('<div class="seccion">Prueba con</div>', unsafe_allow_html=True)
-    for ej in EJEMPLOS:
-        if st.button(ej, use_container_width=True, key=f"lat_{ej}"):
-            st.session_state["pendiente"] = ej
-            st.rerun()
+# ---------------------------------------------------------------------------
+# Cuerpo
+# ---------------------------------------------------------------------------
 
-    st.markdown('<div class="separa"></div>', unsafe_allow_html=True)
+izquierda, derecha = st.columns([6, 1], gap="small")
+with derecha:
     panel_ajustes()
 
-with derecha:
-    st.markdown('<div class="panel-der"></div>', unsafe_allow_html=True)
+if entrada:
+    st.markdown(
+        f'<div class="consulta">{rotulo or entrada}</div>', unsafe_allow_html=True
+    )
+    zona = st.empty()
+    payload = resuelve(
+        entrada, zona,
+        usar_ia=st.session_state["usar_ia"],
+        contexto=contexto, busqueda=busqueda,
+    )
+    st.session_state["actual"] = (rotulo or entrada, payload)
+    st.session_state["registro"].append((
+        rotulo or entrada,
+        " | ".join(o["codigo"] for o in payload.get("ocupaciones", [])),
+    ))
+    st.rerun()
 
-    if entrada:
-        st.markdown(
-            f'<div class="consulta">{rotulo or entrada}</div>', unsafe_allow_html=True
-        )
-        zona = st.empty()
-        payload = resuelve(
-            entrada, zona,
-            usar_ia=st.session_state["usar_ia"],
-            contexto=contexto, busqueda=busqueda,
-        )
-        st.session_state["actual"] = (rotulo or entrada, payload)
-        st.session_state["registro"].append((
-            rotulo or entrada,
-            " | ".join(o["codigo"] for o in payload.get("ocupaciones", [])),
-        ))
-        st.rerun()
+elif st.session_state["actual"]:
+    consulta, payload = st.session_state["actual"]
+    st.markdown(f'<div class="consulta">{consulta}</div>', unsafe_allow_html=True)
+    pinta_resultado(payload, interactivo=True, consulta=consulta)
 
-    elif st.session_state["actual"]:
-        consulta, payload = st.session_state["actual"]
-        st.markdown(f'<div class="consulta">{consulta}</div>', unsafe_allow_html=True)
-        pinta_resultado(payload, interactivo=True, consulta=consulta)
+    st.markdown('<div class="separa"></div>', unsafe_allow_html=True)
+    limpiar, _ = st.columns([1, 4])
+    with limpiar:
+        if st.button("Nueva búsqueda", use_container_width=True, key="reinicio"):
+            st.session_state["actual"] = None
+            st.rerun()
 
-        st.write("")
-        vuelta, texto, _ = st.columns([1, 4, 2])
-        with vuelta:
-            if st.button("↺", key="reinicio", help="Nueva búsqueda"):
-                st.session_state["actual"] = None
+else:
+    st.markdown('<div class="seccion">Prueba con</div>', unsafe_allow_html=True)
+    for fila in (EJEMPLOS[:2], EJEMPLOS[2:]):
+        cols = st.columns(len(fila))
+        for col, ej in zip(cols, fila):
+            if col.button(ej, use_container_width=True, key=f"ej_{ej}"):
+                st.session_state["pendiente"] = ej
                 st.rerun()
-        with texto:
-            st.markdown(
-                '<div class="reinicio-pie">Empezar una búsqueda nueva</div>',
-                unsafe_allow_html=True,
-            )
 
 # Con el resultado ya en pantalla, se publica lo aprendido para el resto
 for clave, valor in st.session_state.pop("por_guardar", []):
