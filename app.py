@@ -270,6 +270,8 @@ div[data-testid="stExpander"] summary{ font-size:.85rem; color:var(--suave); }
 # ---------------------------------------------------------------------------
 
 def normaliza(t):
+    """Limpia caracteres de unión y acentos para no pegar palabras compuestas."""
+    t = re.sub(r"[/\\_\-]+", " ", t)
     return "".join(
         c for c in unicodedata.normalize("NFD", t) if unicodedata.category(c) != "Mn"
     ).lower().strip()
@@ -301,7 +303,7 @@ def carga_vocabulario():
             }
             if vacias or sinonimos:
                 return vacias or set(VACIAS_MINIMAS), sinonimos
-        except Exception:  # noqa: BLE001  archivo mal formado
+        except Exception:  # noqa: BLE001
             pass
     return set(VACIAS_MINIMAS), {}
 
@@ -351,7 +353,7 @@ def _lee_gist(archivo):
         datos = _peticion(f"https://api.github.com/gists/{gist}", token)
         contenido = datos["files"][archivo]["content"]
         return {str(k): str(v) for k, v in json.loads(contenido).items()}
-    except Exception:  # noqa: BLE001  sin conexión, archivo ausente o vacío
+    except Exception:  # noqa: BLE001
         return {}
 
 
@@ -469,12 +471,23 @@ def diccionario():
 
 
 def raiz(w):
-    if len(w) > 5 and w.endswith("es"):
+    """Lematizador mínimo ampliado para español.
+
+    Neutraliza desinencias verbales comunes (gerundio, participio, imperfecto),
+    sufijos de agente (-dor, -or) y flexión de género y número.
+    """
+    if len(w) > 6 and (w.endswith("ando") or w.endswith("iendo")):
+        w = w[:-4]
+    elif len(w) > 5 and (w.endswith("aba") or w.endswith("ado") or w.endswith("ido")):
+        w = w[:-3]
+    elif len(w) > 5 and w.endswith("dor"):
+        w = w[:-3]
+    elif len(w) > 5 and w.endswith("or"):
+        w = w[:-2]
+    elif len(w) > 5 and w.endswith("es"):
         w = w[:-2]
     elif len(w) > 4 and w.endswith("s"):
         w = w[:-1]
-    if len(w) > 5 and w.endswith("or"):
-        w = w[:-2]
     if len(w) > 4 and w[-1] in "aoe":
         w = w[:-1]
     return w
@@ -600,13 +613,27 @@ def desconocidas(consulta):
 def busca(consulta, tope=20, grupos=None):
     q = normaliza(consulta)
     terminos = {}
-    contadas, primero = 0, None
-    for w in re.findall(r"\w+", q):
-        if len(w) > 2 and w not in VACIAS and w not in terminos:
-            contadas += 1
-            if contadas == 1:
-                primero = raiz(w)
-            terminos[w] = 1.0 if contadas <= 4 else 0.7
+    cabezas = set()
+
+    # Descompone consultas coordinadas (ej. "cobro en caja y repongo estantes")
+    # para no sesgar todo el peso hacia el primer oficio mencionado.
+    clausulas = [
+        c.strip()
+        for c in re.split(r"\s+(?:y|e|o|ademas|tambien)\s+", q)
+        if c.strip()
+    ]
+    if not clausulas:
+        clausulas = [q]
+
+    for clausula in clausulas:
+        contadas = 0
+        for w in re.findall(r"\w+", clausula):
+            if len(w) > 2 and w not in VACIAS and w not in terminos:
+                contadas += 1
+                if contadas == 1:
+                    cabezas.add(raiz(w))
+                terminos[w] = 1.0 if contadas <= 3 else 0.7
+
     palabras_q = set(re.findall(r"\w+", q))
     for clave, expansion in diccionario().items():
         if (clave in palabras_q) if " " not in clave else (clave in q):
@@ -668,7 +695,8 @@ def busca(consulta, tope=20, grupos=None):
     for i, valor in puntos.items():
         reg = IDX["registros"][i]
         nucleo = 1.0 + 0.5 * len(cubierto[i] & reg["cabeza"])
-        if primero and primero in reg["cabeza"]:
+        # Coincidencia con la cabeza de cualquiera de las tareas coordinadas
+        if cabezas and (cabezas & reg["cabeza"]):
             nucleo *= 1.8
         familia = 1.0
         if grupos:
@@ -1155,7 +1183,7 @@ function copiar(boton, codigo){
     const antes = boton.textContent;
     boton.textContent = 'Copiado';
     boton.classList.add('hecho');
-    setTimeout(function(){ boton.textContent = antes; boton.classList.remove('hecho'); }, 1400);
+    setTimeout(function(){ boton.textContent de antes; boton.classList.remove('hecho'); }, 1400);
   };
   if (navigator.clipboard && window.isSecureContext){
     navigator.clipboard.writeText(codigo).then(listo).catch(function(){ viejo(codigo, listo); });
