@@ -486,10 +486,18 @@ def diccionario():
 
 
 def raiz(w):
+    """Lematizador mínimo para español.
+
+    Neutraliza plural, género y el sufijo de agente -or, que es el que
+    separaba 'solados' (lo que dice la persona) de 'soladores' (lo que dice
+    el catálogo). Sin esa regla, ambas palabras no se encontraban nunca.
+    """
     if len(w) > 5 and w.endswith("es"):
         w = w[:-2]
     elif len(w) > 4 and w.endswith("s"):
         w = w[:-1]
+    if len(w) > 5 and w.endswith("or"):      # solador -> solad, montador -> montad
+        w = w[:-2]
     if len(w) > 4 and w[-1] in "aoe":
         w = w[:-1]
     return w
@@ -733,7 +741,7 @@ Selecciona entre 3 y 5, de mayor a menor afinidad.
 
 REGLAS
 1. Usa únicamente códigos y denominaciones literales de la lista de candidatos. No inventes ni modifiques ninguno.
-2. Los candidatos llegan ordenados por afinidad con las palabras de la persona. Respeta ese orden salvo que una ocupación posterior encaje claramente mejor; si adelantas una, que sea porque su denominación describe la actividad con más precisión.
+2. Los candidatos llegan ordenados por coincidencia de palabras, NO por acierto. Ese orden es solo una pista: elige siempre la ocupación cuya denominación describa la actividad real, aunque esté al final de la lista. Desconfía de las coincidencias de palabra suelta entre sectores distintos (por ejemplo "montar" o "pisos" significan cosas muy diferentes en construcción y en calzado).
 3. Nivel profesional: 90 aprendices (sin experiencia) / 00 técnicos o sin categoría (estándar con experiencia) / 10 dirección / 20 mandos intermedios / 30 jefes de equipo / 70 auxiliares / 80 peones.
 4. El campo "motivo" explica en menos de 10 palabras por qué encaja, en español con acentuación correcta.
 5. No propongas ocupaciones de dirección, jefatura ni mando (niveles 10, 20, 30) salvo que la descripción diga expresamente que dirigía equipos, centros o departamentos.
