@@ -1326,7 +1326,11 @@ def resuelve(texto, zona, usar_ia=True, contexto="", busqueda=None):
         return payload
 
     encontrados = busca(busqueda or texto, tope=N_CANDIDATOS)
-    if not encontrados:
+    cli = cliente() if usar_ia else None
+
+    # Sin coincidencias y sin IA no hay nada más que hacer. Con IA, sí: es
+    # justo el caso en el que más falta hace, así que no se rinde aquí.
+    if not encontrados and cli is None:
         payload = {"ocupaciones": []}
         with zona.container():
             pinta_resultado(payload)
@@ -1343,7 +1347,6 @@ def resuelve(texto, zona, usar_ia=True, contexto="", busqueda=None):
         "ocupaciones": _basica(encontrados),
         "otras": [(c, d) for _, c, d in encontrados[5:12]],
     }
-    cli = cliente() if usar_ia else None
 
     if cli is None:
         with zona.container():
@@ -1370,6 +1373,12 @@ def resuelve(texto, zona, usar_ia=True, contexto="", busqueda=None):
                 "ocupaciones": _basica(encontrados),
                 "otras": [(c, d) for _, c, d in encontrados[5:12]],
             }
+
+    if not encontrados:
+        payload = {"ocupaciones": []}
+        zona.empty()
+        pinta_resultado(payload)
+        return payload
 
     jerga = desconocidas(texto)
 
