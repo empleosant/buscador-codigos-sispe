@@ -36,5 +36,5 @@ jobs:
 
       - name: Abrir la aplicación
         env:
-          URL: https://TU-APP.streamlit.app        # <-- cámbiala
+          URL: https://buscador-codigos-sispe.streamlit.app
         run: python scripts/despertar.py
