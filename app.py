@@ -35,7 +35,7 @@ CATALOGO = "ocupaciones_sispe_ultraligero.txt"
 # Opcional: lo genera enriquecer.py una sola vez. Si está, la app busca también
 # por el vocabulario coloquial de cada ocupación.
 AMPLIADO = "terminos_ampliados.txt"
-N_CANDIDATOS = 12
+N_CANDIDATOS = 16
 ESPERA_MAXIMA = 45      # segundos antes de rendirse con el modelo
 
 # ---------------------------------------------------------------------------
@@ -625,12 +625,18 @@ def desconocidas(consulta):
     return fuera
 
 
-def busca(consulta, tope=20):
+def busca(consulta, tope=20, grupos=None):
     q = normaliza(consulta)
     terminos = {}
+    # Las primeras palabras pesan más: tanto el modelo como las personas
+    # ponen delante el nombre del oficio y detrás los complementos.
+    contadas, primero = 0, None
     for w in re.findall(r"\w+", q):
-        if len(w) > 2 and w not in VACIAS:
-            terminos[w] = 1.0
+        if len(w) > 2 and w not in VACIAS and w not in terminos:
+            contadas += 1
+            if contadas == 1:
+                primero = raiz(w)
+            terminos[w] = 1.0 if contadas <= 4 else 0.7
     palabras_q = set(re.findall(r"\w+", q))
     for clave, expansion in diccionario().items():
         # clave de una palabra: coincidencia exacta ("ele" no debe saltar con
@@ -697,6 +703,16 @@ def busca(consulta, tope=20):
     for i, valor in puntos.items():
         reg = IDX["registros"][i]
         nucleo = 1.0 + 0.5 * len(cubierto[i] & reg["cabeza"])
+        # La primera palabra suele ser el nombre del oficio: si además es la
+        # cabeza de la denominación, es casi seguro que es esa ocupación.
+        if primero and primero in reg["cabeza"]:
+            nucleo *= 1.8
+        # La familia profesional que indica el modelo pesa, pero no excluye:
+        # una clasificación errónea no debe dejar la búsqueda sin resultados.
+        familia = 1.0
+        if grupos:
+            familia = 1.7 if reg["codigo"][0] in grupos else 0.45
+
         propios = len(cubierto[i] & originales)
         # premia encajar con varias palabras a la vez, sean propias o expandidas
         cobertura = (
@@ -704,7 +720,9 @@ def busca(consulta, tope=20):
             + 0.30 * min(1.0, len(cubierto[i]) / n_total)
             + 0.15 * min(1.0, propios / n_term)
         )
-        resultados.append((valor * nucleo * cobertura, reg["codigo"], reg["denom"]))
+        resultados.append(
+            (valor * nucleo * cobertura * familia, reg["codigo"], reg["denom"])
+        )
     resultados.sort(reverse=True)
     return resultados[:tope]
 
@@ -877,22 +895,30 @@ Lees la descripción de un puesto escrita por un orientador laboral, con las
 palabras de la persona atendida, y respondes con el VOCABULARIO OFICIAL que
 usaría la clasificación para ese oficio.
 
-Devuelve SOLO entre 8 y 14 palabras sueltas separadas por espacios, en
-minúsculas y sin acentos. Empieza por el nombre formal del oficio en plural
-tal y como aparecería en la clasificación, y sigue con materiales,
-herramientas y tareas propias.
+Responde SOLO con este JSON:
+{"terminos":"...","grupos":"7"}
 
-No expliques nada. No repitas las palabras de la persona salvo que sean las
-oficiales. Si el texto es una pregunta, ignora la forma y quédate con el oficio.
+- "terminos": entre 8 y 14 palabras sueltas separadas por espacios, en
+  minúsculas y sin acentos. Empieza por el nombre formal del oficio en plural
+  tal y como aparecería en la clasificación y sigue con materiales,
+  herramientas y tareas. No repitas las palabras coloquiales de la persona.
+- "grupos": uno o dos dígitos separados por espacio, el gran grupo de la CNO
+  al que pertenece el oficio:
+  1 dirección · 2 técnicos y profesionales científicos · 3 técnicos de apoyo
+  4 empleados de oficina · 5 restauración, servicios personales y comercio
+  6 agricultura y pesca · 7 artesanos y cualificados de industria y construcción
+  8 operadores de instalaciones y maquinaria · 9 ocupaciones elementales
+
+Si el texto es una pregunta, ignora la forma y quédate con el oficio.
 
 Entrada: para una persona que monta suelos
-Salida: soladores alicatadores pavimentos baldosas ceramica gres mortero solados construccion
+Salida: {"terminos":"soladores alicatadores pavimentos baldosas ceramica gres mortero solados","grupos":"7"}
 
 Entrada: una persona que limpia habitaciones de hotel
-Salida: camareros piso hosteleria habitaciones limpieza alojamiento hoteles ropa cama
+Salida: {"terminos":"camareros piso hosteleria habitaciones limpieza alojamiento ropa cama","grupos":"9 5"}
 
-Entrada: dime el codigo de quien limpia las calles
-Salida: barrenderos limpieza viaria publica residuos aceras papeleras carro
+Entrada: dime el codigo de quien pintaba casas
+Salida: {"terminos":"pintores empapeladores brocha rodillo esmalte paredes techos","grupos":"7"}
 """
 
 
@@ -909,10 +935,24 @@ def interpreta_consulta(cli, texto):
     try:
         bruto = pregunta_corta(cli, INTERPRETE, texto)
     except Exception:  # noqa: BLE001
-        return ""
-    limpio = " ".join(re.findall(r"[a-zñáéíóúü]+", normaliza(bruto))[:14])
-    memoria[clave] = limpio
-    return limpio
+        return "", ()
+
+    datos = {}
+    try:
+        bloque = re.search(r"\{.*\}", bruto, re.S)
+        datos = json.loads(bloque.group()) if bloque else {}
+    except Exception:  # noqa: BLE001
+        datos = {}
+
+    terminos = " ".join(
+        re.findall(r"[a-zñáéíóúü]+", normaliza(str(datos.get("terminos", ""))))[:14]
+    )
+    grupos = tuple(re.findall(r"[1-9]", str(datos.get("grupos", ""))))[:2]
+    if not terminos:      # si no vino JSON, se aprovecha el texto suelto
+        terminos = " ".join(re.findall(r"[a-zñáéíóúü]+", normaliza(bruto))[:14])
+
+    memoria[clave] = (terminos, grupos)
+    return terminos, grupos
 
 
 def traduce_jerga(cli, palabras, contexto):
@@ -1004,7 +1044,7 @@ def verifica(lista):
             })
         elif codigo:
             descartadas += 1
-    return limpias[:5], descartadas
+    return limpias[:6], descartadas
 
 
 def interpreta(bruto):
@@ -1102,12 +1142,19 @@ body{
   animation:entrar .38s cubic-bezier(.2,.85,.3,1) both;
 }
 .tarjeta.top{ border-left-color:var(--rojo); }
+
+/* Relleno: viene del catálogo, no del modelo. Se distingue sin esconderse. */
+.tarjeta.relleno{ background:#FAFAFA; border-left-color:#E4E4E4; }
+.tarjeta.relleno .codigo{ color:#5A5A5A; }
+.tarjeta.relleno .denominacion{ font-weight:500; color:#3A3A3A; }
+.tarjeta.relleno .orden{ color:#A8A8A8; }
 .tarjeta:nth-child(1){ animation-delay:0s; }
 .tarjeta:nth-child(2){ animation-delay:.07s; }
 .tarjeta:nth-child(3){ animation-delay:.14s; }
 .tarjeta:nth-child(4){ animation-delay:.21s; }
 .tarjeta:nth-child(5){ animation-delay:.28s; }
 .tarjeta:nth-child(6){ animation-delay:.35s; }
+.tarjeta:nth-child(n+7){ animation-delay:.4s; }
 @keyframes entrar{
   from{ opacity:0; transform:translateY(14px) scale(.985); }
   to{ opacity:1; transform:none; }
@@ -1115,7 +1162,10 @@ body{
 @media (prefers-reduced-motion:reduce){ .tarjeta{ animation:none; } }
 
 .fila{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
-.orden{ display:none; }
+.orden{
+  font-size:.72rem; font-weight:700; color:var(--suave);
+  font-variant-numeric:tabular-nums; letter-spacing:.04em;
+}
 .codigo{
   font-size:1.18rem; font-weight:700; letter-spacing:.045em; color:var(--negro);
   font-variant-numeric:tabular-nums;
@@ -1182,7 +1232,12 @@ def pinta_tarjetas(ocupaciones):
 
     trozos = []
     for i, o in enumerate(ocupaciones, 1):
-        clase = "tarjeta top" if i == 1 else "tarjeta"
+        clases = ["tarjeta"]
+        if i == 1:
+            clases.append("top")
+        if o.get("relleno"):
+            clases.append("relleno")
+        clase = " ".join(clases)
         etiqueta = "etiqueta destacada" if i == 1 else "etiqueta"
         motivo = f'<div class="motivo">{o["motivo"]}</div>' if o.get("motivo") else ""
         trozos.append(
@@ -1268,7 +1323,8 @@ def pinta_resultado(payload, estado=None, avance=0.06, interactivo=False, consul
     otras = payload.get("otras", [])
     if otras:
         with st.expander("Ver otras ocupaciones del catálogo"):
-            for cod, den in otras:
+            arranque = len(payload.get("ocupaciones", [])) + 1
+            for orden, (cod, den) in enumerate(otras, arranque):
                 st.markdown(
                     f'<div style="padding:.35rem 0;border-bottom:1px solid var(--borde)">'
                     f'<span style="font-family:JetBrains Mono,monospace;font-weight:700;'
@@ -1363,9 +1419,16 @@ def resuelve(texto, zona, usar_ia=True, contexto="", busqueda=None):
     interpretado, aviso = None, ""
     with zona.container():
         pinta_resultado({}, estado="Interpretando el oficio", avance=0.12)
-    oficiales = interpreta_consulta(cli, texto)
+    oficiales, grupos = interpreta_consulta(cli, texto)
     if oficiales:
-        mejores = busca(f"{busqueda or texto} {oficiales}", tope=N_CANDIDATOS + 4)
+        # Primero solo con el vocabulario oficial: las palabras coloquiales de
+        # la persona ensucian la búsqueda ("casas" arrastra a construcción,
+        # "monta" a calzado). Solo si eso no basta se mezclan las dos.
+        mejores = busca(oficiales, tope=N_CANDIDATOS + 4, grupos=grupos)
+        if len(mejores) < 3:
+            mejores = busca(
+                f"{busqueda or texto} {oficiales}", tope=N_CANDIDATOS + 4, grupos=grupos
+            )
         if mejores:
             encontrados = mejores
             interpretado = ("la consulta", oficiales)
@@ -1480,7 +1543,7 @@ def resuelve(texto, zona, usar_ia=True, contexto="", busqueda=None):
     # deja la pantalla coja y esconde alternativas que sí valdrían.
     ya = {o["codigo"] for o in payload["ocupaciones"]}
     for _, codigo, denom in encontrados:
-        if len(payload["ocupaciones"]) >= 3:
+        if len(payload["ocupaciones"]) >= 6:
             break
         if codigo in ya:
             continue
@@ -1490,10 +1553,11 @@ def resuelve(texto, zona, usar_ia=True, contexto="", busqueda=None):
             "nivel": "00",
             "nivel_texto": NIVELES["00"],
             "motivo": "",
+            "relleno": True,        # viene del catálogo, no del modelo
         })
         ya.add(codigo)
     elegidos = {o["codigo"] for o in payload["ocupaciones"]}
-    payload["otras"] = [(c, d) for _, c, d in encontrados if c not in elegidos][:7]
+    payload["otras"] = [(c, d) for _, c, d in encontrados if c not in elegidos][:8]
 
     zona.empty()          # retira el bloque provisional antes del definitivo
     pinta_resultado(payload)
