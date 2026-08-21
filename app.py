@@ -263,124 +263,49 @@ div[data-testid="stExpander"] summary{ font-size:.85rem; color:var(--suave); }
 # CATALOGO
 # ---------------------------------------------------------------------------
 
-VACIAS = {
-    "de", "del", "la", "el", "los", "las", "en", "y", "o", "con", "para", "por",
-    "un", "una", "al", "sin", "que", "su", "mas", "general", "asalariados",
-    "otros", "otras", "clasificados", "anteriormente", "tanto", "cuenta",
-    "trabajado", "trabajo", "anos", "experiencia", "he", "soy", "estuve",
-    # ruido de la propia consulta
-    "dame", "dime", "busca", "buscar", "quiero", "necesito", "ocupacion",
-    "ocupaciones", "codigo", "codigos", "puesto", "persona", "personas",
-    "gente", "alguien", "senor", "senora", "chico", "chica", "tiene", "tenia",
-    "hacia", "hace", "estado", "sido", "una", "unos", "unas", "casa", "casas",
-    "sus", "mis", "tus", "este", "esta", "esto", "ese", "esa", "muy", "bien",
-    "algo", "cosas", "cosa", "tipo", "tipos", "ahora", "antes", "despues",
-    "poner", "pongo", "ponia", "hacer", "hago", "llevar", "llevaba", "dar",
-    "daba", "estar", "estaba", "ser", "era", "tenido", "hecho", "todo", "toda",
+def normaliza(t):
+    return "".join(
+        c for c in unicodedata.normalize("NFD", t) if unicodedata.category(c) != "Mn"
+    ).lower().strip()
+
+
+# ---------------------------------------------------------------------------
+# VOCABULARIO
+# El buscador tiene cuatro capas de vocabulario, de más estable a más viva:
+#   1. vocabulario.json        palabras vacías y sinónimos base (este archivo)
+#   2. terminos_ampliados.txt  jerga de cada ocupación (lo genera enriquecer.py)
+#   3. lexico.json   (Gist)    jerga traducida por la IA sobre la marcha
+#   4. refuerzos.json (Gist)   correcciones de orden aprendidas con el uso
+# Ninguna se toca desde app.py: este archivo solo contiene el motor.
+# ---------------------------------------------------------------------------
+
+VOCABULARIO = "vocabulario.json"
+
+# Mínimo imprescindible por si falta el archivo: la app arranca igualmente.
+VACIAS_MINIMAS = {
+    "de", "del", "la", "el", "los", "las", "en", "y", "o", "con", "para",
+    "por", "un", "una", "al", "sin", "que", "su", "general", "persona",
+    "personas", "dame", "dime", "codigo", "puesto", "trabajo",
 }
 
-SINONIMOS = {
-    # Solo hace falta una entrada cuando la palabra de la persona NO comparte
-    # raíz con la del catálogo. Género y plural ya los resuelve raiz():
-    # camarera→camarer→camareros, peluquera→peluquer→peluqueros, etc.
 
-    # plataformas y marcas
-    "uber": "conductores automoviles taxis furgonetas taxistas",
-    "cabify": "conductores automoviles taxis furgonetas taxistas",
-    "vtc": "conductores automoviles taxis furgonetas taxistas",
-    "bolt": "conductores automoviles taxis furgonetas taxistas",
-    "glovo": "repartidores motocicleta ciclomotor reparto",
-    "uber eats": "repartidores motocicleta ciclomotor reparto",
-    "just eat": "repartidores motocicleta ciclomotor reparto",
-    "deliveroo": "repartidores motocicleta ciclomotor reparto",
-    "rider": "repartidores motocicleta ciclomotor reparto",
-    "amazon": "mozos carga descarga almacen preparadores pedidos",
+@st.cache_resource(show_spinner=False)
+def carga_vocabulario():
+    if os.path.exists(VOCABULARIO):
+        try:
+            with open(VOCABULARIO, "r", encoding="utf-8") as f:
+                datos = json.load(f)
+            vacias = {normaliza(w) for w in datos.get("vacias", []) if w}
+            sinonimos = {
+                normaliza(k): str(v)
+                for k, v in (datos.get("sinonimos") or {}).items() if k and v
+            }
+            if vacias or sinonimos:
+                return vacias or set(VACIAS_MINIMAS), sinonimos
+        except Exception:  # noqa: BLE001  archivo mal formado
+            pass
+    return set(VACIAS_MINIMAS), {}
 
-    # coloquialismos de oficio
-    "carretillero": "carretillas elevadoras operadores",
-    "kelly": "camareros piso hosteleria",
-    "bar": "camareros barra cafeteria",
-    "barra": "camareros barra cafeteria",
-    "cafeteria": "camareros barra cafeteria",
-
-    # hostelería: la persona describe la tarea, el catálogo nombra el puesto
-    "habitacion": "camareros piso hosteleria",
-    "habitaciones": "camareros piso hosteleria",
-    "hotel": "hosteleria hotel",
-    "hoteles": "hosteleria hotel",
-    "hostal": "hosteleria hotel",
-    "limpia": "limpieza limpiadores",
-    "limpiar": "limpieza limpiadores",
-    "limpieza": "limpieza limpiadores personal",
-    "camas": "camareros piso hosteleria",
-    "office": "cocina ayudantes fregado",
-    "interna": "hogar internos domicilio",
-    "interno": "hogar internos domicilio",
-    "informatico": "tecnicos equipos informaticos redes microinformaticos",
-    "desarrollador": "programadores aplicaciones informaticas software",
-    "teleoperadora": "teleoperadores telefonistas",
-    "teleoperador": "teleoperadores telefonistas",
-    "chofer": "conductores",
-    "autobus": "conductores autobus",
-    "autobuses": "conductores autobus",
-    "autocar": "conductores autobus",
-    "conduce": "conductores",
-    "conducir": "conductores",
-    "camion": "conductores camion",
-    "camionero": "conductores camion",
-    "trailer": "conductores camion",
-    "camiones": "conductores camion",
-    "pelo": "peluqueros barberos unisex",
-    "peluqueria": "peluqueros barberos unisex",
-    "corta": "peluqueros barberos unisex",
-    "chapista": "chapistas carroceria",
-    "pladur": "colocadores prefabricados ligeros tabiques trasdosado construccion",
-    "escayolista": "escayolistas prefabricados ligeros construccion",
-    "ferrallista": "ferrallistas armaduras hormigon construccion",
-    "gruista": "operadores grua",
-    "encofrador": "encofradores hormigon construccion",
-    "solador": "soladores alicatadores pavimentos",
-    "alicatador": "alicatadores soladores revestimientos",
-    "matarife": "matarifes matanza carniceros",
-    "camillero": "celadores sanitarios auxiliares",
-    "reponedora": "reponedores comercio",
-
-    # oficina: la persona nombra la tarea, el catálogo nombra el puesto
-    "administrativa": "empleados administrativos oficina",
-    "administrativo": "empleados administrativos oficina",
-    "facturacion": "contabilidad administrativos empleados",
-    "facturas": "contabilidad administrativos empleados",
-    "nominas": "contabilidad administrativos empleados",
-    "contabilidad": "contabilidad administrativos empleados",
-    "atencion al cliente": "atencion cliente empleados administrativos",
-    "secretaria": "secretarios direccion administrativos",
-    "archivo": "archivo administrativos empleados",
-
-    # idiomas: el catálogo dice "idiomas", nunca el idioma concreto
-    "ingles": "idiomas profesores",
-    "frances": "idiomas profesores",
-    "aleman": "idiomas profesores",
-    "italiano": "idiomas profesores",
-    "chino": "idiomas profesores",
-    "ele": "idiomas profesores",
-
-    # entorno de trabajo: domicilio frente a institución
-    "casa": "domiciliarios domicilio hogar",
-    "domicilio": "domiciliarios hogar",
-    "particular": "hogar domiciliarios",
-    "hogar": "hogar domiciliarios",
-    "residencia": "instituciones dependencia",
-    "geriatrico": "instituciones dependencia",
-
-    # personas atendidas
-    "mayores": "mayores dependencia domiciliarios asistentes",
-    "anciano": "mayores dependencia domiciliarios asistentes",
-    "ancianos": "mayores dependencia domiciliarios asistentes",
-    "abuelo": "mayores dependencia domiciliarios asistentes",
-    "abuela": "mayores dependencia domiciliarios asistentes",
-    "tercera edad": "mayores dependencia domiciliarios asistentes",
-    "dependencia": "dependencia domiciliarios asistentes",
-}
 
 NIVELES = {
     "10": "Dirección",
@@ -402,6 +327,7 @@ NIVELES = {
 # ---------------------------------------------------------------------------
 
 ARCHIVO_GIST = "lexico.json"
+ARCHIVO_REFUERZOS = "refuerzos.json"
 
 
 def _credenciales():
@@ -422,22 +348,48 @@ def _peticion(url, token, datos=None, metodo="GET"):
 
 
 @st.cache_data(ttl=300, show_spinner=False)
-def lexico_compartido():
-    """Términos que ya han aprendido otras personas. Se refresca cada 5 min."""
+def _lee_gist(archivo):
     gist, token = _credenciales()
     if not gist:
         return {}
     try:
         datos = _peticion(f"https://api.github.com/gists/{gist}", token)
-        contenido = datos["files"][ARCHIVO_GIST]["content"]
+        contenido = datos["files"][archivo]["content"]
         return {str(k): str(v) for k, v in json.loads(contenido).items()}
-    except Exception:  # noqa: BLE001  sin conexión o gist vacío
+    except Exception:  # noqa: BLE001  sin conexión, archivo ausente o vacío
         return {}
 
 
-def guarda_termino(clave, valor):
-    """Añade un término al diccionario compartido, sin pisar lo de los demás."""
+def _escribe_gist(archivo, datos):
     gist, token = _credenciales()
+    _peticion(
+        f"https://api.github.com/gists/{gist}", token,
+        datos={"files": {archivo: {
+            "content": json.dumps(datos, ensure_ascii=False, indent=1, sort_keys=True)
+        }}},
+        metodo="PATCH",
+    )
+    _lee_gist.clear()
+
+
+def lexico_compartido():
+    """Jerga traducida que ya han aprendido otras personas."""
+    return _lee_gist(ARCHIVO_GIST)
+
+
+def refuerzos_compartidos():
+    """Palabras que la práctica ha asociado a una ocupación concreta.
+
+    Corrigen los errores de ORDEN, que son los que el diccionario de jerga
+    no ve: palabras que el catálogo sí conoce pero que apuntaban a la
+    ocupación equivocada.
+    """
+    return _lee_gist(ARCHIVO_REFUERZOS)
+
+
+def guarda_termino(clave, valor):
+    """Añade jerga traducida al diccionario compartido."""
+    gist, _ = _credenciales()
     if not gist:
         return False
     try:
@@ -445,14 +397,28 @@ def guarda_termino(clave, valor):
         if actual.get(clave) == valor:
             return True
         actual[clave] = valor
-        _peticion(
-            f"https://api.github.com/gists/{gist}", token,
-            datos={"files": {ARCHIVO_GIST: {
-                "content": json.dumps(actual, ensure_ascii=False, indent=1, sort_keys=True)
-            }}},
-            metodo="PATCH",
-        )
-        lexico_compartido.clear()      # que el resto lo vea en el próximo refresco
+        _escribe_gist(ARCHIVO_GIST, actual)
+        return True
+    except Exception:  # noqa: BLE001
+        return False
+
+
+def guarda_refuerzo(codigo, palabras):
+    """Asocia palabras de la consulta a la ocupación que resultó correcta."""
+    gist, _ = _credenciales()
+    if not gist or codigo not in IDX["por_codigo"]:
+        return False
+    nuevas = [w for w in palabras if len(w) > 2]
+    if not nuevas:
+        return False
+    try:
+        actual = dict(refuerzos_compartidos())
+        previas = actual.get(codigo, "").split()
+        fusion = list(dict.fromkeys(previas + nuevas))[:24]
+        if fusion == previas:
+            return True
+        actual[codigo] = " ".join(fusion)
+        _escribe_gist(ARCHIVO_REFUERZOS, actual)
         return True
     except Exception:  # noqa: BLE001
         return False
@@ -486,7 +452,7 @@ def prueba_gist():
     except Exception as e:  # noqa: BLE001
         return False, f"Al escribir: {type(e).__name__}: {e}"
 
-    lexico_compartido.clear()
+    _lee_gist.clear()
     try:
         vuelta = lexico_compartido()
     except Exception as e:  # noqa: BLE001
@@ -505,7 +471,7 @@ def prueba_gist():
             }}},
             metodo="PATCH",
         )
-        lexico_compartido.clear()
+        _lee_gist.clear()
     except Exception:  # noqa: BLE001
         pass
 
@@ -519,12 +485,6 @@ def diccionario():
     return fusion
 
 
-def normaliza(t):
-    return "".join(
-        c for c in unicodedata.normalize("NFD", t) if unicodedata.category(c) != "Mn"
-    ).lower().strip()
-
-
 def raiz(w):
     if len(w) > 5 and w.endswith("es"):
         w = w[:-2]
@@ -533,6 +493,9 @@ def raiz(w):
     if len(w) > 4 and w[-1] in "aoe":
         w = w[:-1]
     return w
+
+
+VACIAS, SINONIMOS = carga_vocabulario()
 
 
 @st.cache_resource(show_spinner=False)
@@ -593,6 +556,7 @@ def carga_indice():
         "ok": True,
         "registros": registros,
         "por_codigo": {r["codigo"]: r["denom"] for r in registros},
+        "posicion": {r["codigo"]: i for i, r in enumerate(registros)},
         "inv": inv,
         "inv_raiz": inv_raiz,
         "idf": {w: math.log(1 + n / len(ix)) for w, ix in inv.items()},
@@ -665,7 +629,7 @@ def busca(consulta, tope=20):
         # "elementos"). Clave de varias: basta con que aparezca la expresión.
         if (clave in palabras_q) if " " not in clave else (clave in q):
             for w in re.findall(r"\w+", normaliza(expansion)):
-                terminos.setdefault(w, 0.6)
+                terminos.setdefault(w, 0.85)
     if not terminos:
         return []
 
@@ -706,6 +670,18 @@ def busca(consulta, tope=20):
                 k = IDX["idf_raiz"][c] * peso * ratio * 1.4
                 for i in IDX["inv_raiz"][c]:
                     suma(i, k, r)
+
+    # Refuerzos aprendidos: si la consulta contiene palabras que la práctica
+    # ha asociado a una ocupación, esa ocupación sube. Es lo que corrige los
+    # errores de orden, y funciona aunque la palabra ya exista en el catálogo.
+    stems_consulta = {raiz(w) for w in re.findall(r"\w+", q) if len(w) > 2}
+    for codigo, aprendidas in refuerzos_compartidos().items():
+        i = IDX["posicion"].get(codigo)
+        if i is None:
+            continue
+        comunes = stems_consulta & {raiz(w) for w in aprendidas.split()}
+        if comunes:
+            suma(i, 14.0 * len(comunes), next(iter(comunes)))
 
     n_term = max(1, len(originales))
     n_total = max(1, len({raiz(w) for w in terminos}))
@@ -763,9 +739,10 @@ REGLAS
 5. No propongas ocupaciones de dirección, jefatura ni mando (niveles 10, 20, 30) salvo que la descripción diga expresamente que dirigía equipos, centros o departamentos.
 6. Respeta el entorno de trabajo que indique la descripción: domicilio particular frente a institución, centro o residencia. Si dice "en su casa" o "a domicilio", descarta las ocupaciones que digan "en instituciones".
 7. Rellena "pregunta" solo si faltan datos para decidir entre dos ocupaciones; si no, déjalo vacío.
+8. IMPORTANTE. Si ninguna de las candidatas describe con precisión la actividad, rellena "otros_terminos" con entre 6 y 10 palabras sueltas del vocabulario de la clasificación que deberían buscarse en su lugar (el nombre formal del oficio, herramientas, materiales). Se hará una segunda búsqueda con ellas. Si alguna candidata sí encaja, deja "otros_terminos" vacío.
 
 Responde solo con este JSON:
-{"ocupaciones":[{"codigo":"12345678","denominacion":"...","nivel":"00","motivo":"..."}],"pregunta":""}
+{"ocupaciones":[{"codigo":"12345678","denominacion":"...","nivel":"00","motivo":"..."}],"pregunta":"","otros_terminos":""}
 """
 
 
@@ -992,10 +969,14 @@ def interpreta(bruto):
         return {"ocupaciones": ocupaciones, "pregunta": "", "descartadas": descartadas}
 
     ocupaciones, descartadas = verifica(datos.get("ocupaciones"))
+    sugeridos = " ".join(
+        re.findall(r"[a-zñáéíóúü]+", normaliza(str(datos.get("otros_terminos", "") or "")))[:12]
+    )
     return {
         "ocupaciones": ocupaciones,
         "pregunta": str(datos.get("pregunta", "") or "").strip(),
         "descartadas": descartadas,
+        "mas_terminos": sugeridos,
     }
 
 
@@ -1222,7 +1203,7 @@ def pinta_resultado(payload, estado=None, avance=0.06, interactivo=False, consul
     if estado:
         return
 
-    if payload.get("interpretado"):
+    if payload.get("interpretado") and MANTENIMIENTO:
         origen, destino = payload["interpretado"]
         st.markdown(
             f'<div class="nota">Interpretado <b>{origen}</b> como: {destino}</div>',
@@ -1243,12 +1224,12 @@ def pinta_resultado(payload, estado=None, avance=0.06, interactivo=False, consul
 
     if payload.get("fallo"):
         st.markdown(
-            '<div class="nota">La IA no ha respondido: estas son las coincidencias '
-            'del catálogo, sin afinar.</div>',
+            '<div class="nota">Resultados del catálogo, sin afinar.</div>',
             unsafe_allow_html=True,
         )
-        with st.expander("Ver el motivo"):
-            st.code(payload["fallo"], language=None)
+        if MANTENIMIENTO:
+            with st.expander("Ver el motivo"):
+                st.code(payload["fallo"], language=None)
 
     if payload.get("descartadas"):
         st.markdown(
@@ -1351,38 +1332,64 @@ def resuelve(texto, zona, usar_ia=True, contexto="", busqueda=None):
                 with zona.container():
                     pinta_resultado(provisional, estado="Afinando el resultado")
 
-    bruto, mostradas, avance = "", 0, 0.10
-    arranque = time.perf_counter()
-    try:
-        peticion = texto + contexto
-        for trozo in flujo_modelo(cli, peticion, "\n".join(f"{c}:{d}" for _, c, d in encontrados)):
+    def consulta_al_modelo(candidatos, etiqueta):
+        """Una pasada completa: streaming, barra y lectura del JSON."""
+        bruto, avance = "", 0.10
+        arranque = time.perf_counter()
+        for trozo in flujo_modelo(cli, texto + contexto, candidatos):
             bruto += trozo
             transcurrido = time.perf_counter() - arranque
             if transcurrido > ESPERA_MAXIMA:
                 raise TimeoutError(
                     f"El modelo ha tardado más de {ESPERA_MAXIMA} segundos."
                 )
-            listas, _ = verifica(objetos_parciales(bruto))
-            # avanza con lo que llega y, si no llega nada, con el reloj
-            nuevo = max(
-                0.10 + 0.17 * len(listas),
-                min(0.10 + transcurrido / (ESPERA_MAXIMA * 1.6), 0.9),
-            )
-            if len(listas) > mostradas or nuevo - avance > 0.03:
-                mostradas, avance = len(listas), nuevo
+            nuevo = min(0.10 + transcurrido / (ESPERA_MAXIMA * 1.4), 0.92)
+            if nuevo - avance > 0.04:
+                avance = nuevo
                 with zona.container():
-                    pinta_resultado(
-                        {"ocupaciones": listas} if listas else provisional,
-                        estado="Afinando el resultado",
-                        avance=avance,
-                    )
+                    pinta_resultado({}, estado=etiqueta, avance=avance)
+        return interpreta(bruto)
+
+    try:
+        lista = "\n".join(f"{c}:{d}" for _, c, d in encontrados)
+        payload = consulta_al_modelo(lista, "Afinando el resultado")
+
+        # Si el modelo avisa de que ninguna candidata encaja, propone términos
+        # y se repite la búsqueda con ellos. Es la vía que rescata ocupaciones
+        # que no comparten ni una palabra con lo que escribe la persona.
+        if payload.get("mas_terminos"):
+            with zona.container():
+                pinta_resultado({}, estado="Ampliando la búsqueda", avance=0.45)
+            ampliados = busca(f"{busqueda or texto} {payload['mas_terminos']}",
+                              tope=N_CANDIDATOS + 6)
+            if ampliados:
+                encontrados = ampliados
+                interpretado = ("la descripción", payload["mas_terminos"])
+                segunda = consulta_al_modelo(
+                    "\n".join(f"{c}:{d}" for _, c, d in ampliados),
+                    "Afinando el resultado",
+                )
+                if segunda["ocupaciones"]:
+                    payload = segunda
     except Exception as e:  # noqa: BLE001
         zona.empty()
         provisional["fallo"] = f"{type(e).__name__}: {e}"
         pinta_resultado(provisional)
         return provisional
 
-    payload = interpreta(bruto)
+    # Si el modelo ha ascendido una ocupación que el catálogo no tenía la
+    # primera, eso es una corrección: se guarda para la próxima vez.
+    if payload["ocupaciones"] and encontrados:
+        elegido = payload["ocupaciones"][0]["codigo"]
+        if elegido != encontrados[0][1]:
+            palabras = [
+                raiz(w) for w in re.findall(r"\w+", normaliza(texto))
+                if len(w) > 3 and w not in VACIAS
+            ]
+            st.session_state.setdefault("refuerzos_por_guardar", []).append(
+                (elegido, palabras)
+            )
+
     if interpretado:
         payload["interpretado"] = interpretado
     if aviso:
@@ -1403,6 +1410,18 @@ def resuelve(texto, zona, usar_ia=True, contexto="", busqueda=None):
 # INTERFAZ
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# MODO MANTENIMIENTO
+# La herramienta enseña códigos; su mantenimiento no le interesa a quien la
+# usa. Todo lo interno —correcciones, diccionarios, diagnóstico— solo aparece
+# si abres la app añadiendo  ?mantenimiento=1  al final de la dirección.
+# ---------------------------------------------------------------------------
+
+try:
+    MANTENIMIENTO = st.query_params.get("mantenimiento") == "1"
+except Exception:  # noqa: BLE001  versiones antiguas de Streamlit
+    MANTENIMIENTO = False
+
 st.session_state.setdefault("actual", None)
 st.session_state.setdefault("registro", [])
 st.session_state.setdefault("pendiente", None)
@@ -1413,6 +1432,7 @@ st.session_state.setdefault("modelo_ok", 0)
 st.session_state.setdefault("respuesta", None)
 st.session_state.setdefault("ultima", "")
 st.session_state.setdefault("por_guardar", [])
+st.session_state.setdefault("refuerzos_por_guardar", [])
 st.session_state.setdefault("ultima", "")
 
 EJEMPLOS = [
@@ -1448,6 +1468,14 @@ def panel_ajustes():
                 use_container_width=True,
             )
 
+        if not MANTENIMIENTO:
+            st.caption(
+                f"{len(IDX['registros'])} ocupaciones del catálogo oficial. "
+                "Describe solo el puesto: sin nombres, DNI ni datos "
+                "identificativos de la persona."
+            )
+            return
+
         if st.button("Probar la conexión con la IA", use_container_width=True):
             prueba = cliente()
             if prueba is None:
@@ -1476,6 +1504,18 @@ def panel_ajustes():
         elif st.session_state.get("lexico"):
             st.markdown("**Términos aprendidos**")
             st.caption("Solo en esta sesión. Pégalos en SINONIMOS para conservarlos.")
+
+        refuerzos = refuerzos_compartidos()
+        if refuerzos:
+            st.markdown("**Correcciones aprendidas**")
+            st.caption(f"{len(refuerzos)} ocupaciones con vocabulario reforzado.")
+            st.code(
+                "\n".join(
+                    f"{c}  {IDX['por_codigo'].get(c, '')[:34]}  ←  {t}"
+                    for c, t in sorted(refuerzos.items())
+                ),
+                language=None,
+            )
 
         vistos = {**compartido, **st.session_state.get("lexico", {})}
         if vistos:
@@ -1581,6 +1621,27 @@ elif st.session_state["actual"]:
     st.markdown(f'<div class="consulta">{consulta}</div>', unsafe_allow_html=True)
     pinta_resultado(payload, interactivo=True, consulta=consulta)
 
+    ocupaciones = payload.get("ocupaciones", [])
+    if MANTENIMIENTO and len(ocupaciones) > 1 and _credenciales()[0]:
+        st.markdown(
+            '<div class="seccion">¿Cuál era la correcta?</div>', unsafe_allow_html=True
+        )
+        cols = st.columns(len(ocupaciones))
+        for col, o in zip(cols, ocupaciones):
+            with col:
+                if st.button(o["codigo"], key=f"ok_{o['codigo']}",
+                             use_container_width=True):
+                    palabras = [
+                        raiz(w) for w in re.findall(r"\w+", normaliza(consulta))
+                        if len(w) > 3 and w not in VACIAS
+                    ]
+                    if guarda_refuerzo(o["codigo"], palabras):
+                        st.success(
+                            f"Aprendido: esas palabras llevarán a {o['codigo']}."
+                        )
+                    else:
+                        st.warning("No se ha podido guardar la corrección.")
+
     st.markdown('<div class="separa"></div>', unsafe_allow_html=True)
     if st.button("↺", key="reinicio", help="Nueva búsqueda"):
         st.session_state["actual"] = None
@@ -1600,3 +1661,6 @@ else:
 # Con el resultado ya en pantalla, se publica lo aprendido para el resto
 for clave, valor in st.session_state.pop("por_guardar", []):
     guarda_termino(clave, valor)
+
+for codigo, palabras in st.session_state.pop("refuerzos_por_guardar", []):
+    guarda_refuerzo(codigo, palabras)
