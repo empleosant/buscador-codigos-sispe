@@ -113,7 +113,7 @@ st.markdown("""
 html,body,[class*="css"],.stMarkdown{
   font-family:'Libre Franklin',system-ui,sans-serif; color:var(--texto);
 }
-.block-container{ padding:0 0 3rem; max-width:1180px; }
+.block-container{ padding:0 0 1.5rem; max-width:1180px; }
 #MainMenu, footer, header[data-testid="stHeader"]{ visibility:hidden; height:0; }
 [data-testid="stHeaderActionElements"]{ display:none !important; }
 h1 > a, h2 > a, h3 > a, .stMarkdown a.anchor-link{ display:none !important; }
@@ -121,17 +121,25 @@ div[data-testid="InputInstructions"]{ display:none !important; }
 
 /* ---------- Banda de cabecera ---------- */
 .st-key-cabecera{
-  background:var(--negro); padding:1.9rem 2rem 1.7rem; margin-bottom:1.8rem;
+  background:var(--negro); padding:1.15rem 2rem 1.25rem; margin-bottom:1.1rem;
 }
 .rotulo{
-  color:#fff; font-size:.68rem; font-weight:600; letter-spacing:.16em;
-  text-transform:uppercase; margin-bottom:.7rem;
+  color:#8A8A8A; font-size:.62rem; font-weight:600; letter-spacing:.16em;
+  text-transform:uppercase; margin:0 0 .1rem;
 }
 .rotulo span{ color:var(--rojo); }
-.titulo{
-  color:#fff; font-size:clamp(1.7rem,4vw,2.4rem); font-weight:700;
-  letter-spacing:-.03em; line-height:1.1; margin:0 0 1.2rem;
+
+/* El título es un botón: vuelve al inicio y limpia el resultado */
+.st-key-marca button{
+  background:transparent !important; border:none !important; box-shadow:none !important;
+  padding:0 !important; justify-content:flex-start !important; margin-bottom:.55rem;
 }
+.st-key-marca button p{
+  color:#fff !important; font-size:1.5rem !important; font-weight:700 !important;
+  letter-spacing:-.025em; margin:0 !important; text-align:left !important;
+  border-bottom:2px solid transparent; transition:border-color .15s ease;
+}
+.st-key-marca button:hover p{ border-bottom-color:var(--rojo); }
 
 /* ---------- Campo de búsqueda: recto y pegado al botón ---------- */
 .st-key-cabecera div[data-testid="stTextInput"] div[data-baseweb="base-input"],
@@ -149,7 +157,7 @@ div[data-testid="InputInstructions"]{ display:none !important; }
   border-color:var(--rojo) !important; box-shadow:0 0 0 2px var(--rojo) !important;
 }
 div[data-testid="stTextInput"] input{
-  padding:.95rem 1.1rem !important; font-size:1rem !important;
+  padding:.72rem 1rem !important; font-size:.96rem !important;
   color:var(--texto) !important; font-family:'Libre Franklin',sans-serif !important;
 }
 div[data-testid="stTextInput"] input::placeholder{ color:var(--tenue) !important; }
@@ -158,7 +166,7 @@ div[data-testid="stTextInput"] input::placeholder{ color:var(--tenue) !important
 .stFormSubmitButton button{
   background:var(--rojo) !important; color:#fff !important; border:none !important;
   border-radius:0 !important; font-weight:700 !important; font-size:.95rem !important;
-  padding:.95rem 1rem !important; letter-spacing:.01em;
+  padding:.72rem 1rem !important; letter-spacing:.01em;
   transition:background .15s ease;
 }
 .stFormSubmitButton button:hover{ background:var(--rojo-oscuro) !important; }
@@ -173,8 +181,8 @@ div[data-testid="stTextInput"] input::placeholder{ color:var(--tenue) !important
 /* ---------- Cuerpo ---------- */
 .cuerpo{ padding:0 2rem; }
 .consulta{
-  font-size:1.15rem; font-weight:700; letter-spacing:-.02em; color:var(--texto);
-  margin:.4rem 0 1rem; padding-bottom:.7rem; border-bottom:2px solid var(--negro);
+  font-size:1rem; font-weight:700; letter-spacing:-.015em; color:var(--texto);
+  margin:.1rem 0 .8rem; padding-bottom:.5rem; border-bottom:2px solid var(--negro);
 }
 .seccion{
   font-size:.68rem; font-weight:700; letter-spacing:.14em; text-transform:uppercase;
@@ -190,7 +198,7 @@ div[data-testid="stTextInput"] input::placeholder{ color:var(--tenue) !important
 }
 .pregunta .texto{ font-size:.97rem; line-height:1.45; color:var(--texto); }
 .nota{ font-size:.79rem; color:var(--suave); margin:.4rem 0 .5rem; }
-.separa{ height:1px; background:var(--linea); margin:2rem 0 1.2rem; }
+.separa{ height:1px; background:var(--linea); margin:1.2rem 0 1rem; }
 
 /* ---------- Progreso ---------- */
 div[data-testid="stProgress"]{ margin:0 0 1rem; }
@@ -202,6 +210,26 @@ div[data-testid="stProgress"] div[role="progressbar"] > div{ background-color:va
 div[data-testid="stProgress"] div[role="progressbar"] > div > div{
   background-color:var(--rojo) !important; background-image:none !important;
 }
+/* Botón circular de nueva búsqueda */
+.st-key-reinicio button{
+  width:54px !important; height:54px !important; border-radius:50% !important;
+  padding:0 !important; border:2px solid var(--negro) !important; background:#fff !important;
+  transition:all .2s ease; margin:0 auto; display:flex !important;
+}
+.st-key-reinicio button p{
+  font-size:1.4rem !important; line-height:1 !important; margin:0 !important;
+  color:var(--negro) !important;
+}
+.st-key-reinicio button:hover{
+  background:var(--rojo) !important; border-color:var(--rojo) !important;
+  transform:rotate(-90deg);
+}
+.st-key-reinicio button:hover p{ color:#fff !important; }
+.pie-nueva{
+  text-align:center; font-size:.72rem; font-weight:600; letter-spacing:.12em;
+  text-transform:uppercase; color:var(--suave); margin:.5rem 0 0;
+}
+
 div[data-testid="stExpander"]{ border:none; background:transparent; }
 div[data-testid="stExpander"] summary{ font-size:.85rem; color:var(--suave); }
 </style>
@@ -246,7 +274,19 @@ SINONIMOS = {
 
     # coloquialismos de oficio
     "carretillero": "carretillas elevadoras operadores",
-    "kelly": "camareros piso habitaciones",
+    "kelly": "camareros piso hosteleria",
+
+    # hostelería: la persona describe la tarea, el catálogo nombra el puesto
+    "habitacion": "camareros piso hosteleria",
+    "habitaciones": "camareros piso hosteleria",
+    "hotel": "hosteleria hotel",
+    "hoteles": "hosteleria hotel",
+    "hostal": "hosteleria hotel",
+    "limpia": "limpieza limpiadores",
+    "limpiar": "limpieza limpiadores",
+    "limpieza": "limpieza limpiadores personal",
+    "camas": "camareros piso hosteleria",
+    "office": "cocina ayudantes fregado",
     "interna": "hogar internos domicilio",
     "interno": "hogar internos domicilio",
     "informatico": "tecnicos equipos informaticos redes microinformaticos",
@@ -255,7 +295,7 @@ SINONIMOS = {
     "teleoperador": "teleoperadores telefonistas",
     "chofer": "conductores",
     "chapista": "chapistas carroceria",
-    "pladur": "colocadores prefabricados ligeros escayolistas tabiques construccion",
+    "pladur": "colocadores prefabricados ligeros tabiques trasdosado construccion",
     "escayolista": "escayolistas prefabricados ligeros construccion",
     "ferrallista": "ferrallistas armaduras hormigon construccion",
     "gruista": "operadores grua",
@@ -678,11 +718,12 @@ Selecciona entre 3 y 5, de mayor a menor afinidad.
 
 REGLAS
 1. Usa únicamente códigos y denominaciones literales de la lista de candidatos. No inventes ni modifiques ninguno.
-2. Nivel profesional: 90 aprendices (sin experiencia) / 00 técnicos o sin categoría (estándar con experiencia) / 10 dirección / 20 mandos intermedios / 30 jefes de equipo / 70 auxiliares / 80 peones.
-3. El campo "motivo" explica en menos de 10 palabras por qué encaja, en español con acentuación correcta.
-4. No propongas ocupaciones de dirección, jefatura ni mando (niveles 10, 20, 30) salvo que la descripción diga expresamente que dirigía equipos, centros o departamentos.
-5. Respeta el entorno de trabajo que indique la descripción: domicilio particular frente a institución, centro o residencia. Si dice "en su casa" o "a domicilio", descarta las ocupaciones que digan "en instituciones".
-6. Rellena "pregunta" solo si faltan datos para decidir entre dos ocupaciones; si no, déjalo vacío.
+2. Los candidatos llegan ordenados por afinidad con las palabras de la persona. Respeta ese orden salvo que una ocupación posterior encaje claramente mejor; si adelantas una, que sea porque su denominación describe la actividad con más precisión.
+3. Nivel profesional: 90 aprendices (sin experiencia) / 00 técnicos o sin categoría (estándar con experiencia) / 10 dirección / 20 mandos intermedios / 30 jefes de equipo / 70 auxiliares / 80 peones.
+4. El campo "motivo" explica en menos de 10 palabras por qué encaja, en español con acentuación correcta.
+5. No propongas ocupaciones de dirección, jefatura ni mando (niveles 10, 20, 30) salvo que la descripción diga expresamente que dirigía equipos, centros o departamentos.
+6. Respeta el entorno de trabajo que indique la descripción: domicilio particular frente a institución, centro o residencia. Si dice "en su casa" o "a domicilio", descarta las ocupaciones que digan "en instituciones".
+7. Rellena "pregunta" solo si faltan datos para decidir entre dos ocupaciones; si no, déjalo vacío.
 
 Responde solo con este JSON:
 {"ocupaciones":[{"codigo":"12345678","denominacion":"...","nivel":"00","motivo":"..."}],"pregunta":""}
@@ -977,7 +1018,7 @@ body{
 }
 .tarjeta{
   background:#fff; border:1px solid var(--linea); border-left:4px solid #C9C9C9;
-  padding:.9rem 1.1rem; margin-bottom:.55rem;
+  padding:.62rem .95rem; margin-bottom:.4rem;
   animation:entrar .3s ease both;
 }
 .tarjeta.top{ border-left-color:var(--rojo); }
@@ -990,7 +1031,7 @@ body{
 .fila{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
 .orden{ display:none; }
 .codigo{
-  font-size:1.3rem; font-weight:700; letter-spacing:.045em; color:var(--negro);
+  font-size:1.18rem; font-weight:700; letter-spacing:.045em; color:var(--negro);
   font-variant-numeric:tabular-nums;
 }
 .copiar{
@@ -1000,8 +1041,8 @@ body{
 }
 .copiar:hover{ background:var(--negro); color:#fff; }
 .copiar.hecho{ background:var(--rojo); border-color:var(--rojo); color:#fff; }
-.denominacion{ font-size:.95rem; font-weight:600; line-height:1.35; margin:.45rem 0 .2rem; }
-.motivo{ font-size:.85rem; color:var(--suave); line-height:1.45; }
+.denominacion{ font-size:.9rem; font-weight:600; line-height:1.3; margin:.3rem 0 .12rem; }
+.motivo{ font-size:.79rem; color:var(--suave); line-height:1.35; }
 .etiqueta{
   display:inline-block; font-size:.65rem; font-weight:700; letter-spacing:.09em;
   text-transform:uppercase; padding:.22rem .55rem; border-radius:0;
@@ -1075,10 +1116,10 @@ def pinta_tarjetas(ocupaciones):
     #   relleno 36,8 + bordes 2 + fila del código 27 + márgenes del título 16
     #   + 22 por línea de denominación + 21 si hay motivo + 11,2 de separación.
     def mide(o):
-        lineas = 1 + len(o["denominacion"]) // 58
-        return 104 + 22 * (lineas - 1) + (21 if o.get("motivo") else 0) + 11
+        lineas = 1 + len(o["denominacion"]) // 62
+        return 78 + 19 * (lineas - 1) + (18 if o.get("motivo") else 0) + 7
 
-    estimada = sum(mide(o) for o in ocupaciones) - 11 + 6
+    estimada = sum(mide(o) for o in ocupaciones) - 7 + 6
 
     components.html(
         f"<style>{ESTILO_TARJETAS}</style>{''.join(trozos)}"
@@ -1089,7 +1130,10 @@ def pinta_tarjetas(ocupaciones):
 
 def pinta_resultado(payload, estado=None, avance=0.06, interactivo=False, consulta=""):
     if estado:
+        # Mientras se afina solo se ve la barra. Los resultados aparecen
+        # completos de una vez, no goteando ficha a ficha.
         st.progress(min(avance, 0.95), text=estado)
+        return
     if payload.get("aviso"):
         st.info(payload["aviso"])
         return
@@ -1417,10 +1461,12 @@ except TypeError:          # Streamlit anterior a la versión con claves
 
 with banda:
     st.markdown(
-        '<div class="rotulo">Catálogo SISPE <span>&middot;</span> SilcoiWeb</div>'
-        '<div class="titulo">Codificador de ocupaciones</div>',
+        '<div class="rotulo">Catálogo SISPE <span>&middot;</span> SilcoiWeb</div>',
         unsafe_allow_html=True,
     )
+    if st.button("Codificador de ocupaciones", key="marca"):
+        st.session_state["actual"] = None
+        st.rerun()
     with st.form("buscador", clear_on_submit=True, border=False):
         campo, boton = st.columns([5, 1], gap="small")
         with campo:
@@ -1466,11 +1512,14 @@ elif st.session_state["actual"]:
     pinta_resultado(payload, interactivo=True, consulta=consulta)
 
     st.markdown('<div class="separa"></div>', unsafe_allow_html=True)
-    limpiar, _ = st.columns([1, 4])
-    with limpiar:
-        if st.button("Nueva búsqueda", use_container_width=True, key="reinicio"):
+    _, centro, _ = st.columns([2, 1, 2])
+    with centro:
+        if st.button("↺", key="reinicio", help="Nueva búsqueda"):
             st.session_state["actual"] = None
             st.rerun()
+        st.markdown(
+            '<div class="pie-nueva">Nueva búsqueda</div>', unsafe_allow_html=True
+        )
 
 else:
     st.markdown('<div class="seccion">Prueba con</div>', unsafe_allow_html=True)
