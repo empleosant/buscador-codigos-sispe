@@ -220,8 +220,6 @@ div[data-testid="stProgress"] div[role="progressbar"] > div > div{
   background-color:var(--rojo) !important; background-image:none !important;
 }
 /* Botón circular de nueva búsqueda */
-/* El centrado hay que aplicarlo también a los envoltorios que mete
-   Streamlit alrededor del botón, no solo al contenedor exterior. */
 .st-key-reinicio,
 .st-key-reinicio > div,
 .st-key-reinicio [data-testid="stTooltipHoverTarget"],
@@ -279,17 +277,10 @@ def normaliza(t):
 
 # ---------------------------------------------------------------------------
 # VOCABULARIO
-# El buscador tiene cuatro capas de vocabulario, de más estable a más viva:
-#   1. vocabulario.json        palabras vacías y sinónimos base (este archivo)
-#   2. terminos_ampliados.txt  jerga de cada ocupación (lo genera enriquecer.py)
-#   3. lexico.json   (Gist)    jerga traducida por la IA sobre la marcha
-#   4. refuerzos.json (Gist)   correcciones de orden aprendidas con el uso
-# Ninguna se toca desde app.py: este archivo solo contiene el motor.
 # ---------------------------------------------------------------------------
 
 VOCABULARIO = "vocabulario.json"
 
-# Mínimo imprescindible por si falta el archivo: la app arranca igualmente.
 VACIAS_MINIMAS = {
     "de", "del", "la", "el", "los", "las", "en", "y", "o", "con", "para",
     "por", "un", "una", "al", "sin", "que", "su", "general", "persona",
@@ -328,10 +319,6 @@ NIVELES = {
 
 # ---------------------------------------------------------------------------
 # DICCIONARIO COMPARTIDO
-# Los términos que la IA traduce sobre la marcha se guardan en un Gist de
-# GitHub, de modo que lo que descubre una persona lo aprovechan todas.
-# Es opcional: sin GIST_ID y GITHUB_TOKEN en los Secrets, la app funciona
-# igual, pero cada sesión empieza de cero.
 # ---------------------------------------------------------------------------
 
 ARCHIVO_GIST = "lexico.json"
@@ -381,22 +368,14 @@ def _escribe_gist(archivo, datos):
 
 
 def lexico_compartido():
-    """Jerga traducida que ya han aprendido otras personas."""
     return _lee_gist(ARCHIVO_GIST)
 
 
 def refuerzos_compartidos():
-    """Palabras que la práctica ha asociado a una ocupación concreta.
-
-    Corrigen los errores de ORDEN, que son los que el diccionario de jerga
-    no ve: palabras que el catálogo sí conoce pero que apuntaban a la
-    ocupación equivocada.
-    """
     return _lee_gist(ARCHIVO_REFUERZOS)
 
 
 def guarda_termino(clave, valor):
-    """Añade jerga traducida al diccionario compartido."""
     gist, _ = _credenciales()
     if not gist:
         return False
@@ -412,7 +391,6 @@ def guarda_termino(clave, valor):
 
 
 def guarda_refuerzo(codigo, palabras):
-    """Asocia palabras de la consulta a la ocupación que resultó correcta."""
     gist, _ = _credenciales()
     if not gist or codigo not in IDX["por_codigo"]:
         return False
@@ -433,7 +411,6 @@ def guarda_refuerzo(codigo, palabras):
 
 
 def prueba_gist():
-    """Escribe y vuelve a leer un término. Devuelve (correcto, explicación)."""
     gist, token = _credenciales()
     if not gist:
         return False, "No hay GIST_ID o GITHUB_TOKEN en los Secrets."
@@ -469,7 +446,6 @@ def prueba_gist():
     if marca not in vuelta:
         return False, "Se escribió, pero al releer no aparece. Revisa el nombre del archivo."
 
-    # Limpieza: se retira la marca de prueba
     del vuelta[marca]
     try:
         _peticion(
@@ -487,24 +463,17 @@ def prueba_gist():
 
 
 def diccionario():
-    """Los sinónimos del código más lo aprendido por todo el equipo."""
     fusion = dict(lexico_compartido())
-    fusion.update(SINONIMOS)           # lo fijado a mano manda
+    fusion.update(SINONIMOS)
     return fusion
 
 
 def raiz(w):
-    """Lematizador mínimo para español.
-
-    Neutraliza plural, género y el sufijo de agente -or, que es el que
-    separaba 'solados' (lo que dice la persona) de 'soladores' (lo que dice
-    el catálogo). Sin esa regla, ambas palabras no se encontraban nunca.
-    """
     if len(w) > 5 and w.endswith("es"):
         w = w[:-2]
     elif len(w) > 4 and w.endswith("s"):
         w = w[:-1]
-    if len(w) > 5 and w.endswith("or"):      # solador -> solad, montador -> montad
+    if len(w) > 5 and w.endswith("or"):
         w = w[:-2]
     if len(w) > 4 and w[-1] in "aoe":
         w = w[:-1]
@@ -611,11 +580,6 @@ def parecidas(palabra, umbral=0.84, tope=3):
 
 
 def desconocidas(consulta):
-    """Palabras con contenido que el catálogo no reconoce de ninguna forma.
-
-    Son la señal de que hay jerga, una marca comercial o un tecnicismo:
-    'pladur', 'glovo', 'kelly'. El diccionario nunca las tendrá todas.
-    """
     q = normaliza(consulta)
     fuera = []
     for w in re.findall(r"\w+", q):
@@ -636,8 +600,6 @@ def desconocidas(consulta):
 def busca(consulta, tope=20, grupos=None):
     q = normaliza(consulta)
     terminos = {}
-    # Las primeras palabras pesan más: tanto el modelo como las personas
-    # ponen delante el nombre del oficio y detrás los complementos.
     contadas, primero = 0, None
     for w in re.findall(r"\w+", q):
         if len(w) > 2 and w not in VACIAS and w not in terminos:
@@ -647,8 +609,6 @@ def busca(consulta, tope=20, grupos=None):
             terminos[w] = 1.0 if contadas <= 4 else 0.7
     palabras_q = set(re.findall(r"\w+", q))
     for clave, expansion in diccionario().items():
-        # clave de una palabra: coincidencia exacta ("ele" no debe saltar con
-        # "elementos"). Clave de varias: basta con que aparezca la expresión.
         if (clave in palabras_q) if " " not in clave else (clave in q):
             for w in re.findall(r"\w+", normaliza(expansion)):
                 terminos.setdefault(w, 0.85)
@@ -675,7 +635,7 @@ def busca(consulta, tope=20, grupos=None):
             k = IDX["idf_raiz"][r] * peso * 2.2
             for i in IDX["inv_raiz"][r]:
                 suma(i, k, r)
-        if r in IDX["inv_extra"]:                             # vocabulario coloquial
+        if r in IDX["inv_extra"]:
             encontrado = True
             k = IDX["idf_extra"][r] * peso * 1.6
             for i in IDX["inv_extra"][r]:
@@ -693,9 +653,6 @@ def busca(consulta, tope=20, grupos=None):
                 for i in IDX["inv_raiz"][c]:
                     suma(i, k, r)
 
-    # Refuerzos aprendidos: si la consulta contiene palabras que la práctica
-    # ha asociado a una ocupación, esa ocupación sube. Es lo que corrige los
-    # errores de orden, y funciona aunque la palabra ya exista en el catálogo.
     stems_consulta = {raiz(w) for w in re.findall(r"\w+", q) if len(w) > 2}
     for codigo, aprendidas in refuerzos_compartidos().items():
         i = IDX["posicion"].get(codigo)
@@ -711,18 +668,13 @@ def busca(consulta, tope=20, grupos=None):
     for i, valor in puntos.items():
         reg = IDX["registros"][i]
         nucleo = 1.0 + 0.5 * len(cubierto[i] & reg["cabeza"])
-        # La primera palabra suele ser el nombre del oficio: si además es la
-        # cabeza de la denominación, es casi seguro que es esa ocupación.
         if primero and primero in reg["cabeza"]:
             nucleo *= 1.8
-        # La familia profesional que indica el modelo pesa, pero no excluye:
-        # una clasificación errónea no debe dejar la búsqueda sin resultados.
         familia = 1.0
         if grupos:
             familia = 1.7 if reg["codigo"][0] in grupos else 0.45
 
         propios = len(cubierto[i] & originales)
-        # premia encajar con varias palabras a la vez, sean propias o expandidas
         cobertura = (
             0.55
             + 0.30 * min(1.0, len(cubierto[i]) / n_total)
@@ -753,7 +705,7 @@ def cliente():
                 api_key=clave,
                 http_options=types.HttpOptions(timeout=ESPERA_MAXIMA * 1000),
             )
-        except Exception:  # noqa: BLE001  SDK antiguo sin http_options
+        except Exception:  # noqa: BLE001
             return genai.Client(api_key=clave)
     if not OpenAI:
         return None
@@ -773,14 +725,13 @@ REGLAS
 5. El campo "motivo" explica en menos de 10 palabras por qué encaja, en español con acentuación correcta.
 6. No propongas ocupaciones de dirección, jefatura ni mando (niveles 10, 20, 30) salvo que la descripción diga expresamente que dirigía equipos, centros o departamentos.
 7. Respeta el entorno de trabajo que indique la descripción: domicilio particular frente a institución, centro o residencia. Si dice "en su casa" o "a domicilio", descarta las ocupaciones que digan "en instituciones".
-8. Rellena "pregunta" solo si faltan datos para decidir entre las DOS PRIMERAS ocupaciones de tu lista; si no, déjalo vacío. No preguntes por algo que la persona ya ha dicho ni por algo que solo confirme la primera opción: la respuesta tiene que servir para descartar una de las dos. Requisitos de la pregunta:
+8. Rellena "pregunta" solo si faltan datos para decidir entre las DOS PRIMERAS ocupaciones de tu lista; si no, déjalo vacío. Si la persona realiza tareas mixtas (ej. caja y reposición, almacén y reparto), incluye ambas ocupaciones en los dos primeros puestos y usa la pregunta para dilucidar a cuál dedicaba la mayor parte del tiempo. Requisitos de la pregunta:
    - Se responde con SÍ o con NO. Nunca uses "¿hacía A o hacía B?": quien responde solo tiene dos botones.
    - Va dirigida a la persona atendida y se le va a leer en voz alta. Escríbela en lenguaje llano, con las palabras que usaría cualquiera: nada de terminología del catálogo, ni sustantivos abstractos, ni "realizaba tareas de". Verbos corrientes y cosas concretas.
    - Corta: quince palabras como mucho.
-   Mal: "¿Se dedica al pulido de suelos o a otra actividad de construcción?"
-   Mal: "¿Realizaba la colocación de baldosas o azulejos en suelos y paredes?"
+   Mal: "¿Se dedica al cobro o a la reposición de lineales en supermercado?"
+   Bien: "¿Pasaba la mayor parte del tiempo cobrando en la caja?"
    Bien: "¿Ponía baldosas o azulejos?"
-   Bien: "¿Usaba una máquina para pulir el suelo?"
    Bien: "¿Trabajaba dentro de casas de particulares?"
 9. IMPORTANTE. Si ninguna de las candidatas describe con precisión la actividad, rellena "otros_terminos" con entre 6 y 10 palabras sueltas del vocabulario de la clasificación que deberían buscarse en su lugar (el nombre formal del oficio, herramientas, materiales). Se hará una segunda búsqueda con ellas. Si alguna candidata sí encaja, deja "otros_terminos" vacío.
 
@@ -790,7 +741,6 @@ Responde solo con este JSON:
 
 
 def _configuraciones():
-    """Solo Gemini. De la más rápida a la más lenta; la que sirva se recuerda."""
     base = dict(
         system_instruction=INSTRUCCIONES,
         max_output_tokens=2048,
@@ -802,7 +752,7 @@ def _configuraciones():
             opciones.append(
                 {**base, "thinking_config": types.ThinkingConfig(thinking_level=nivel)}
             )
-        except Exception:  # noqa: BLE001  SDK sin thinking_level
+        except Exception:  # noqa: BLE001
             break
     opciones.append(base)
     return opciones
@@ -828,16 +778,15 @@ def _flujo_gemini(cli, prompt):
                         yield trozo.text
                 return
             except Exception as e:  # noqa: BLE001
-                if emitido:   # no reintentar a medio texto: duplicaría contenido
+                if emitido:
                     raise
                 ultimo = e
                 if sin_cuota(e):
-                    break     # cuota agotada: cambiar de modelo, no de ajuste
+                    break
     raise ultimo
 
 
 def _flujo_openai(cli, prompt):
-    """Groq, Mistral y cualquier otro compatible con el formato de OpenAI."""
     flujo = cli.chat.completions.create(
         model=modelo_actual(),
         messages=[
@@ -878,7 +827,6 @@ Salida: instaladores reparadores equipos telecomunicaciones lineas antenas redes
 
 
 def pregunta_corta(cli, sistema, prompt, maximo=2048):
-    """Una respuesta breve, sin streaming. Sirve para traducir vocabulario."""
     if PROVEEDOR == "gemini":
         cfg = dict(system_instruction=sistema, max_output_tokens=maximo)
         try:
@@ -914,6 +862,10 @@ escuela" puede ser guardería, comedor escolar o tiempo libre. Devuelve entre
 2 y 3 lecturas distintas, de más a menos probable. No repitas la misma con
 otras palabras: tienen que ser oficios diferentes.
 
+Si la descripción incluye dos funciones distintas o tareas combinadas
+(ej. "cobro en caja y repongo", "conduzco y reparto"), genera una lectura
+específica para cada una de las actividades.
+
 Responde SOLO con este JSON:
 {"lecturas":[{"terminos":"...","grupos":"5"},{"terminos":"...","grupos":"3"}]}
 
@@ -929,6 +881,9 @@ Responde SOLO con este JSON:
 
 Si el texto es una pregunta, ignora la forma y quédate con el oficio.
 
+Entrada: cobro en caja y repongo estantes
+Salida: {"lecturas":[{"terminos":"cajeros comercio cobradores supermercado caja tpv ventas cobro","grupos":"5 4"},{"terminos":"reponedores hipermercado mercancias estantes productos almacen colocacion","grupos":"5 9"}]}
+
 Entrada: cuidado de ninos en una escuela
 Salida: {"lecturas":[{"terminos":"cuidadores guarderia infantil ninos aula patio higiene","grupos":"5"},{"terminos":"vigilantes comedor escolar monitores bandeja turnos patio","grupos":"5"},{"terminos":"monitores educacion tiempo libre actividades extraescolares ludoteca","grupos":"3"}]}
 
@@ -938,11 +893,6 @@ Salida: {"lecturas":[{"terminos":"soladores alicatadores pavimentos baldosas cer
 
 
 def interpreta_consulta(cli, texto):
-    """Traduce la consulta a vocabulario del catálogo antes de buscar.
-
-    Es la diferencia entre elegir bien y elegir entre malos candidatos: sin
-    esta pasada, el modelo solo ve la lista que ya ha decidido el buscador.
-    """
     clave = normaliza(texto)
     memoria = st.session_state.setdefault("interpretaciones", {})
     if clave in memoria:
@@ -960,7 +910,7 @@ def interpreta_consulta(cli, texto):
         datos = {}
 
     crudas = datos.get("lecturas")
-    if not isinstance(crudas, list):          # formato antiguo, una sola lectura
+    if not isinstance(crudas, list):
         crudas = [datos] if datos.get("terminos") else []
 
     lecturas = []
@@ -972,7 +922,7 @@ def interpreta_consulta(cli, texto):
             grupos = tuple(re.findall(r"[1-9]", str(l.get("grupos", ""))))[:2]
             lecturas.append((terminos, grupos))
 
-    if not lecturas:      # si no vino JSON, se aprovecha el texto suelto
+    if not lecturas:
         suelto = " ".join(re.findall(r"[a-zñáéíóúü]+", normaliza(bruto))[:14])
         if suelto:
             lecturas = [(suelto, ())]
@@ -982,7 +932,6 @@ def interpreta_consulta(cli, texto):
 
 
 def traduce_jerga(cli, palabras, contexto):
-    """Convierte jerga en vocabulario del catálogo. Devuelve (términos, error)."""
     clave = " ".join(sorted(palabras))
     lexico = st.session_state["lexico"]
     if clave in lexico:
@@ -999,14 +948,11 @@ def traduce_jerga(cli, palabras, contexto):
     if not limpio:
         return "", f"Traducción de «{clave}»: el modelo devolvió una respuesta vacía."
     lexico[clave] = limpio
-    # No se guarda ahora: publicarlo son dos viajes a GitHub y el usuario
-    # estaría esperando. Se encola y se envía cuando ya ve el resultado.
     st.session_state.setdefault("por_guardar", []).append((clave, limpio))
     return limpio, ""
 
 
 def flujo_modelo(cli, texto, candidatos):
-    """Devuelve fragmentos de texto según llegan."""
     prompt = f"CANDIDATOS (única fuente válida):\n{candidatos}\n\nDESCRIPCIÓN: {texto}"
     if PROVEEDOR == "gemini":
         yield from _flujo_gemini(cli, prompt)
@@ -1015,7 +961,6 @@ def flujo_modelo(cli, texto, candidatos):
 
 
 def objetos_parciales(bruto):
-    """Extrae las ocupaciones ya completas de un JSON aún a medio llegar."""
     inicio = bruto.find("[")
     if inicio == -1:
         return []
@@ -1051,7 +996,6 @@ def objetos_parciales(bruto):
 
 
 def verifica(lista):
-    """Solo sobreviven los códigos que existen en el catálogo oficial."""
     limpias, descartadas = [], 0
     vistos = set()
     for o in lista or []:
@@ -1063,7 +1007,7 @@ def verifica(lista):
             nivel = str(o.get("nivel", "00")).strip()[:2] or "00"
             limpias.append({
                 "codigo": codigo,
-                "denominacion": IDX["por_codigo"][codigo],   # siempre la oficial
+                "denominacion": IDX["por_codigo"][codigo],
                 "nivel": nivel,
                 "nivel_texto": NIVELES.get(nivel, "Técnicos / Sin categoría"),
                 "motivo": str(o.get("motivo", "")).strip(),
@@ -1106,11 +1050,6 @@ def interpreta(bruto):
 # ---------------------------------------------------------------------------
 
 def bajar():
-    """Lleva la vista al final una sola vez, y se aparta si el usuario se mueve.
-
-    Streamlit no desplaza solo. El desplazamiento es instantáneo a propósito:
-    una animación larga compite con el usuario si decide subir mientras tanto.
-    """
     components.html(
         f"""
         <script>
@@ -1120,7 +1059,6 @@ def bajar():
             const doc = ventana.document;
             let cancelado = false;
 
-            // Cualquier gesto del usuario tiene prioridad sobre el automatismo
             const parar = function () {{ cancelado = true; }};
             ["wheel", "touchstart", "keydown", "mousedown"].forEach(function (ev) {{
               ventana.addEventListener(ev, parar, {{ once: true, passive: true }});
@@ -1137,7 +1075,7 @@ def bajar():
               for (const z of zonas) {{
                 if (z && z.scrollHeight > z.clientHeight + 40) {{
                   z.scrollTo({{ top: z.scrollHeight, behavior: "auto" }});
-                  return;                       // solo una zona, sin peleas
+                  return;
                 }}
               }}
             }}, 120);
@@ -1168,8 +1106,6 @@ body{
   animation:entrar .38s cubic-bezier(.2,.85,.3,1) both;
 }
 .tarjeta.top{ border-left-color:var(--rojo); }
-
-/* Relleno: viene del catálogo, no del modelo. Se distingue sin esconderse. */
 .tarjeta.relleno{ background:#FAFAFA; border-left-color:#E4E4E4; }
 .tarjeta.relleno .codigo{ color:#5A5A5A; }
 .tarjeta.relleno .denominacion{ font-weight:500; color:#3A3A3A; }
@@ -1252,7 +1188,6 @@ setTimeout(alto, 60); setTimeout(alto, 400); setTimeout(alto, 1200);
 
 
 def pinta_tarjetas(ocupaciones):
-    """Todas las fichas de un resultado, en un solo marco con botón de copiar."""
     if not ocupaciones:
         return
 
@@ -1279,14 +1214,6 @@ def pinta_tarjetas(ocupaciones):
             f'</div>'
         )
 
-    # Altura del marco. Medida sobre el diseño real, no a ojo:
-    #   relleno 36,8 + bordes 2 + fila del código 27 + márgenes del título 16
-    #   + 22 por línea de denominación + 21 si hay motivo + 11,2 de separación.
-    # En dos columnas manda la ficha más alta de cada fila. La denominación
-    # cabe en menos caracteres por línea al tener la mitad de ancho.
-    # Cada columna mide unos 540 px y la denominación va en mayúsculas: caben
-    # unos 52 caracteres por línea. Con 32 se contaban líneas de más y sobraba
-    # hueco bajo las fichas.
     def mide(o):
         lineas = 1 + len(o["denominacion"]) // 52
         return 74 + 18 * (lineas - 1) + (17 if o.get("motivo") else 0)
@@ -1305,8 +1232,6 @@ def pinta_tarjetas(ocupaciones):
 
 def pinta_resultado(payload, estado=None, avance=0.06, interactivo=False, consulta=""):
     if estado:
-        # Mientras se afina solo se ve la barra. Los resultados aparecen
-        # completos de una vez, no goteando ficha a ficha.
         st.progress(min(avance, 0.95), text=estado)
         return
     if payload.get("aviso"):
@@ -1327,7 +1252,7 @@ def pinta_resultado(payload, estado=None, avance=0.06, interactivo=False, consul
     if payload.get("pregunta"):
         try:
             caja = st.container(key="pregunta")
-        except TypeError:          # Streamlit sin claves en contenedores
+        except TypeError:
             caja = st.container()
         with caja:
             st.markdown(
@@ -1398,7 +1323,6 @@ def _basica(encontrados, motivo=""):
 
 
 def resuelve(texto, zona, usar_ia=True, contexto="", busqueda=None):
-    """Pinta resultados desde el primer instante y los va afinando."""
     codigo = texto.strip()
     if re.fullmatch(r"\d{8}", codigo):
         if codigo in IDX["por_codigo"]:
@@ -1418,8 +1342,6 @@ def resuelve(texto, zona, usar_ia=True, contexto="", busqueda=None):
     encontrados = busca(busqueda or texto, tope=N_CANDIDATOS)
     cli = cliente() if usar_ia else None
 
-    # Sin coincidencias y sin IA no hay nada más que hacer. Con IA, sí: es
-    # justo el caso en el que más falta hace, así que no se rinde aquí.
     if not encontrados and cli is None:
         payload = {"ocupaciones": []}
         with zona.container():
@@ -1443,21 +1365,14 @@ def resuelve(texto, zona, usar_ia=True, contexto="", busqueda=None):
             pinta_resultado(provisional)
         return provisional
 
-    # Resultados del catálogo mientras el modelo responde
     with zona.container():
         pinta_resultado(provisional, estado="Afinando el resultado")
 
-    # Si la consulta trae jerga o marcas, se traduce a vocabulario del catálogo
-    # Primero se le pregunta al modelo qué oficio es esto, y se busca con sus
-    # palabras además de las de la persona.
     interpretado, aviso = None, ""
     with zona.container():
         pinta_resultado({}, estado="Interpretando el oficio", avance=0.12)
     lecturas = interpreta_consulta(cli, texto)
     if lecturas:
-        # Cada lectura busca por su cuenta y los resultados se funden. Así una
-        # descripción ambigua no pierde las ocupaciones de las otras ramas: de
-        # "cuidado de niños en una escuela" salen guardería, comedor y ocio.
         fundido, vistos = [], {}
         for orden, (terminos, grupos) in enumerate(lecturas):
             peso = (1.0, 0.88, 0.78)[min(orden, 2)]
@@ -1493,7 +1408,6 @@ def resuelve(texto, zona, usar_ia=True, contexto="", busqueda=None):
         return payload
 
     def consulta_al_modelo(candidatos, etiqueta):
-        """Una pasada completa: streaming, barra y lectura del JSON."""
         bruto, avance = "", 0.10
         arranque = time.perf_counter()
         for trozo in flujo_modelo(cli, texto + contexto, candidatos):
@@ -1514,9 +1428,6 @@ def resuelve(texto, zona, usar_ia=True, contexto="", busqueda=None):
         lista = "\n".join(f"{c}:{d}" for _, c, d in encontrados)
         payload = consulta_al_modelo(lista, "Afinando el resultado")
 
-        # Si el modelo avisa de que ninguna candidata encaja, propone términos
-        # y se repite la búsqueda con ellos. Es la vía que rescata ocupaciones
-        # que no comparten ni una palabra con lo que escribe la persona.
         if payload.get("mas_terminos"):
             with zona.container():
                 pinta_resultado({}, estado="Ampliando la búsqueda", avance=0.45)
@@ -1537,8 +1448,6 @@ def resuelve(texto, zona, usar_ia=True, contexto="", busqueda=None):
         pinta_resultado(provisional)
         return provisional
 
-    # Si el modelo ha ascendido una ocupación que el catálogo no tenía la
-    # primera, eso es una corrección: se guarda para la próxima vez.
     if payload["ocupaciones"] and encontrados:
         elegido = payload["ocupaciones"][0]["codigo"]
         if elegido != encontrados[0][1]:
@@ -1557,8 +1466,6 @@ def resuelve(texto, zona, usar_ia=True, contexto="", busqueda=None):
     if not payload["ocupaciones"]:
         payload["ocupaciones"] = provisional["ocupaciones"]
 
-    # El prompt pide entre 3 y 5, pero conviene garantizarlo: una sola ficha
-    # deja la pantalla coja y esconde alternativas que sí valdrían.
     ya = {o["codigo"] for o in payload["ocupaciones"]}
     for _, codigo, denom in encontrados:
         if len(payload["ocupaciones"]) >= 6:
@@ -1571,33 +1478,25 @@ def resuelve(texto, zona, usar_ia=True, contexto="", busqueda=None):
             "nivel": "00",
             "nivel_texto": NIVELES["00"],
             "motivo": "",
-            "relleno": True,        # viene del catálogo, no del modelo
+            "relleno": True,
         })
         ya.add(codigo)
     elegidos = {o["codigo"] for o in payload["ocupaciones"]}
     payload["otras"] = [(c, d) for _, c, d in encontrados if c not in elegidos][:8]
 
-    zona.empty()          # retira el bloque provisional antes del definitivo
+    zona.empty()
     pinta_resultado(payload)
     memoria[clave] = payload
     return payload
-
 
 
 # ---------------------------------------------------------------------------
 # INTERFAZ
 # ---------------------------------------------------------------------------
 
-# ---------------------------------------------------------------------------
-# MODO MANTENIMIENTO
-# La herramienta enseña códigos; su mantenimiento no le interesa a quien la
-# usa. Todo lo interno —correcciones, diccionarios, diagnóstico— solo aparece
-# si abres la app añadiendo  ?mantenimiento=1  al final de la dirección.
-# ---------------------------------------------------------------------------
-
 try:
     MANTENIMIENTO = st.query_params.get("mantenimiento") == "1"
-except Exception:  # noqa: BLE001  versiones antiguas de Streamlit
+except Exception:  # noqa: BLE001
     MANTENIMIENTO = False
 
 st.session_state.setdefault("actual", None)
@@ -1628,7 +1527,6 @@ EJEMPLOS = [
 
 
 def panel_ajustes():
-    # la clave permite darle forma circular desde el CSS
     with st.popover(":material/tune:", use_container_width=True):
         st.session_state["usar_ia"] = st.toggle(
             "Afinar con IA", value=st.session_state["usar_ia"],
@@ -1711,12 +1609,6 @@ def panel_ajustes():
 
 
 def usar_ejemplo(texto):
-    """Lanza un ejemplo dejando el estado limpio.
-
-    Vaciar el cajón aquí es imprescindible: si se quedara el texto anterior,
-    al redibujar la página el control de duplicados lo tomaría por una
-    consulta nueva y lanzaría una segunda búsqueda encima de la del ejemplo.
-    """
     st.session_state["pendiente"] = texto
     st.session_state["consulta"] = ""
     st.session_state["actual"] = None
@@ -1724,11 +1616,6 @@ def usar_ejemplo(texto):
 
 
 def empezar_de_nuevo():
-    """Vuelve al estado inicial y vacía el cuadro de texto.
-
-    Va como retrollamada del botón: Streamlit no permite modificar el valor
-    de un campo una vez creado dentro de la misma pasada, pero sí desde aquí.
-    """
     st.session_state["actual"] = None
     st.session_state["consulta"] = ""
     st.session_state["ultima"] = ""
@@ -1757,12 +1644,12 @@ if not entrada:
     entrada = st.session_state.pop("pendiente", None)
 
 # ---------------------------------------------------------------------------
-# Banda de cabecera: el buscador vive aquí y no se mueve nunca
+# Banda de cabecera
 # ---------------------------------------------------------------------------
 
 try:
     banda = st.container(key="cabecera")
-except TypeError:          # Streamlit anterior a la versión con claves
+except TypeError:
     banda = st.container()
 
 with banda:
@@ -1771,8 +1658,6 @@ with banda:
         unsafe_allow_html=True,
     )
     st.button("Codificador de ocupaciones", key="marca", on_click=empezar_de_nuevo)
-    # Sin st.form: así el botón de ajustes puede convivir en la misma fila.
-    # El campo de texto ya reejecuta la app al pulsar Enter.
     campo, boton, ajustes = st.columns([6, 1.1, 0.6], gap="small")
     with campo:
         texto = st.text_input(
@@ -1786,8 +1671,6 @@ with banda:
 
     escrito = (texto or "").strip()
     if escrito and not entrada:
-        # Se lanza al pulsar Buscar o al pulsar Enter, pero no se repite sola
-        # mientras el texto siga en el campo.
         if buscar or escrito != st.session_state.get("ultima", ""):
             entrada = escrito
             contexto, busqueda, rotulo = "", None, None
@@ -1853,7 +1736,6 @@ else:
         fila = EJEMPLOS[i:i + 2]
         cols = st.columns(2, gap="small")
         for col, ej in zip(cols, fila):
-            # el oficio en negrita, el arranque de la frase en peso normal
             rotulo = (
                 f"{arranque}**{ej[len(arranque):]}**"
                 if ej.startswith(arranque) else f"**{ej}**"
@@ -1863,7 +1745,6 @@ else:
                 on_click=usar_ejemplo, args=(ej,),
             )
 
-# Con el resultado ya en pantalla, se publica lo aprendido para el resto
 for clave, valor in st.session_state.pop("por_guardar", []):
     guarda_termino(clave, valor)
 
