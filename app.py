@@ -1,5 +1,5 @@
 """
-Codificador de ocupaciones SISPE & Creador de CV Express (Asistente por pasos - 1 página A4)
+Codificador de ocupaciones SISPE & Creador de CV Express (1 página A4)
 Herramienta de apoyo para orientadores laborales y candidatos.
 """
 
@@ -268,7 +268,7 @@ div[data-testid="stTextInput"] input{
 div[data-testid="stExpander"]{ border:none; background:transparent; margin-top:.2rem; }
 div[data-testid="stExpander"] summary{ font-size:.84rem; color:var(--suave); padding:.2rem 0; }
 
-/* Barra de progreso de pasos */
+/* Barra de progreso de pasos en CV */
 .paso-chip {
   padding:0.4rem 0.8rem; font-weight:700; font-size:0.82rem; border-radius:4px;
   background:#F2F2F2; color:#555; text-align:center; border:1px solid #E2E8F0;
@@ -1146,7 +1146,7 @@ OTROS DATOS (Idiomas, permisos, disponibilidad, actitud):
 
 
 # ---------------------------------------------------------------------------
-# TARJETAS FLUIDAS
+# TARJETAS FLUIDAS CON BOTÓN COPIAR + BOTÓN AÑADIR CV DEBAJO
 # ---------------------------------------------------------------------------
 
 ESTILO_TARJETAS = """
@@ -1181,7 +1181,7 @@ body{
 }
 
 .fila{
-  display:flex; align-items:center; justify-content:space-between;
+  display:flex; align-items:flex-start; justify-content:space-between;
   gap:8px; margin-bottom:3px;
 }
 .identificador{ display:flex; align-items:center; gap:8px; }
@@ -1194,14 +1194,28 @@ body{
   letter-spacing:.035em; color:var(--negro); font-family:'JetBrains Mono',monospace;
 }
 
+.acciones-col{
+  display:flex; flex-direction:column; align-items:flex-end; gap:3px;
+}
+
 .copiar{
-  font-family:'Libre Franklin',sans-serif; font-size:.7rem;
+  font-family:'Libre Franklin',sans-serif; font-size:.68rem;
   font-weight:600; color:var(--texto); background:#fff; border:1px solid var(--negro);
-  border-radius:0; padding:.22rem .65rem; cursor:pointer;
-  transition:all .15s ease; white-space:nowrap;
+  border-radius:0; padding:.18rem .55rem; cursor:pointer;
+  transition:all .15s ease; white-space:nowrap; line-height:1.2;
 }
 .copiar:hover{ background:var(--negro); color:#fff; }
 .copiar.hecho{ background:var(--rojo); border-color:var(--rojo); color:#fff; }
+
+.btn-add-cv{
+  font-family:'Libre Franklin',sans-serif; font-size:.62rem;
+  font-weight:700; color:var(--rojo); background:#fff; border:1px solid var(--rojo);
+  border-radius:0; padding:.15rem .45rem; text-decoration:none;
+  cursor:pointer; transition:all .15s ease; white-space:nowrap; line-height:1.2;
+}
+.btn-add-cv:hover{
+  background:var(--rojo); color:#fff;
+}
 
 .denominacion{
   font-size:.88rem; font-weight:600;
@@ -1304,6 +1318,7 @@ def pinta_tarjetas(ocupaciones):
         )
 
         motivo_html = f'<div class="motivo">{o["motivo"]}</div>' if o.get("motivo") else ""
+        cv_href = f"?add_cv={o['codigo']}" + ("&mantenimiento=1" if MANTENIMIENTO else "")
 
         trozos.append(
             f'<div class="{clase}">'
@@ -1313,7 +1328,10 @@ def pinta_tarjetas(ocupaciones):
             f'        <span class="orden">{i:02d}</span>'
             f'        <span class="codigo">{o["codigo"]}</span>'
             f'      </div>'
-            f'      <button class="copiar" data-cod="{o["codigo"]}">Copiar</button>'
+            f'      <div class="acciones-col">'
+            f'        <button class="copiar" data-cod="{o["codigo"]}">Copiar</button>'
+            f'        <a href="{cv_href}" target="_top" class="btn-add-cv">+ Añadir al CV</a>'
+            f'      </div>'
             f'    </div>'
             f'    <div class="denominacion">{o["denominacion"]}</div>'
             f'    {motivo_html}'
@@ -1323,11 +1341,11 @@ def pinta_tarjetas(ocupaciones):
         )
 
     def mide(o):
-        lineas_denom = max(1, math.ceil(len(o["denominacion"]) / 48))
-        lineas_motivo = max(1, math.ceil(len(o["motivo"]) / 52)) if o.get("motivo") else 0
+        lineas_denom = max(1, math.ceil(len(o["denominacion"]) / 46))
+        lineas_motivo = max(1, math.ceil(len(o["motivo"]) / 50)) if o.get("motivo") else 0
         h_denom = lineas_denom * 17
         h_motivo = (lineas_motivo * 15 + 2) if lineas_motivo else 0
-        h_base = 56
+        h_base = 72
         return h_base + h_denom + h_motivo
 
     alturas = [mide(o) for o in ocupaciones]
@@ -1379,30 +1397,8 @@ def pinta_resultado(payload, estado=None, avance=0.06, interactivo=False, consul
                             st.session_state["respuesta"] = (consulta, payload["pregunta"], opc)
                             st.rerun()
 
-    # 2. TARJETAS DE OCUPACIONES
+    # 2. TARJETAS DE OCUPACIONES (con [Copiar] y [+ Añadir al CV] integrados)
     pinta_tarjetas(ocupaciones)
-
-    # 3. ACCIÓN DISCRETA PARA AÑADIR AL CV
-    if interactivo and ocupaciones:
-        with st.expander("💼 Guardar ocupación en el borrador de CV", expanded=False):
-            c_sel, c_btn = st.columns([3, 1])
-            with c_sel:
-                dict_ocup = {f"{o['codigo']} - {o['denominacion']}": o for o in ocupaciones[:4]}
-                elegida_txt = st.selectbox("Selecciona la ocupación a guardar:", list(dict_ocup.keys()), label_visibility="collapsed")
-            with c_btn:
-                if st.button("➕ Añadir al CV", use_container_width=True):
-                    o_sel = dict_ocup[elegida_txt]
-                    st.session_state["cv_experiencias"].append({
-                        "id": int(time.time() * 1000),
-                        "codigo": o_sel["codigo"],
-                        "puesto_oficial": o_sel["denominacion"],
-                        "descripcion_usuario": consulta,
-                        "motivo": o_sel.get("motivo", ""),
-                        "empresa": "",
-                        "periodo": "",
-                    })
-                    st.toast(f"Añadido al CV: {o_sel['codigo']}", icon="💼")
-                    st.rerun()
 
     if estado:
         return
@@ -1644,7 +1640,7 @@ st.session_state.setdefault("refuerzos_por_guardar", [])
 st.session_state.setdefault("ultima", "")
 st.session_state.setdefault("consulta", "")
 
-# Estado para el Creador de CV por pasos
+# Estado para el Creador de CV
 st.session_state.setdefault("cv_paso", 1)
 st.session_state.setdefault("cv_experiencias", [])
 st.session_state.setdefault("cv_generado", None)
@@ -1653,6 +1649,36 @@ st.session_state.setdefault("cv_candidato", {
     "codigo_postal": "", "localidad": "",
     "formacion": "", "otros_datos": "",
 })
+
+# Captura de acción + Añadir al CV desde la tarjeta
+add_cv_code = st.query_params.get("add_cv")
+if add_cv_code:
+    cod = str(add_cv_code).strip()
+    if cod in IDX["por_codigo"]:
+        denom = IDX["por_codigo"][cod]
+        motivo = ""
+        if st.session_state.get("actual"):
+            _, pay = st.session_state["actual"]
+            for o_c in pay.get("ocupaciones", []):
+                if o_c.get("codigo") == cod:
+                    motivo = o_c.get("motivo", "")
+                    break
+        ya_esta = any(e["codigo"] == cod for e in st.session_state["cv_experiencias"])
+        if not ya_esta:
+            st.session_state["cv_experiencias"].append({
+                "id": int(time.time() * 1000),
+                "codigo": cod,
+                "puesto_oficial": denom,
+                "descripcion_usuario": st.session_state.get("ultima", ""),
+                "motivo": motivo,
+                "empresa": "",
+                "periodo": "",
+            })
+            st.toast(f"Añadido al CV: {cod} - {denom[:26]}...", icon="💼")
+    try:
+        del st.query_params["add_cv"]
+    except Exception:
+        pass
 
 EJEMPLOS = [
     "Una persona que limpia habitaciones de hotel",
@@ -1862,27 +1888,23 @@ with tab_cv:
     # Barra visual superior de progreso de pasos
     col_p1, col_p2, col_p3, col_p4 = st.columns(4)
     with col_p1:
-        clase_p1 = "paso-chip activo" if paso == 1 else ("paso-chip completado" if paso > 1 else "paso-chip")
         if st.button("1. Contacto", key="nav_p1", use_container_width=True):
             st.session_state["cv_paso"] = 1
             st.rerun()
     with col_p2:
-        clase_p2 = "paso-chip activo" if paso == 2 else ("paso-chip completado" if paso > 2 else "paso-chip")
         if st.button(f"2. Experiencias ({len(exps)})", key="nav_p2", use_container_width=True):
             st.session_state["cv_paso"] = 2
             st.rerun()
     with col_p3:
-        clase_p3 = "paso-chip activo" if paso == 3 else ("paso-chip completado" if paso > 3 else "paso-chip")
         if st.button("3. Formación y Otros", key="nav_p3", use_container_width=True):
             st.session_state["cv_paso"] = 3
             st.rerun()
     with col_p4:
-        clase_p4 = "paso-chip activo" if paso == 4 else "paso-chip"
         if st.button("4. Vista Previa (A4)", key="nav_p4", use_container_width=True):
             st.session_state["cv_paso"] = 4
             st.rerun()
 
-    st.markdown("<div style='height:12px;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='height:10px;'></div>", unsafe_allow_html=True)
 
     # -----------------------------------------------------------------------
     # PASO 1: DATOS DE CONTACTO (Zero PII - Solo en local)
@@ -1919,7 +1941,7 @@ with tab_cv:
         st.caption("Reordena tus puestos con ⬆️ y ⬇️ (del más reciente al más antiguo). Máximo 2 o 3 para 1 sola página.")
 
         if not exps:
-            st.info("No has añadido puestos todavía. Puedes buscar ocupaciones en el **Codificador SISPE** y guardarlas con **➕ Añadir al CV**, o crear una debajo.")
+            st.info("No has añadido puestos todavía. Puedes buscar ocupaciones en el **Codificador SISPE** y pulsar **+ Añadir al CV** en cada tarjeta, o crear uno debajo.")
 
         borrar_idx = None
         for idx, exp in enumerate(exps):
@@ -2035,7 +2057,6 @@ with tab_cv:
                 st.session_state["cv_paso"] = 3
                 st.rerun()
         else:
-            # Barra superior de acciones
             b_exp1, b_exp2, b_exp3, b_exp4 = st.columns([1.5, 1.5, 1.3, 1])
 
             nombre_p = cand.get('nombre') or 'NOMBRE APELLIDOS'
@@ -2074,7 +2095,6 @@ with tab_cv:
 
             st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
 
-            # Generación limpia de HTML sin sangrías ni markdown interferente
             nombre_doc = cand.get("nombre") or "NOMBRE APELLIDO1 APELLIDO2"
             tlf_doc = f"Tlf.: {cand.get('telefono')}" if cand.get('telefono') else "Tlf.: XXX XXX XXX"
             email_doc = f"Email: {cand.get('email')}" if cand.get('email') else "Email: correo@ejemplo.com"
