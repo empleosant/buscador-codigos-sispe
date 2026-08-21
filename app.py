@@ -108,9 +108,6 @@ st.markdown("""
   --linea:#D8D8D8;
   --gris:#F4F4F5;
   --fondo-tarjeta:#FFFFFF;
-  --alerta-mando:#FFF7ED;
-  --borde-mando:#FDBA74;
-  --texto-mando:#9A3412;
 }
 
 .stApp{ background:#FAFAFA; }
@@ -123,7 +120,7 @@ html,body,[class*="css"],.stMarkdown{
 h1 > a, h2 > a, h3 > a, .stMarkdown a.anchor-link{ display:none !important; }
 div[data-testid="InputInstructions"]{ display:none !important; }
 
-/* ---------- Banda de cabecera fija y moderna ---------- */
+/* ---------- Banda de cabecera fija ---------- */
 .st-key-cabecera{
   background:var(--negro); padding:1.2rem 2rem 1.35rem; margin-bottom:1rem;
   box-shadow: 0 4px 20px rgba(0,0,0,0.06);
@@ -189,7 +186,7 @@ div[data-testid="stTextInput"] input::placeholder{ color:var(--tenue) !important
   background:var(--rojo) !important; border-color:var(--rojo) !important; color:#fff !important;
 }
 
-/* Píldoras de historial y ejemplos */
+/* Píldoras de historial */
 .historial-barra{
   display:flex; align-items:center; gap:.5rem; overflow-x:auto;
   padding:.2rem 0 .4rem; margin-top:.3rem; scrollbar-width:none;
@@ -613,7 +610,6 @@ def busca(consulta, tope=20, grupos=None):
     terminos = {}
     cabezas = set()
 
-    # Descompone oraciones coordinadas para equilibrar tareas compuestas
     clausulas = [
         c.strip()
         for c in re.split(r"\s+(?:y|e|o|ademas|tambien)\s+", q)
@@ -1027,7 +1023,7 @@ ESTILO_TARJETAS = """
 body{
   margin:0; background:transparent; font-family:'Libre Franklin',system-ui,sans-serif;
   --negro:#0A0A0A; --rojo:#D1122E; --texto:#1A1A1A; --suave:#6B6B6B;
-  --linea:#E5E5E5; --gris:#F4F4F5; --destacada-borde:#D1122E;
+  --linea:#E5E5E5; --gris:#F4F4F5;
   color:var(--texto);
 }
 .rejilla{
@@ -1098,11 +1094,9 @@ body{
 
 GUION_INTERACTIVO = """
 function copiarTexto(texto, boton){
-  const original = boton.textContent;
   navigator.clipboard.writeText(texto).then(() => {
-    boton.textContent = 'Copiado';
     boton.classList.add('hecho');
-    setTimeout(() => { boton.textContent = original; boton.classList.remove('hecho'); }, 1400);
+    setTimeout(() => { boton.classList.remove('hecho'); }, 1400);
   }).catch(() => {
     const caja = document.createElement('textarea');
     caja.value = texto;
@@ -1110,15 +1104,14 @@ function copiarTexto(texto, boton){
     caja.select();
     document.execCommand('copy');
     document.body.removeChild(caja);
-    boton.textContent = 'Copiado';
     boton.classList.add('hecho');
-    setTimeout(() => { boton.textContent = original; boton.classList.remove('hecho'); }, 1400);
+    setTimeout(() => { boton.classList.remove('hecho'); }, 1400);
   });
 }
 
 function alto(){
   parent.postMessage(
-    {type:'streamlit:setFrameHeight', height: document.documentElement.scrollHeight + 8},
+    {type:'streamlit:setFrameHeight', height: document.documentElement.scrollHeight + 10},
     '*'
   );
 }
@@ -1137,7 +1130,6 @@ document.querySelectorAll('.tarjeta').forEach(t => {
   });
 });
 
-// Atajos 1-6 para copiar códigos directamente
 window.addEventListener('keydown', (e) => {
   if (['1','2','3','4','5','6'].includes(e.key) && !['INPUT','TEXTAREA'].includes(document.activeElement.tagName)) {
     const idx = parseInt(e.key) - 1;
@@ -1146,7 +1138,6 @@ window.addEventListener('keydown', (e) => {
   }
 });
 
-// Ajuste dinámico de altura mediante ResizeObserver
 const observador = new ResizeObserver(() => alto());
 observador.observe(document.body);
 window.addEventListener('load', alto);
@@ -1161,7 +1152,7 @@ def pinta_tarjetas(ocupaciones):
     for i, o in enumerate(ocupaciones, 1):
         es_primera = (i == 1 and not o.get("relleno"))
         es_mando = o.get("nivel") in ("10", "20", "30")
-        
+
         clases = ["tarjeta"]
         if es_primera:
             clases.append("top")
@@ -1172,7 +1163,7 @@ def pinta_tarjetas(ocupaciones):
         etiquetas_html = []
         if es_primera:
             etiquetas_html.append('<span class="etiqueta recomendada">★ Recomendada</span>')
-        
+
         etiqueta_clase = "etiqueta mando" if es_mando else "etiqueta"
         etiquetas_html.append(
             f'<span class="{etiqueta_clase}">Nivel {o["nivel"]} &middot; {o["nivel_texto"]}</span>'
@@ -1201,11 +1192,25 @@ def pinta_tarjetas(ocupaciones):
             f'</div>'
         )
 
+    # Cálculo dinámico de altura para evitar cortes en filas inferiores
+    def mide(o):
+        lineas_denom = max(1, math.ceil(len(o["denominacion"]) / 46))
+        lineas_motivo = max(1, math.ceil(len(o["motivo"]) / 44)) if o.get("motivo") else 0
+        h_denom = lineas_denom * 22
+        h_motivo = (lineas_motivo * 19 + 8) if lineas_motivo else 0
+        h_base = 96
+        return h_base + h_denom + h_motivo
+
+    alturas = [mide(o) for o in ocupaciones]
+    filas = [alturas[i:i + 2] for i in range(0, len(alturas), 2)]
+    estimada = sum(max(f) for f in filas) + 14 * max(0, len(filas) - 1) + 28
+    estimada = max(estimada, 450)
+
     components.html(
         f"<style>{ESTILO_TARJETAS}</style>"
         f"<div class=\"rejilla\">{''.join(trozos)}</div>"
         f"<script>{GUION_INTERACTIVO}</script>",
-        height=320,
+        height=estimada,
     )
 
 
@@ -1642,7 +1647,6 @@ with banda:
     with ajustes:
         panel_ajustes()
 
-    # Historial reciente en píldoras
     recientes = st.session_state.get("historial_reciente", [])
     if recientes:
         st.markdown('<div class="historial-barra"><span class="historial-label">Recientes:</span>', unsafe_allow_html=True)
@@ -1665,7 +1669,6 @@ with banda:
 
 if entrada:
     st.session_state["ultima"] = entrada
-    # Actualizar historial sin duplicados
     hist = [h for h in st.session_state.get("historial_reciente", []) if h != entrada]
     st.session_state["historial_reciente"] = [entrada] + hist[:5]
 
