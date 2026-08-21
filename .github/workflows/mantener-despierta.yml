@@ -33,7 +33,7 @@ jobs:
 
       - name: Abrir la aplicación
         env:
-          URL: https://buscador-codigos-sispe.streamlit.app
+          URL: https://TU-APP.streamlit.app        # <-- cámbiala
         run: |
           python - <<'PY'
           import os
@@ -55,7 +55,10 @@ jobs:
               pagina = navegador.new_page()
 
               try:
-                  pagina.goto(url, timeout=90000)
+                  # domcontentloaded: no se espera a que "termine" de cargar,
+                  # porque Streamlit mantiene la conexion abierta y ese momento
+                  # no llega nunca.
+                  pagina.goto(url, timeout=60000, wait_until="domcontentloaded")
               except Exception as e:
                   print(f"No se ha podido abrir la direccion: {e}")
                   print("Revisa que la URL sea correcta y que la app exista.")
@@ -76,22 +79,20 @@ jobs:
                   print("No aparece la pantalla de hibernacion.")
 
               # Senal de vida: cualquier cosa con la que se pueda interactuar.
-              # Se prueban varias porque la interfaz cambia con el tiempo.
-              senales = [
-                  "input",
-                  "textarea",
-                  "button",
-                  "[data-testid='stAppViewContainer']",
-                  "[data-testid='stMain']",
-              ]
-              for senal in senales:
-                  try:
-                      pagina.wait_for_selector(senal, timeout=60000)
-                      print(f"La aplicacion responde (encontrado: {senal}).")
-                      navegador.close()
-                      sys.exit(0)
-                  except Exception:
-                      continue
+              # Van en un solo selector separado por comas: Playwright espera a
+              # que aparezca CUALQUIERA de ellas. Probarlas de una en una
+              # sumaba un minuto de espera por cada una que faltara.
+              senales = (
+                  "input, textarea, button, "
+                  "[data-testid='stAppViewContainer'], [data-testid='stMain']"
+              )
+              try:
+                  pagina.wait_for_selector(senales, timeout=45000)
+                  print("La aplicacion responde: la interfaz esta cargada.")
+                  navegador.close()
+                  sys.exit(0)
+              except Exception:
+                  pass
 
               # No se rinde con error: la app puede estar arrancando todavia y
               # el aviso por correo cada vez seria mas molesto que util.
