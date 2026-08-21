@@ -268,16 +268,11 @@ div[data-testid="stTextInput"] input{
 div[data-testid="stExpander"]{ border:none; background:transparent; margin-top:.2rem; }
 div[data-testid="stExpander"] summary{ font-size:.84rem; color:var(--suave); padding:.2rem 0; }
 
-/* Barra de progreso de pasos en CV */
-.paso-chip {
-  padding:0.4rem 0.8rem; font-weight:700; font-size:0.82rem; border-radius:4px;
-  background:#F2F2F2; color:#555; text-align:center; border:1px solid #E2E8F0;
-}
-.paso-chip.activo {
-  background:var(--negro); color:#fff; border-color:var(--negro);
-}
-.paso-chip.completado {
-  background:#EBF5FF; color:#0066CC; border-color:#B9E1FF;
+/* Banner de puestos recopilados */
+.banner-cv-recopilados {
+  background:#F8FAFC; border:1px solid #E2E8F0; border-left:4px solid var(--rojo);
+  padding:0.6rem 0.9rem; margin-top:0.6rem; margin-bottom:0.4rem;
+  display:flex; justify-content:space-between; align-items:center;
 }
 
 /* =========================================================================
@@ -1111,6 +1106,7 @@ EXPERIENCIAS DEL CANDIDATO:
         prompt += f"""
 Puesto {i}:
 - Puesto oficial / Ocupación: {exp.get('puesto_oficial', '')}
+- Título deseado: {exp.get('puesto_editado', '')}
 - Empresa / Lugar: {exp.get('empresa', 'Empresa en Madrid')}
 - Duración / Fechas: {exp.get('periodo', 'Años recientes')}
 - Tareas descritas por la persona: {exp.get('descripcion_usuario', '')} {exp.get('motivo', '')}
@@ -1195,7 +1191,7 @@ body{
 }
 
 .acciones-col{
-  display:flex; flex-direction:column; align-items:flex-end; gap:3px;
+  display:flex; flex-direction:column; align-items:flex-end; gap:4px;
 }
 
 .copiar{
@@ -1212,9 +1208,13 @@ body{
   font-weight:700; color:var(--rojo); background:#fff; border:1px solid var(--rojo);
   border-radius:0; padding:.15rem .45rem; text-decoration:none;
   cursor:pointer; transition:all .15s ease; white-space:nowrap; line-height:1.2;
+  display:inline-block;
 }
 .btn-add-cv:hover{
   background:var(--rojo); color:#fff;
+}
+.btn-add-cv.agregado{
+  background:#F1F5F9; color:#475569; border-color:#CBD5E1; cursor:default;
 }
 
 .denominacion{
@@ -1296,6 +1296,8 @@ def pinta_tarjetas(ocupaciones):
     if not ocupaciones:
         return
 
+    cv_codigos_actuales = [e["codigo"] for e in st.session_state.get("cv_experiencias", [])]
+
     trozos = []
     for i, o in enumerate(ocupaciones, 1):
         es_primera = (i == 1 and not o.get("relleno"))
@@ -1320,6 +1322,11 @@ def pinta_tarjetas(ocupaciones):
         motivo_html = f'<div class="motivo">{o["motivo"]}</div>' if o.get("motivo") else ""
         cv_href = f"?add_cv={o['codigo']}" + ("&mantenimiento=1" if MANTENIMIENTO else "")
 
+        if o["codigo"] in cv_codigos_actuales:
+            btn_cv_html = '<span class="btn-add-cv agregado">✓ En el CV</span>'
+        else:
+            btn_cv_html = f'<a href="{cv_href}" target="_top" class="btn-add-cv">+ Añadir al CV</a>'
+
         trozos.append(
             f'<div class="{clase}">'
             f'  <div>'
@@ -1330,7 +1337,7 @@ def pinta_tarjetas(ocupaciones):
             f'      </div>'
             f'      <div class="acciones-col">'
             f'        <button class="copiar" data-cod="{o["codigo"]}">Copiar</button>'
-            f'        <a href="{cv_href}" target="_top" class="btn-add-cv">+ Añadir al CV</a>'
+            f'        {btn_cv_html}'
             f'      </div>'
             f'    </div>'
             f'    <div class="denominacion">{o["denominacion"]}</div>'
@@ -1345,7 +1352,7 @@ def pinta_tarjetas(ocupaciones):
         lineas_motivo = max(1, math.ceil(len(o["motivo"]) / 50)) if o.get("motivo") else 0
         h_denom = lineas_denom * 17
         h_motivo = (lineas_motivo * 15 + 2) if lineas_motivo else 0
-        h_base = 72
+        h_base = 74
         return h_base + h_denom + h_motivo
 
     alturas = [mide(o) for o in ocupaciones]
@@ -1399,6 +1406,17 @@ def pinta_resultado(payload, estado=None, avance=0.06, interactivo=False, consul
 
     # 2. TARJETAS DE OCUPACIONES (con [Copiar] y [+ Añadir al CV] integrados)
     pinta_tarjetas(ocupaciones)
+
+    # 3. Aviso sutil si hay puestos acumulados
+    exps_actuales = st.session_state.get("cv_experiencias", [])
+    if exps_actuales:
+        st.markdown(
+            f"""<div class="banner-cv-recopilados">
+              <span>💼 <b>{len(exps_actuales)}</b> puesto(s) guardados en el borrador de CV.</span>
+              <span style="font-size:0.8rem; color:#666;">Puedes completarlos y ordenarlos en la pestaña <b>📄 Creador de CV</b>.</span>
+            </div>""",
+            unsafe_allow_html=True,
+        )
 
     if estado:
         return
@@ -1640,7 +1658,7 @@ st.session_state.setdefault("refuerzos_por_guardar", [])
 st.session_state.setdefault("ultima", "")
 st.session_state.setdefault("consulta", "")
 
-# Estado para el Creador de CV
+# Estado para el Creador de CV por pasos
 st.session_state.setdefault("cv_paso", 1)
 st.session_state.setdefault("cv_experiencias", [])
 st.session_state.setdefault("cv_generado", None)
@@ -1669,6 +1687,7 @@ if add_cv_code:
                 "id": int(time.time() * 1000),
                 "codigo": cod,
                 "puesto_oficial": denom,
+                "puesto_editado": denom.title(),
                 "descripcion_usuario": st.session_state.get("ultima", ""),
                 "motivo": motivo,
                 "empresa": "",
@@ -1938,7 +1957,7 @@ with tab_cv:
     # -----------------------------------------------------------------------
     elif paso == 2:
         st.markdown("### Paso 2: Experiencias Laborales")
-        st.caption("Reordena tus puestos con ⬆️ y ⬇️ (del más reciente al más antiguo). Máximo 2 o 3 para 1 sola página.")
+        st.caption("💡 Ordena los puestos del más reciente al más antiguo con ⬆️ y ⬇️. Se recomiendan 2 o 3 para no desbordar 1 página A4.")
 
         if not exps:
             st.info("No has añadido puestos todavía. Puedes buscar ocupaciones en el **Codificador SISPE** y pulsar **+ Añadir al CV** en cada tarjeta, o crear uno debajo.")
@@ -1946,15 +1965,23 @@ with tab_cv:
         borrar_idx = None
         for idx, exp in enumerate(exps):
             with st.container():
-                st.markdown(f"**Puesto {idx + 1}: {exp.get('puesto_oficial', 'Ocupación')}**")
+                st.markdown(f"**Puesto {idx + 1}: {exp.get('puesto_oficial', 'Ocupación')}** `[{exp.get('codigo', '')}]`")
+                
+                exp["puesto_editado"] = st.text_input(
+                    "Título del puesto en el CV (estilo InfoJobs/LinkedIn)",
+                    value=exp.get("puesto_editado", exp.get("puesto_oficial", "").title()),
+                    key=f"puesto_nom_{exp['id']}",
+                    placeholder="Ej. Camarero/a de barra y sala",
+                )
+                
                 c_e1, c_e2 = st.columns(2)
                 with c_e1:
-                    exp["empresa"] = st.text_input("Empresa y Ciudad", value=exp.get("empresa", ""), key=f"emp_{exp['id']}", placeholder="Ej. Hotel Alameda en Madrid capital")
+                    exp["empresa"] = st.text_input("Empresa y Ciudad", value=exp.get("empresa", ""), key=f"emp_{exp['id']}", placeholder="Ej. Restaurante Alameda en Madrid capital")
                 with c_e2:
                     exp["periodo"] = st.text_input("Duración y Años", value=exp.get("periodo", ""), key=f"per_{exp['id']}", placeholder="Ej. 3 años (2021-2024)")
 
                 exp["descripcion_usuario"] = st.text_area(
-                    "Tareas clave realizadas (la IA las redactará formalmente)",
+                    "Tareas realizadas (la IA las redactará formalmente en 20-35 palabras)",
                     value=exp.get("descripcion_usuario", ""), key=f"tar_{exp['id']}", height=60,
                     placeholder="Qué hacía día a día...",
                 )
@@ -1984,6 +2011,7 @@ with tab_cv:
                     "id": int(time.time() * 1000),
                     "codigo": "00000000",
                     "puesto_oficial": "Puesto de trabajo",
+                    "puesto_editado": "Puesto de trabajo",
                     "descripcion_usuario": "",
                     "motivo": "",
                     "empresa": "",
