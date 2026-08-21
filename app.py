@@ -211,7 +211,12 @@ div[data-testid="stProgress"] div[role="progressbar"] > div > div{
   background-color:var(--rojo) !important; background-image:none !important;
 }
 /* Botón circular de nueva búsqueda */
-.st-key-reinicio{
+/* El centrado hay que aplicarlo también a los envoltorios que mete
+   Streamlit alrededor del botón, no solo al contenedor exterior. */
+.st-key-reinicio,
+.st-key-reinicio > div,
+.st-key-reinicio [data-testid="stTooltipHoverTarget"],
+.st-key-reinicio [data-testid="stElementToolbar"]{
   display:flex !important; justify-content:center !important; width:100% !important;
 }
 .st-key-reinicio button{
@@ -231,9 +236,22 @@ div[data-testid="stProgress"] div[role="progressbar"] > div > div{
 }
 .st-key-reinicio button:hover p{ color:#fff !important; }
 .pie-nueva{
-  text-align:center; font-size:.72rem; font-weight:600; letter-spacing:.12em;
-  text-transform:uppercase; color:var(--suave); margin:.5rem 0 0;
+  text-align:center; font-size:.85rem; color:var(--suave); margin:.6rem 0 0;
 }
+
+/* Ajustes: círculo blanco al lado del botón Buscar */
+.st-key-ajustes button{
+  width:46px !important; height:46px !important; min-height:46px !important;
+  border-radius:50% !important; padding:0 !important;
+  background:#fff !important; border:1px solid #fff !important; color:var(--negro) !important;
+  display:flex !important; align-items:center !important; justify-content:center !important;
+  transition:all .18s ease;
+}
+.st-key-ajustes button:hover{
+  background:var(--rojo) !important; border-color:var(--rojo) !important; color:#fff !important;
+}
+.st-key-ajustes button span,
+.st-key-ajustes button p{ font-size:1.4rem !important; margin:0 !important; }
 
 div[data-testid="stExpander"]{ border:none; background:transparent; }
 div[data-testid="stExpander"] summary{ font-size:.85rem; color:var(--suave); }
@@ -1377,7 +1395,9 @@ st.session_state.setdefault("cache", {})
 st.session_state.setdefault("lexico", {})
 st.session_state.setdefault("modelo_ok", 0)
 st.session_state.setdefault("respuesta", None)
+st.session_state.setdefault("ultima", "")
 st.session_state.setdefault("por_guardar", [])
+st.session_state.setdefault("ultima", "")
 
 EJEMPLOS = [
     "Camarera de barra en cafetería",
@@ -1388,7 +1408,8 @@ EJEMPLOS = [
 
 
 def panel_ajustes():
-    with st.popover("Ajustes", use_container_width=True):
+    # la clave permite darle forma circular desde el CSS
+    with st.popover(":material/tune:", use_container_width=True):
         st.session_state["usar_ia"] = st.toggle(
             "Afinar con IA", value=st.session_state["usar_ia"],
             help="Desactivado, muestra las coincidencias del catálogo al instante.",
@@ -1488,27 +1509,33 @@ with banda:
     if st.button("Codificador de ocupaciones", key="marca"):
         st.session_state["actual"] = None
         st.rerun()
-    with st.form("buscador", clear_on_submit=True, border=False):
-        campo, boton = st.columns([5, 1], gap="small")
-        with campo:
-            texto = st.text_input(
-                "Consulta", label_visibility="collapsed",
-                placeholder="Describe el puesto: qué hacía, dónde y con qué. También un código de 8 cifras.",
-            )
-        with boton:
-            enviado = st.form_submit_button("Buscar", use_container_width=True)
+    # Sin st.form: así el botón de ajustes puede convivir en la misma fila.
+    # El campo de texto ya reejecuta la app al pulsar Enter.
+    campo, boton, ajustes = st.columns([6, 1.1, 0.6], gap="small")
+    with campo:
+        texto = st.text_input(
+            "Consulta", label_visibility="collapsed", key="consulta",
+            placeholder="Describe el puesto: qué hacía, dónde y con qué. También un código de 8 cifras.",
+        )
+    with boton:
+        buscar = st.button("Buscar", key="buscar", use_container_width=True)
+    with ajustes:
+        panel_ajustes()
 
-    if enviado and texto.strip() and not entrada:
-        entrada = texto.strip()
-        contexto, busqueda, rotulo = "", None, None
+    escrito = (texto or "").strip()
+    if escrito and not entrada:
+        # Se lanza al pulsar Buscar o al pulsar Enter, pero no se repite sola
+        # mientras el texto siga en el campo.
+        if buscar or escrito != st.session_state.get("ultima", ""):
+            entrada = escrito
+            contexto, busqueda, rotulo = "", None, None
+
+if entrada:
+    st.session_state["ultima"] = entrada
 
 # ---------------------------------------------------------------------------
 # Cuerpo
 # ---------------------------------------------------------------------------
-
-izquierda, derecha = st.columns([6, 1], gap="small")
-with derecha:
-    panel_ajustes()
 
 if entrada:
     st.markdown(
