@@ -83,7 +83,7 @@ st.set_page_config(
 )
 
 # ---------------------------------------------------------------------------
-# ESTILO FLUIDO Y ADAPTATIVO
+# ESTILO FLUIDO Y COMPACTO
 # ---------------------------------------------------------------------------
 
 st.markdown("""
@@ -105,17 +105,24 @@ st.markdown("""
 html,body,[class*="css"],.stMarkdown{
   font-family:'Libre Franklin',system-ui,sans-serif; color:var(--texto);
 }
-.block-container{ padding:0 1rem .5rem !important; max-width:1200px; }
+.block-container{ padding:0 1rem .4rem !important; max-width:1200px; }
 #MainMenu, footer, header[data-testid="stHeader"]{ visibility:hidden; height:0; }
 [data-testid="stHeaderActionElements"]{ display:none !important; }
 h1 > a, h2 > a, h3 > a, .stMarkdown a.anchor-link{ display:none !important; }
 div[data-testid="InputInstructions"]{ display:none !important; }
 
+/* Eliminación de márgenes fantasma entre componentes */
+div[data-testid="stCustomComponentV1"],
+div[data-testid="stCustomComponentV1"] iframe {
+  margin-bottom: 0px !important;
+  display: block;
+}
+
 /* ---------- Cabecera fluida ---------- */
 .st-key-cabecera{
   background:var(--negro);
-  padding:clamp(0.6rem, 1.2vh, 0.9rem) clamp(1rem, 2vw, 1.8rem);
-  margin-bottom:clamp(0.3rem, 0.8vh, 0.6rem);
+  padding:clamp(0.55rem, 1vh, 0.8rem) clamp(1rem, 2vw, 1.8rem);
+  margin-bottom:clamp(0.25rem, 0.6vh, 0.45rem);
   box-shadow:0 2px 10px rgba(0,0,0,0.06);
 }
 .rotulo{
@@ -127,10 +134,10 @@ div[data-testid="InputInstructions"]{ display:none !important; }
 /* Título */
 .st-key-marca button{
   background:transparent !important; border:none !important; box-shadow:none !important;
-  padding:0 !important; justify-content:flex-start !important; margin-bottom:.4rem;
+  padding:0 !important; justify-content:flex-start !important; margin-bottom:.35rem;
 }
 .st-key-marca button p{
-  color:#fff !important; font-size:clamp(1.25rem, 1.5vw, 1.5rem) !important;
+  color:#fff !important; font-size:clamp(1.2rem, 1.45vw, 1.45rem) !important;
   font-weight:700 !important; letter-spacing:-.025em; margin:0 !important;
   text-align:left !important; border-bottom:2px solid transparent; transition:border-color .15s ease;
 }
@@ -152,7 +159,7 @@ div[data-testid="InputInstructions"]{ display:none !important; }
   border-color:var(--rojo) !important; box-shadow:0 0 0 2px var(--rojo) !important;
 }
 div[data-testid="stTextInput"] input{
-  padding:clamp(0.45rem, 0.9vh, 0.65rem) clamp(0.7rem, 1vw, 1rem) !important;
+  padding:clamp(0.42rem, 0.8vh, 0.6rem) clamp(0.7rem, 1vw, 1rem) !important;
   font-size:clamp(0.88rem, 0.95vw, 0.98rem) !important;
   color:var(--texto) !important; font-family:'Libre Franklin',sans-serif !important;
 }
@@ -162,16 +169,16 @@ div[data-testid="stTextInput"] input{
   background:var(--rojo) !important; color:#fff !important; border:none !important;
   border-radius:0 4px 4px 0 !important; font-weight:700 !important;
   font-size:clamp(0.84rem, 0.9vw, 0.92rem) !important;
-  padding:clamp(0.45rem, 0.9vh, 0.65rem) 1rem !important;
-  min-height:clamp(38px, 4.2vh, 46px) !important; letter-spacing:.02em;
+  padding:clamp(0.42rem, 0.8vh, 0.6rem) 1rem !important;
+  min-height:clamp(36px, 3.8vh, 44px) !important; letter-spacing:.02em;
   transition:background .15s ease;
 }
 .st-key-buscar button:hover{ background:var(--rojo-oscuro) !important; }
 .st-key-buscar button p{ color:#fff !important; font-weight:700 !important; }
 
 .st-key-ajustes button{
-  width:clamp(38px, 4.2vh, 46px) !important; height:clamp(38px, 4.2vh, 46px) !important;
-  min-height:clamp(38px, 4.2vh, 46px) !important;
+  width:clamp(36px, 3.8vh, 44px) !important; height:clamp(36px, 3.8vh, 44px) !important;
+  min-height:clamp(36px, 3.8vh, 44px) !important;
   border-radius:4px !important; padding:0 !important;
   background:#1A1A1A !important; border:1px solid #333 !important; color:#fff !important;
   display:flex !important; align-items:center !important; justify-content:center !important;
@@ -183,43 +190,43 @@ div[data-testid="stTextInput"] input{
 
 /* Consulta activa */
 .consulta-box{
-  border-bottom:2px solid var(--negro); padding-bottom:.25rem;
-  margin:0 0 clamp(0.3rem, 0.8vh, 0.6rem);
+  border-bottom:2px solid var(--negro); padding-bottom:.2rem;
+  margin:0 0 clamp(0.25rem, 0.5vh, 0.4rem);
 }
 .consulta-texto{
-  font-size:clamp(0.96rem, 1.1vw, 1.1rem); font-weight:700;
+  font-size:clamp(0.95rem, 1.05vw, 1.08rem); font-weight:700;
   letter-spacing:-.015em; color:var(--texto);
 }
 .seccion{
   font-size:.65rem; font-weight:700; letter-spacing:.14em; text-transform:uppercase;
-  color:var(--suave); margin:1.2rem 0 .6rem;
+  color:var(--suave); margin:1rem 0 .5rem;
 }
 
-/* Pregunta interactiva con botones adaptativos */
+/* Pregunta interactiva pegada a las tarjetas */
 .st-key-pregunta{
   background:#fff; border:1px solid var(--linea); border-left:4px solid var(--rojo);
-  border-radius:4px; padding:clamp(0.6rem, 1.1vh, 0.85rem) clamp(0.8rem, 1.2vw, 1.1rem);
-  margin:.3rem 0 .5rem; box-shadow:0 1px 6px rgba(0,0,0,0.03);
+  border-radius:4px; padding:clamp(0.5rem, 0.9vh, 0.75rem) clamp(0.75rem, 1.1vw, 1rem);
+  margin:0.25rem 0 0.35rem !important; box-shadow:0 1px 4px rgba(0,0,0,0.03);
 }
 .pregunta-titulo{
   font-size:.62rem; font-weight:700; letter-spacing:.14em; text-transform:uppercase;
-  color:var(--rojo); margin-bottom:.2rem;
+  color:var(--rojo); margin-bottom:.15rem;
 }
 .pregunta-texto{
-  font-size:clamp(0.92rem, 1vw, 1.02rem); line-height:1.35; font-weight:600;
-  color:var(--texto); margin-bottom:.55rem;
+  font-size:clamp(0.9rem, 0.98vw, 0.98rem); line-height:1.32; font-weight:600;
+  color:var(--texto); margin-bottom:.45rem;
 }
 .st-key-pregunta .stButton button{
   background:#fff; border:1px solid var(--negro); font-weight:600; border-radius:4px;
-  padding:.4rem .85rem; min-height:38px; font-size:.85rem; transition:all .15s ease;
+  padding:.35rem .75rem; min-height:36px; font-size:.84rem; transition:all .15s ease;
   white-space:normal !important; height:auto !important;
 }
 .st-key-pregunta .stButton button:hover{
   background:var(--negro); color:#fff; border-color:var(--negro);
 }
 
-.nota{ font-size:.76rem; color:var(--suave); margin:.2rem 0; }
-.separa{ height:1px; background:var(--linea); margin:clamp(0.3rem, 0.7vh, 0.5rem) 0; }
+.nota{ font-size:.74rem; color:var(--suave); margin:.15rem 0; }
+.separa{ height:1px; background:var(--linea); margin:clamp(0.25rem, 0.5vh, 0.4rem) 0; }
 
 /* Botón de reinicio */
 .st-key-reinicio,
@@ -229,15 +236,15 @@ div[data-testid="stTextInput"] input{
   display:flex !important; justify-content:center !important; width:100% !important;
 }
 .st-key-reinicio button{
-  width:clamp(42px, 4.8vh, 50px) !important; height:clamp(42px, 4.8vh, 50px) !important;
-  min-height:clamp(42px, 4.8vh, 50px) !important;
+  width:clamp(40px, 4.4vh, 48px) !important; height:clamp(40px, 4.4vh, 48px) !important;
+  min-height:clamp(40px, 4.4vh, 48px) !important;
   border-radius:50% !important; padding:0 !important;
   border:2px solid var(--negro) !important; background:#fff !important;
   display:flex !important; align-items:center !important; justify-content:center !important;
-  transition:all .2s cubic-bezier(.2,.85,.3,1); box-shadow:0 2px 8px rgba(0,0,0,0.05);
+  transition:all .2s cubic-bezier(.2,.85,.3,1); box-shadow:0 2px 6px rgba(0,0,0,0.05);
 }
 .st-key-reinicio button p{
-  font-size:clamp(1.3rem, 1.6vw, 1.6rem) !important; line-height:1 !important;
+  font-size:clamp(1.25rem, 1.5vw, 1.5rem) !important; line-height:1 !important;
   margin:0 !important; color:var(--negro) !important;
 }
 .st-key-reinicio button:hover{
@@ -246,11 +253,11 @@ div[data-testid="stTextInput"] input{
 }
 .st-key-reinicio button:hover p{ color:#fff !important; }
 .pie-nueva{
-  text-align:center; font-size:.76rem; font-weight:600; color:var(--suave); margin:.25rem 0 0;
+  text-align:center; font-size:.74rem; font-weight:600; color:var(--suave); margin:.2rem 0 0;
 }
 
-div[data-testid="stExpander"]{ border:none; background:transparent; margin-top:.15rem; }
-div[data-testid="stExpander"] summary{ font-size:.82rem; color:var(--suave); padding:.15rem 0; }
+div[data-testid="stExpander"]{ border:none; background:transparent; margin-top:.1rem; }
+div[data-testid="stExpander"] summary{ font-size:.8rem; color:var(--suave); padding:.1rem 0; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -704,14 +711,13 @@ REGLAS
 5. El campo "motivo" explica en menos de 10 palabras por qué encaja, en español con acentuación correcta.
 6. No propongas ocupaciones de dirección, jefatura ni mando (niveles 10, 20, 30) salvo que la descripción diga expresamente que dirigía equipos, centros o departamentos.
 7. Respeta el entorno de trabajo que indique la descripción: domicilio particular frente a institución, centro o residencia.
-8. PREGUNTA Y OPCIONES: Rellena "pregunta" y "opciones" solo si hay ambigüedad para decidir entre las DOS PRIMERAS ocupaciones de tu lista; si no, déjalos vacíos.
-   - "pregunta": formula una duda directa para la persona atendida (máximo 15 palabras).
-   - "opciones": lista con 2 opciones cortas y concretas que representen cada rama o tarea (ej. ["Atención en caja / mostrador", "Cocina y preparación de comida"], ["En casas particulares", "En residencias"], o ["Sí", "No"]).
-   - NUNCA uses preguntas con botones de Sí/No cuando la duda sea elegir entre dos áreas o tareas: en esos casos pon los nombres de las tareas en "opciones".
-9. IMPORTANTE: Si ninguna de las candidatas describe con precisión la actividad, rellena "otros_terminos" con entre 6 y 10 palabras sueltas del vocabulario oficial de la CNO que deberían buscarse.
+8. PREGUNTA Y OPCIONES DE RESPUESTA:
+   - Rellena "pregunta" y "opciones" solo si hay duda para desempatar entre las DOS PRIMERAS ocupaciones. Si no hay duda, déjalos vacíos.
+   - "pregunta": formula la pregunta de forma directa y clara (máximo 15 palabras).
+   - "opciones": lista con 2 opciones cortas que representen las dos tareas o ramas (ej. ["Atención en caja / mostrador", "Cocina y preparación de alimentos"], ["Casas particulares", "Residencias / Centros"]). Si la pregunta es de confirmación directa sobre una sola tarea ("¿Trabajaba en cocina?"), pon ["Sí", "No"].
 
-Responde solo con este JSON:
-{"ocupaciones":[{"codigo":"12345678","denominacion":"...","nivel":"00","motivo":"..."}],"pregunta":"","opciones":[],"otros_terminos":""}
+EJEMPLOS DE RESPUESTA JSON:
+{"ocupaciones":[{"codigo":"51201027","denominacion":"CAMAREROS DE BARRA Y/O DEPENDIENTES DE CAFETERÍA","nivel":"00","motivo":"Atención en mostrador y servicio de comida rápida."},{"codigo":"93101024","denominacion":"PINCHES DE COCINA","nivel":"00","motivo":"Elaboración y preparación de alimentos en restauración."}],"pregunta":"¿A qué tarea dedicaba la mayor parte del tiempo?","opciones":["Atención en caja y mostrador","Cocina y preparación de comida"],"otros_terminos":""}
 """
 
 
@@ -921,6 +927,36 @@ def verifica(lista):
     return limpias[:6], descartadas
 
 
+def limpia_lado(op):
+    for _ in range(3):
+        op = re.sub(
+            r"^(?:la|el|los|las|un|una|unos|unas|en|a|al|del|de|para|con)\s+",
+            "", op, flags=re.IGNORECASE,
+        ).strip()
+    return op[:40].strip().capitalize()
+
+
+def extraer_opciones_de_pregunta(pregunta, opciones_json=None):
+    if opciones_json and isinstance(opciones_json, list):
+        limpias = [str(o).strip() for o in opciones_json if str(o).strip()]
+        if len(limpias) >= 2 and set(limpias) != {"Sí", "No"}:
+            return [limpia_lado(x) for x in limpias[:3]]
+
+    q = pregunta.strip().strip("¿?¡!").strip()
+    intro_pattern = (
+        r"^(?:su actividad principal consist[ií]a en|se dedicaba a|"
+        r"su labor principal era|trabajaba en|hac[ií]a|era|realizaba)\s+"
+    )
+    q_sin_intro = re.sub(intro_pattern, "", q, flags=re.IGNORECASE).strip()
+
+    if " o " in q_sin_intro:
+        partes = [p.strip() for p in re.split(r"\s+o\s+", q_sin_intro, maxsplit=1) if p.strip()]
+        if len(partes) == 2:
+            return [limpia_lado(partes[0]), limpia_lado(partes[1])]
+
+    return ["Sí", "No"]
+
+
 def interpreta(bruto):
     texto = re.sub(r"^```(?:json)?|```$", "", (bruto or "").strip(), flags=re.MULTILINE)
     datos = {}
@@ -942,12 +978,7 @@ def interpreta(bruto):
         re.findall(r"[a-zñáéíóúü]+", normaliza(str(datos.get("otros_terminos", "") or "")))[:12]
     )
     pregunta = str(datos.get("pregunta", "") or "").strip()
-    raw_opciones = datos.get("opciones", [])
-    opciones = []
-    if isinstance(raw_opciones, list):
-        opciones = [str(o).strip() for o in raw_opciones if str(o).strip()][:3]
-    if pregunta and not opciones:
-        opciones = ["Sí", "No"]
+    opciones = extraer_opciones_de_pregunta(pregunta, datos.get("opciones")) if pregunta else []
 
     return {
         "ocupaciones": ocupaciones,
@@ -966,27 +997,25 @@ ESTILO_TARJETAS = """
 @import url('https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@400;500;600;700&family=JetBrains+Mono:wght@600;700&display=swap');
 *{ box-sizing:border-box; }
 body{
-  margin:0; background:transparent; font-family:'Libre Franklin',system-ui,sans-serif;
+  margin:0; padding:0; background:transparent; font-family:'Libre Franklin',system-ui,sans-serif;
   --negro:#0A0A0A; --rojo:#D1122E; --texto:#1A1A1A; --suave:#555555;
   --linea:#E2E8F0; --gris:#F1F5F9;
-  color:var(--texto);
+  color:var(--texto); overflow:hidden;
 }
 .rejilla{
   display:grid; grid-template-columns:repeat(2,1fr);
-  gap:clamp(0.4rem, 0.9vh, 0.65rem); align-items:stretch;
+  gap:6px; align-items:stretch;
 }
 @media (max-width:760px){ .rejilla{ grid-template-columns:1fr; } }
 
 .tarjeta{
   background:#fff; border:1px solid var(--linea); border-left:4px solid #CBD5E1;
-  border-radius:4px;
-  padding:clamp(0.55rem, 1.1vh, 0.8rem) clamp(0.75rem, 1.2vw, 1rem);
-  display:flex; flex-direction:column; justify-content:space-between;
-  transition:transform .12s ease, box-shadow .12s ease;
+  border-radius:4px; padding:6px 12px; display:flex; flex-direction:column;
+  justify-content:space-between; transition:transform .12s ease, box-shadow .12s ease;
   box-shadow:0 1px 3px rgba(0,0,0,0.03); cursor:pointer;
 }
 .tarjeta:hover{
-  transform:translateY(-1px); box-shadow:0 3px 10px rgba(0,0,0,0.07); border-color:#CBD5E1;
+  transform:translateY(-1px); box-shadow:0 3px 8px rgba(0,0,0,0.07); border-color:#CBD5E1;
 }
 .tarjeta.top{
   border-left-color:var(--rojo); background:#FFFFFF;
@@ -998,43 +1027,43 @@ body{
 
 .fila{
   display:flex; align-items:center; justify-content:space-between;
-  gap:8px; margin-bottom:clamp(0.15rem, 0.4vh, 0.25rem);
+  gap:8px; margin-bottom:2px;
 }
 .identificador{ display:flex; align-items:center; gap:8px; }
 .orden{
-  font-size:clamp(0.68rem, 0.75vw, 0.74rem); font-weight:700; color:var(--suave);
+  font-size:clamp(0.66rem, 0.72vw, 0.72rem); font-weight:700; color:var(--suave);
   font-family:'JetBrains Mono',monospace;
 }
 .codigo{
-  font-size:clamp(1.1rem, 1.25vw, 1.25rem); font-weight:700;
+  font-size:clamp(1.05rem, 1.18vw, 1.2rem); font-weight:700;
   letter-spacing:.03em; color:var(--negro); font-family:'JetBrains Mono',monospace;
 }
 
 .copiar{
-  font-family:'Libre Franklin',sans-serif; font-size:clamp(0.7rem, 0.78vw, 0.76rem);
+  font-family:'Libre Franklin',sans-serif; font-size:clamp(0.68rem, 0.74vw, 0.74rem);
   font-weight:600; color:var(--texto); background:#fff; border:1px solid #C4C4C4;
-  border-radius:3px; padding:.22rem .65rem; cursor:pointer;
+  border-radius:3px; padding:.2rem .6rem; cursor:pointer;
   transition:all .15s ease; white-space:nowrap;
 }
 .copiar:hover{ background:var(--negro); color:#fff; border-color:var(--negro); }
 .copiar.hecho{ background:var(--rojo); border-color:var(--rojo); color:#fff; }
 
 .denominacion{
-  font-size:clamp(0.88rem, 0.98vw, 0.95rem); font-weight:600;
-  line-height:1.28; color:var(--texto); margin:0 0 .2rem;
+  font-size:clamp(0.85rem, 0.94vw, 0.92rem); font-weight:600;
+  line-height:1.25; color:var(--texto); margin:0 0 2px;
 }
 .motivo{
-  font-size:clamp(0.76rem, 0.85vw, 0.82rem); color:var(--suave);
-  line-height:1.26; margin-bottom:.35rem;
+  font-size:clamp(0.74rem, 0.82vw, 0.8rem); color:var(--suave);
+  line-height:1.24; margin-bottom:3px;
 }
 
 .etiquetas-fila{
-  display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-top:auto; padding-top:.25rem;
+  display:flex; align-items:center; gap:5px; flex-wrap:wrap; margin-top:auto; padding-top:2px;
 }
 .etiqueta{
-  display:inline-flex; align-items:center; font-size:clamp(0.6rem, 0.68vw, 0.66rem);
+  display:inline-flex; align-items:center; font-size:clamp(0.58rem, 0.65vw, 0.64rem);
   font-weight:700; letter-spacing:.06em; text-transform:uppercase;
-  padding:.14rem .45rem; border-radius:3px; background:var(--gris); color:var(--suave);
+  padding:.12rem .4rem; border-radius:3px; background:var(--gris); color:var(--suave);
 }
 .etiqueta.recomendada{ background:var(--rojo); color:#fff; }
 .etiqueta.mando{ background:#FFF7ED; color:#C2410C; border:1px solid #FFEDD5; }
@@ -1061,7 +1090,7 @@ function copiarTexto(texto, boton){
 
 function alto(){
   parent.postMessage(
-    {type:'streamlit:setFrameHeight', height: document.documentElement.scrollHeight + 4},
+    {type:'streamlit:setFrameHeight', height: document.documentElement.scrollHeight + 2},
     '*'
   );
 }
@@ -1138,17 +1167,18 @@ def pinta_tarjetas(ocupaciones):
             f'</div>'
         )
 
+    # Medición exacta y compacta para eliminar huecos inferiores
     def mide(o):
-        lineas_denom = max(1, math.ceil(len(o["denominacion"]) / 46))
-        lineas_motivo = max(1, math.ceil(len(o["motivo"]) / 44)) if o.get("motivo") else 0
-        h_denom = lineas_denom * 20
-        h_motivo = (lineas_motivo * 17 + 4) if lineas_motivo else 0
-        h_base = 64
+        lineas_denom = max(1, math.ceil(len(o["denominacion"]) / 56))
+        lineas_motivo = max(1, math.ceil(len(o["motivo"]) / 58)) if o.get("motivo") else 0
+        h_denom = lineas_denom * 16
+        h_motivo = (lineas_motivo * 15 + 3) if lineas_motivo else 0
+        h_base = 52
         return h_base + h_denom + h_motivo
 
     alturas = [mide(o) for o in ocupaciones]
     filas = [alturas[i:i + 2] for i in range(0, len(alturas), 2)]
-    estimada = sum(max(f) for f in filas) + 10 * max(0, len(filas) - 1) + 14
+    estimada = sum(max(f) for f in filas) + 6 * max(0, len(filas) - 1) + 4
 
     components.html(
         f"<style>{ESTILO_TARJETAS}</style>"
@@ -1209,10 +1239,10 @@ def pinta_resultado(payload, estado=None, avance=0.06, interactivo=False, consul
             arranque = len(payload.get("ocupaciones", [])) + 1
             for orden, (cod, den) in enumerate(otras, arranque):
                 st.markdown(
-                    f'<div style="padding:.2rem 0;border-bottom:1px solid var(--linea)">'
+                    f'<div style="padding:.15rem 0;border-bottom:1px solid var(--linea)">'
                     f'<span style="font-family:JetBrains Mono,monospace;font-weight:700;'
-                    f'font-size:.84rem;letter-spacing:.04em">{cod}</span> &nbsp; '
-                    f'<span style="font-size:.84rem">{den}</span></div>',
+                    f'font-size:.82rem;letter-spacing:.04em">{cod}</span> &nbsp; '
+                    f'<span style="font-size:.82rem">{den}</span></div>',
                     unsafe_allow_html=True,
                 )
 
