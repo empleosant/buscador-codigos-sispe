@@ -191,8 +191,13 @@ div[data-testid="stTextInput"] input::placeholder{ color:var(--tenue) !important
 }
 .pregunta{
   background:var(--gris); border-left:4px solid var(--negro);
-  padding:1rem 1.2rem; margin:.9rem 0 .5rem;
+  padding:.9rem 1.15rem; margin:.2rem 0 .5rem;
 }
+
+/* Streamlit separa cada bloque con 1rem; entre las fichas y lo que sigue
+   sobraba demasiado aire. */
+div[data-testid="stVerticalBlock"]{ gap:.55rem; }
+div[data-testid="stIFrame"], iframe{ display:block; margin:0 !important; }
 .pregunta .titulo{
   font-size:.68rem; font-weight:700; letter-spacing:.13em; text-transform:uppercase;
   color:var(--rojo); margin-bottom:.4rem;
@@ -1258,13 +1263,16 @@ def pinta_tarjetas(ocupaciones):
     #   + 22 por línea de denominación + 21 si hay motivo + 11,2 de separación.
     # En dos columnas manda la ficha más alta de cada fila. La denominación
     # cabe en menos caracteres por línea al tener la mitad de ancho.
+    # Cada columna mide unos 540 px y la denominación va en mayúsculas: caben
+    # unos 52 caracteres por línea. Con 32 se contaban líneas de más y sobraba
+    # hueco bajo las fichas.
     def mide(o):
-        lineas = 1 + len(o["denominacion"]) // 32
-        return 78 + 19 * (lineas - 1) + (18 if o.get("motivo") else 0)
+        lineas = 1 + len(o["denominacion"]) // 52
+        return 74 + 18 * (lineas - 1) + (17 if o.get("motivo") else 0)
 
     alturas = [mide(o) for o in ocupaciones]
     filas = [alturas[i:i + 2] for i in range(0, len(alturas), 2)]
-    estimada = sum(max(f) for f in filas) + 7 * (len(filas) - 1) + 8
+    estimada = sum(max(f) for f in filas) + 7 * (len(filas) - 1) + 6
 
     components.html(
         f"<style>{ESTILO_TARJETAS}</style>"
