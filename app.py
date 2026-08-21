@@ -163,18 +163,19 @@ div[data-testid="stTextInput"] input{
 div[data-testid="stTextInput"] input::placeholder{ color:var(--tenue) !important; }
 
 /* ---------- Botones ---------- */
-.stFormSubmitButton button{
+.st-key-buscar button{
   background:var(--rojo) !important; color:#fff !important; border:none !important;
   border-radius:0 !important; font-weight:700 !important; font-size:.95rem !important;
-  padding:.72rem 1rem !important; letter-spacing:.01em;
+  padding:.72rem 1rem !important; min-height:46px !important; letter-spacing:.01em;
   transition:background .15s ease;
 }
-.stFormSubmitButton button:hover{ background:var(--rojo-oscuro) !important; }
+.st-key-buscar button:hover{ background:var(--rojo-oscuro) !important; }
+.st-key-buscar button p{ color:#fff !important; font-weight:700 !important; }
 
 .stButton button{
   background:#fff; color:var(--texto); border:1px solid var(--negro);
-  border-radius:0; font-family:'Libre Franklin',sans-serif; font-size:.86rem;
-  font-weight:600; padding:.55rem 1.1rem; transition:all .15s ease;
+  border-radius:0; font-family:'Libre Franklin',sans-serif; font-size:.83rem;
+  font-weight:500; padding:.42rem .9rem; transition:all .15s ease;
 }
 .stButton button:hover{ background:var(--negro); color:#fff; border-color:var(--negro); }
 
@@ -298,6 +299,9 @@ SINONIMOS = {
     # coloquialismos de oficio
     "carretillero": "carretillas elevadoras operadores",
     "kelly": "camareros piso hosteleria",
+    "bar": "camareros barra cafeteria",
+    "barra": "camareros barra cafeteria",
+    "cafeteria": "camareros barra cafeteria",
 
     # hostelería: la persona describe la tarea, el catálogo nombra el puesto
     "habitacion": "camareros piso hosteleria",
@@ -317,6 +321,18 @@ SINONIMOS = {
     "teleoperadora": "teleoperadores telefonistas",
     "teleoperador": "teleoperadores telefonistas",
     "chofer": "conductores",
+    "autobus": "conductores autobus",
+    "autobuses": "conductores autobus",
+    "autocar": "conductores autobus",
+    "conduce": "conductores",
+    "conducir": "conductores",
+    "camion": "conductores camion",
+    "camionero": "conductores camion",
+    "trailer": "conductores camion",
+    "camiones": "conductores camion",
+    "pelo": "peluqueros barberos unisex",
+    "peluqueria": "peluqueros barberos unisex",
+    "corta": "peluqueros barberos unisex",
     "chapista": "chapistas carroceria",
     "pladur": "colocadores prefabricados ligeros tabiques trasdosado construccion",
     "escayolista": "escayolistas prefabricados ligeros construccion",
@@ -1400,10 +1416,16 @@ st.session_state.setdefault("por_guardar", [])
 st.session_state.setdefault("ultima", "")
 
 EJEMPLOS = [
-    "Camarera de barra en cafetería",
-    "Reparto en moto para Glovo",
-    "Auxiliar administrativa: facturación",
-    "Carretillero en almacén",
+    "Una persona que limpia habitaciones de hotel",
+    "Una persona que conduce autobuses",
+    "Una persona que monta placa de pladur",
+    "Una persona que organiza eventos para empresas",
+    "Una persona que reparte comida en moto",
+    "Una persona que cuida a mayores en su casa",
+    "Una persona que atiende la barra de un bar",
+    "Una persona que lleva las facturas y las nóminas",
+    "Una persona que maneja carretilla en un almacén",
+    "Una persona que corta el pelo en una peluquería",
 ]
 
 
@@ -1567,10 +1589,11 @@ elif st.session_state["actual"]:
 
 else:
     st.markdown('<div class="seccion">Prueba con</div>', unsafe_allow_html=True)
-    for fila in (EJEMPLOS[:2], EJEMPLOS[2:]):
-        cols = st.columns(len(fila))
+    for i in range(0, len(EJEMPLOS), 2):
+        fila = EJEMPLOS[i:i + 2]
+        cols = st.columns(2, gap="small")
         for col, ej in zip(cols, fila):
-            if col.button(ej, use_container_width=True, key=f"ej_{ej}"):
+            if col.button(ej, use_container_width=True, key=f"ej_{i}_{ej[:18]}"):
                 st.session_state["pendiente"] = ej
                 st.rerun()
 
