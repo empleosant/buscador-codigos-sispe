@@ -211,13 +211,18 @@ div[data-testid="stProgress"] div[role="progressbar"] > div > div{
   background-color:var(--rojo) !important; background-image:none !important;
 }
 /* Botón circular de nueva búsqueda */
+.st-key-reinicio{
+  display:flex !important; justify-content:center !important; width:100% !important;
+}
 .st-key-reinicio button{
-  width:54px !important; height:54px !important; border-radius:50% !important;
-  padding:0 !important; border:2px solid var(--negro) !important; background:#fff !important;
-  transition:all .2s ease; margin:0 auto; display:flex !important;
+  width:72px !important; height:72px !important; min-height:72px !important;
+  border-radius:50% !important; padding:0 !important;
+  border:2px solid var(--negro) !important; background:#fff !important;
+  display:flex !important; align-items:center !important; justify-content:center !important;
+  transition:all .22s ease;
 }
 .st-key-reinicio button p{
-  font-size:1.4rem !important; line-height:1 !important; margin:0 !important;
+  font-size:2rem !important; line-height:1 !important; margin:0 !important;
   color:var(--negro) !important;
 }
 .st-key-reinicio button:hover{
@@ -1016,16 +1021,27 @@ body{
   --linea:#D8D8D8; --gris:#F2F2F2;
   color:var(--texto);
 }
+.rejilla{
+  display:grid; grid-template-columns:repeat(2,1fr); gap:.45rem; align-items:start;
+}
+@media (max-width:760px){ .rejilla{ grid-template-columns:1fr; } }
+
 .tarjeta{
   background:#fff; border:1px solid var(--linea); border-left:4px solid #C9C9C9;
-  padding:.62rem .95rem; margin-bottom:.4rem;
-  animation:entrar .3s ease both;
+  padding:.62rem .95rem;
+  animation:entrar .38s cubic-bezier(.2,.85,.3,1) both;
 }
 .tarjeta.top{ border-left-color:var(--rojo); }
-.tarjeta:last-child{ margin-bottom:0; }
-.tarjeta:nth-of-type(2){ animation-delay:.05s; }
-.tarjeta:nth-of-type(3){ animation-delay:.1s; }
-@keyframes entrar{ from{ opacity:0; transform:translateY(8px);} to{ opacity:1; transform:none;} }
+.tarjeta:nth-child(1){ animation-delay:0s; }
+.tarjeta:nth-child(2){ animation-delay:.07s; }
+.tarjeta:nth-child(3){ animation-delay:.14s; }
+.tarjeta:nth-child(4){ animation-delay:.21s; }
+.tarjeta:nth-child(5){ animation-delay:.28s; }
+.tarjeta:nth-child(6){ animation-delay:.35s; }
+@keyframes entrar{
+  from{ opacity:0; transform:translateY(14px) scale(.985); }
+  to{ opacity:1; transform:none; }
+}
 @media (prefers-reduced-motion:reduce){ .tarjeta{ animation:none; } }
 
 .fila{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
@@ -1115,14 +1131,19 @@ def pinta_tarjetas(ocupaciones):
     # Altura del marco. Medida sobre el diseño real, no a ojo:
     #   relleno 36,8 + bordes 2 + fila del código 27 + márgenes del título 16
     #   + 22 por línea de denominación + 21 si hay motivo + 11,2 de separación.
+    # En dos columnas manda la ficha más alta de cada fila. La denominación
+    # cabe en menos caracteres por línea al tener la mitad de ancho.
     def mide(o):
-        lineas = 1 + len(o["denominacion"]) // 62
-        return 78 + 19 * (lineas - 1) + (18 if o.get("motivo") else 0) + 7
+        lineas = 1 + len(o["denominacion"]) // 32
+        return 78 + 19 * (lineas - 1) + (18 if o.get("motivo") else 0)
 
-    estimada = sum(mide(o) for o in ocupaciones) - 7 + 6
+    alturas = [mide(o) for o in ocupaciones]
+    filas = [alturas[i:i + 2] for i in range(0, len(alturas), 2)]
+    estimada = sum(max(f) for f in filas) + 7 * (len(filas) - 1) + 8
 
     components.html(
-        f"<style>{ESTILO_TARJETAS}</style>{''.join(trozos)}"
+        f"<style>{ESTILO_TARJETAS}</style>"
+        f"<div class=\"rejilla\">{''.join(trozos)}</div>"
         f"<script>{GUION_COPIAR}</script>",
         height=estimada,
     )
@@ -1512,14 +1533,10 @@ elif st.session_state["actual"]:
     pinta_resultado(payload, interactivo=True, consulta=consulta)
 
     st.markdown('<div class="separa"></div>', unsafe_allow_html=True)
-    _, centro, _ = st.columns([2, 1, 2])
-    with centro:
-        if st.button("↺", key="reinicio", help="Nueva búsqueda"):
-            st.session_state["actual"] = None
-            st.rerun()
-        st.markdown(
-            '<div class="pie-nueva">Nueva búsqueda</div>', unsafe_allow_html=True
-        )
+    if st.button("↺", key="reinicio", help="Nueva búsqueda"):
+        st.session_state["actual"] = None
+        st.rerun()
+    st.markdown('<div class="pie-nueva">Nueva búsqueda</div>', unsafe_allow_html=True)
 
 else:
     st.markdown('<div class="seccion">Prueba con</div>', unsafe_allow_html=True)
