@@ -76,14 +76,14 @@ def sin_cuota(e):
     return "429" in t or "RESOURCE_EXHAUSTED" in t or "quota" in t.lower()
 
 st.set_page_config(
-    page_title="Codificador SISPE & Generador de CV (1 Pág)",
+    page_title="Codificador SISPE & Generador de CV",
     page_icon="◉",
     layout="wide",
     initial_sidebar_state="collapsed",
 )
 
 # ---------------------------------------------------------------------------
-# ESTILO FLUIDO Y COMPACTO
+# ESTILO CORPORATIVO Y ELEGANTE
 # ---------------------------------------------------------------------------
 
 st.markdown("""
@@ -97,15 +97,15 @@ st.markdown("""
   --texto:#1A1A1A;
   --suave:#555555;
   --tenue:#8E8E93;
-  --linea:#E2E8F0;
-  --gris:#F1F5F9;
+  --linea:#D8D8D8;
+  --gris:#F2F2F2;
 }
 
-.stApp{ background:#FAFAFA; }
+.stApp{ background:#FFFFFF; }
 html,body,[class*="css"],.stMarkdown{
   font-family:'Libre Franklin',system-ui,sans-serif; color:var(--texto);
 }
-.block-container{ padding:0 1rem .4rem !important; max-width:1200px; }
+.block-container{ padding:0 1rem 1rem !important; max-width:1180px; }
 #MainMenu, footer, header[data-testid="stHeader"]{ visibility:hidden; height:0; }
 [data-testid="stHeaderActionElements"]{ display:none !important; }
 h1 > a, h2 > a, h3 > a, .stMarkdown a.anchor-link{ display:none !important; }
@@ -113,10 +113,11 @@ div[data-testid="InputInstructions"]{ display:none !important; }
 
 /* Tabs estilizadas */
 div[data-testid="stTabs"] button {
-  font-size: clamp(0.85rem, 0.95vw, 1rem) !important;
+  font-size: 0.92rem !important;
   font-weight: 700 !important;
-  padding: 0.5rem 1rem !important;
+  padding: 0.55rem 1.1rem !important;
   color: var(--suave) !important;
+  border-radius: 0 !important;
 }
 div[data-testid="stTabs"] button[aria-selected="true"] {
   color: var(--rojo) !important;
@@ -124,36 +125,32 @@ div[data-testid="stTabs"] button[aria-selected="true"] {
 }
 
 /* Eliminación de márgenes en iframe */
-div[data-testid="stCustomComponentV1"] {
-  margin-bottom: 0px !important;
-  padding-bottom: 0px !important;
-}
+div[data-testid="stCustomComponentV1"],
 div[data-testid="stCustomComponentV1"] iframe {
   margin-bottom: 0px !important;
   padding-bottom: 0px !important;
   display: block !important;
 }
 
-/* Cabecera fluida */
+/* Cabecera corporativa */
 .st-key-cabecera{
   background:var(--negro);
-  padding:clamp(0.55rem, 1vh, 0.8rem) clamp(1rem, 2vw, 1.8rem);
-  margin-bottom:clamp(0.25rem, 0.6vh, 0.45rem);
-  box-shadow:0 2px 10px rgba(0,0,0,0.06);
+  padding:1.1rem 2rem 1.2rem;
+  margin-bottom:0.65rem;
 }
 .rotulo{
-  color:#8A8A8A; font-size:clamp(0.58rem, 0.65vw, 0.66rem); font-weight:600;
-  letter-spacing:.16em; text-transform:uppercase; margin:0 0 .1rem;
+  color:#8A8A8A; font-size:.62rem; font-weight:600;
+  letter-spacing:.16em; text-transform:uppercase; margin:0 0 .12rem;
 }
 .rotulo span{ color:var(--rojo); font-weight:700; }
 
 /* Título */
 .st-key-marca button{
   background:transparent !important; border:none !important; box-shadow:none !important;
-  padding:0 !important; justify-content:flex-start !important; margin-bottom:.35rem;
+  padding:0 !important; justify-content:flex-start !important; margin-bottom:.55rem;
 }
 .st-key-marca button p{
-  color:#fff !important; font-size:clamp(1.2rem, 1.45vw, 1.45rem) !important;
+  color:#fff !important; font-size:1.45rem !important;
   font-weight:700 !important; letter-spacing:-.025em; margin:0 !important;
   text-align:left !important; border-bottom:2px solid transparent; transition:border-color .15s ease;
 }
@@ -169,33 +166,29 @@ div[data-testid="stCustomComponentV1"] iframe {
 }
 .st-key-cabecera div[data-testid="stTextInput"] div[data-baseweb="input"]{
   background:#fff !important; border:1px solid #fff !important;
-  border-radius:4px 0 0 4px !important; box-shadow:none !important;
+  border-radius:0 !important; box-shadow:none !important;
 }
 .st-key-cabecera div[data-testid="stTextInput"] div[data-baseweb="input"]:focus-within{
   border-color:var(--rojo) !important; box-shadow:0 0 0 2px var(--rojo) !important;
 }
 div[data-testid="stTextInput"] input{
-  padding:clamp(0.42rem, 0.8vh, 0.6rem) clamp(0.7rem, 1vw, 1rem) !important;
-  font-size:clamp(0.88rem, 0.95vw, 0.98rem) !important;
+  padding:.72rem 1rem !important; font-size:.96rem !important;
   color:var(--texto) !important; font-family:'Libre Franklin',sans-serif !important;
 }
 
 /* Botones */
 .st-key-buscar button{
   background:var(--rojo) !important; color:#fff !important; border:none !important;
-  border-radius:0 4px 4px 0 !important; font-weight:700 !important;
-  font-size:clamp(0.84rem, 0.9vw, 0.92rem) !important;
-  padding:clamp(0.42rem, 0.8vh, 0.6rem) 1rem !important;
-  min-height:clamp(36px, 3.8vh, 44px) !important; letter-spacing:.02em;
+  border-radius:0 !important; font-weight:700 !important; font-size:.94rem !important;
+  padding:.72rem 1rem !important; min-height:46px !important; letter-spacing:.01em;
   transition:background .15s ease;
 }
 .st-key-buscar button:hover{ background:var(--rojo-oscuro) !important; }
 .st-key-buscar button p{ color:#fff !important; font-weight:700 !important; }
 
 .st-key-ajustes button{
-  width:clamp(36px, 3.8vh, 44px) !important; height:clamp(36px, 3.8vh, 44px) !important;
-  min-height:clamp(36px, 3.8vh, 44px) !important;
-  border-radius:4px !important; padding:0 !important;
+  width:46px !important; height:46px !important; min-height:46px !important;
+  border-radius:0 !important; padding:0 !important;
   background:#1A1A1A !important; border:1px solid #333 !important; color:#fff !important;
   display:flex !important; align-items:center !important; justify-content:center !important;
   transition:all .18s ease;
@@ -206,49 +199,46 @@ div[data-testid="stTextInput"] input{
 
 /* Consulta activa */
 .consulta-box{
-  border-bottom:2px solid var(--negro); padding-bottom:.2rem;
-  margin:0 0 clamp(0.25rem, 0.5vh, 0.4rem);
+  border-bottom:2px solid var(--negro); padding-bottom:.35rem; margin:0 0 .6rem;
 }
 .consulta-texto{
-  font-size:clamp(0.95rem, 1.05vw, 1.08rem); font-weight:700;
-  letter-spacing:-.015em; color:var(--texto);
+  font-size:1.02rem; font-weight:700; letter-spacing:-.015em; color:var(--texto);
 }
 .seccion{
-  font-size:.65rem; font-weight:700; letter-spacing:.14em; text-transform:uppercase;
-  color:var(--suave); margin:0.8rem 0 .4rem;
+  font-size:.66rem; font-weight:700; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--suave); margin:1.2rem 0 .5rem;
 }
 
-/* Pregunta interactiva centrada */
+/* Pregunta interactiva sobria y centrada */
 .st-key-pregunta{
-  background:#fff; border:1px solid var(--linea); border-top:3px solid var(--rojo);
-  border-radius:4px; padding:clamp(0.45rem, 0.8vh, 0.65rem) clamp(0.8rem, 1.2vw, 1.2rem);
-  margin:0.2rem 0 0.45rem !important; box-shadow:0 1px 4px rgba(0,0,0,0.03);
-  text-align:center !important;
+  background:#FFFFFF; border:1px solid var(--linea); border-left:4px solid var(--rojo);
+  border-radius:0; padding:0.85rem 1.25rem 0.95rem; margin:0.3rem 0 0.75rem;
+  box-shadow:0 1px 4px rgba(0,0,0,0.04); text-align:center !important;
 }
 .pregunta-titulo{
-  font-size:.62rem; font-weight:700; letter-spacing:.14em; text-transform:uppercase;
-  color:var(--rojo); margin-bottom:.12rem; text-align:center !important;
+  font-size:.65rem; font-weight:700; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--rojo); margin-bottom:.2rem; text-align:center !important;
 }
 .pregunta-texto{
-  font-size:clamp(0.9rem, 0.98vw, 0.98rem); line-height:1.32; font-weight:600;
-  color:var(--texto); margin-bottom:.42rem; text-align:center !important;
+  font-size:0.98rem; line-height:1.35; font-weight:600;
+  color:var(--texto); margin-bottom:.65rem; text-align:center !important;
 }
 .st-key-pregunta div[data-testid="stHorizontalBlock"]{
   justify-content:center !important; align-items:center !important;
 }
 .st-key-pregunta .stButton button{
-  background:#fff; border:1px solid var(--negro); font-weight:600; border-radius:4px;
-  padding:.32rem .75rem; min-height:34px; font-size:.84rem; transition:all .15s ease;
+  background:#fff; border:1px solid var(--negro); font-weight:600; border-radius:0;
+  padding:.45rem 1.1rem; min-height:38px; font-size:.88rem; transition:all .15s ease;
   white-space:normal !important; height:auto !important;
 }
 .st-key-pregunta .stButton button:hover{
   background:var(--negro); color:#fff; border-color:var(--negro);
 }
 
-.nota{ font-size:.74rem; color:var(--suave); margin:.15rem 0; }
-.separa{ height:1px; background:var(--linea); margin:clamp(0.25rem, 0.5vh, 0.4rem) 0; }
+.nota{ font-size:.78rem; color:var(--suave); margin:.2rem 0; }
+.separa{ height:1px; background:var(--linea); margin:.8rem 0 .6rem; }
 
-/* Botón de reinicio */
+/* Botón circular de reinicio */
 .st-key-reinicio,
 .st-key-reinicio > div,
 .st-key-reinicio [data-testid="stTooltipHoverTarget"],
@@ -256,131 +246,75 @@ div[data-testid="stTextInput"] input{
   display:flex !important; justify-content:center !important; width:100% !important;
 }
 .st-key-reinicio button{
-  width:clamp(40px, 4.4vh, 48px) !important; height:clamp(40px, 4.4vh, 48px) !important;
-  min-height:clamp(40px, 4.4vh, 48px) !important;
+  width:64px !important; height:64px !important; min-height:64px !important;
   border-radius:50% !important; padding:0 !important;
   border:2px solid var(--negro) !important; background:#fff !important;
   display:flex !important; align-items:center !important; justify-content:center !important;
-  transition:all .2s cubic-bezier(.2,.85,.3,1); box-shadow:0 2px 6px rgba(0,0,0,0.05);
+  transition:all .22s cubic-bezier(.2,.85,.3,1); box-shadow:0 3px 10px rgba(0,0,0,0.06);
 }
 .st-key-reinicio button p{
-  font-size:clamp(1.25rem, 1.5vw, 1.5rem) !important; line-height:1 !important;
-  margin:0 !important; color:var(--negro) !important;
+  font-size:1.8rem !important; line-height:1 !important; margin:0 !important;
+  color:var(--negro) !important;
 }
 .st-key-reinicio button:hover{
   background:var(--rojo) !important; border-color:var(--rojo) !important;
-  transform:rotate(-90deg) scale(1.05);
+  transform:rotate(-90deg);
 }
 .st-key-reinicio button:hover p{ color:#fff !important; }
 .pie-nueva{
-  text-align:center; font-size:.74rem; font-weight:600; color:var(--suave); margin:.2rem 0 0;
+  text-align:center; font-size:.8rem; font-weight:600; color:var(--suave); margin:.45rem 0 0;
 }
 
+div[data-testid="stExpander"]{ border:none; background:transparent; margin-top:.2rem; }
+div[data-testid="stExpander"] summary{ font-size:.84rem; color:var(--suave); padding:.2rem 0; }
+
 /* =========================================================================
-   ESTILO CV: 1 SOLA PÁGINA A4 ESTRICTA (Basada en modelo oficial SEPE)
+   ESTILO CV: 1 SOLA PÁGINA A4 ESTRICTA
    ========================================================================= */
 @media print {
   @page {
     size: A4 portrait;
-    margin: 8mm 12mm 8mm 12mm;
+    margin: 10mm 14mm 10mm 14mm;
   }
-  body, .stApp {
-    background:#fff !important;
-    margin:0 !important;
-    padding:0 !important;
-  }
+  body, .stApp { background:#fff !important; margin:0 !important; padding:0 !important; }
   .st-key-cabecera, div[data-testid="stTabs"], .no-print, header, footer, [data-testid="stHeader"] {
     display:none !important;
   }
   .cv-document {
-    border:none !important;
-    box-shadow:none !important;
-    padding:0 !important;
-    width:100% !important;
-    max-width:100% !important;
-    margin:0 !important;
+    border:none !important; box-shadow:none !important; padding:0 !important;
+    width:100% !important; max-width:100% !important; margin:0 !important;
   }
 }
 
 .cv-document {
-  background:#fff;
-  border:1px solid #D1D5DB;
-  border-radius:4px;
-  padding:22px 28px;
-  max-width:760px;
-  margin:0 auto;
+  background:#fff; border:1px solid #D1D5DB; border-radius:0;
+  padding:24px 30px; max-width:780px; margin:0 auto;
   box-shadow:0 2px 10px rgba(0,0,0,0.05);
   font-family:'Calibri', 'Libre Franklin', Arial, sans-serif;
-  color:#111;
-  font-size:13px;
-  line-height:1.28;
+  color:#111; font-size:13px; line-height:1.28;
 }
-
-.cv-header {
-  margin-bottom:10px;
-}
+.cv-header { margin-bottom:10px; }
 .cv-name {
-  font-size:16px;
-  font-weight:700;
-  color:#000;
-  text-transform:uppercase;
-  margin:0 0 2px;
-  letter-spacing:0.02em;
+  font-size:16px; font-weight:700; color:#000; text-transform:uppercase;
+  margin:0 0 2px; letter-spacing:0.02em;
 }
-.cv-contact {
-  font-size:12.5px;
-  color:#222;
-  line-height:1.35;
-}
-
+.cv-contact { font-size:12.5px; color:#222; line-height:1.35; }
 .cv-section-title {
-  font-size:13px;
-  font-weight:700;
-  color:#000;
-  text-transform:uppercase;
-  border-bottom:1.5px solid #000;
-  padding-bottom:1px;
-  margin:8px 0 4px;
+  font-size:13px; font-weight:700; color:#000; text-transform:uppercase;
+  border-bottom:1.5px solid #000; padding-bottom:1px; margin:10px 0 5px;
   letter-spacing:0.04em;
 }
-
 .cv-sector-title {
-  font-size:12px;
-  font-weight:700;
-  color:#444;
-  text-transform:uppercase;
+  font-size:12px; font-weight:700; color:#444; text-transform:uppercase;
   margin:4px 0 1px;
 }
-
-.cv-job-title {
-  font-weight:700;
-  font-size:12.8px;
-  color:#000;
-}
-
-.cv-empresa-line {
-  font-size:12.5px;
-  color:#222;
-  margin:1px 0;
-}
-
+.cv-job-title { font-weight:700; font-size:12.8px; color:#000; }
+.cv-empresa-line { font-size:12.5px; color:#222; margin:1px 0; }
 .cv-funciones-line {
-  font-size:12.5px;
-  color:#222;
-  margin:1px 0 5px;
-  text-align:justify;
-  line-height:1.26;
+  font-size:12.5px; color:#222; margin:1px 0 6px; text-align:justify; line-height:1.26;
 }
-
-.cv-list {
-  margin:1px 0 0 14px;
-  padding:0;
-  font-size:12.5px;
-}
-.cv-list li {
-  margin-bottom:1.5px;
-  line-height:1.25;
-}
+.cv-list { margin:1px 0 0 14px; padding:0; font-size:12.5px; }
+.cv-list li { margin-bottom:2px; line-height:1.25; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -836,7 +770,7 @@ REGLAS
 7. PREGUNTA Y OPCIONES (DESAMBIGUACIÓN):
    - Rellena "pregunta" y "opciones" solo si hay duda para desempatar entre las DOS PRIMERAS ocupaciones. Si no hay duda, deja "pregunta": "" y "opciones": [].
    - La pregunta debe plantear una elección clara y directa (máximo 15 palabras).
-   - "opciones": lista con 2 alternativas concretas (ej. ["Atención en caja / mostrador", "Cocina y preparación de comida"], ["Casas particulares", "Residencias / Centros"], o ["Sí", "No"]).
+   - "opciones": lista con 2 alternativas concretas completas (ej. ["Cobro y atención en caja", "Preparación y cocina"], ["Casas particulares", "Residencias"]).
 8. Si ninguna encaja, rellena "otros_terminos" con 6 a 10 términos oficiales de la CNO.
 
 EJEMPLO DE RESPUESTA:
@@ -847,9 +781,9 @@ PROMPT_CV_SISTEMA = """Eres un orientador laboral experto del Servicio Público 
 
 REGLAS ESTRICTAS PARA GARANTIZAR 1 SOLA PÁGINA:
 1. PRIVACIDAD TOTAL: NO recibes nombres, teléfonos ni correos. Trabajas solo con puestos, empresas, periodos y tareas.
-2. TÍTULOS DE PUESTO ESTILO INFOJOBS / LINKEDIN: Convierte las denominaciones rígidas del catálogo SISPE (ej. 'CAMAREROS DE BARRA Y/O DEPENDIENTES DE CAFETERÍA') a títulos comunes y claros (ej. 'Camarero/a de barra y sala', 'Dependiente/a de comercio', 'Mozo/a de almacén').
-3. DENSIDAD DE FUNCIONES: Para cada puesto, redacta un texto continuo de ENTRE 20 Y 35 PALABRAS. Ni más ni menos. Emplea verbos de acción, herramientas y tareas clave del oficio.
-4. CATEGORÍAS/SECTORES EN MAYÚSCULAS: Agrupa o etiqueta cada puesto en su sector (ej. HOSTELERÍA, COMERCIO, ADMINISTRACIÓN, SERVICIOS, LIMPIEZA, ATENCIÓN SOCIOSANITARIA).
+2. TÍTULOS DE PUESTO ESTILO INFOJOBS / LINKEDIN: Convierte las denominaciones rígidas del catálogo SISPE a títulos comerciales claros (ej. 'Camarero/a de barra y sala', 'Dependiente/a de comercio', 'Mozo/a de almacén y preparación de pedidos').
+3. DENSIDAD DE FUNCIONES: Para cada puesto, redacta un texto continuo de ENTRE 20 Y 35 PALABRAS. Emplea verbos de acción, herramientas y tareas clave del oficio.
+4. SECTOR EN MAYÚSCULAS: Asigna cada puesto a su sector (ej. HOSTELERÍA, COMERCIO, ADMINISTRACIÓN, SERVICIOS, LIMPIEZA, ATENCIÓN SOCIOSANITARIA).
 5. FORMACIÓN Y OTROS DATOS: Sintetiza en viñetas directas de una sola línea.
 
 Devuelve SOLO un JSON con esta estructura:
@@ -1077,14 +1011,12 @@ def verifica(lista):
 
 
 def limpia_opcion(texto):
-    t = texto.strip().strip("¿?¡!.,;").strip()
+    t = texto.strip().strip("¿?¡!.,;:").strip()
     for _ in range(4):
         t = re.sub(
             r"^(?:la|el|los|las|un|una|unos|unas|en|a|al|del|de|para|con|por|su|sus)\s+",
             "", t, flags=re.IGNORECASE,
         ).strip()
-    if len(t) > 36:
-        t = t[:36].rsplit(" ", 1)[0]
     return t.capitalize()
 
 
@@ -1106,6 +1038,7 @@ def extraer_opciones(pregunta, opciones_modelo=None):
         r"^hac[ií]a funciones de\s+",
         r"^pasaba la mayor parte del tiempo en\s+",
         r"^se ocupaba de\s+",
+        r"^cu[aá]l era su funci[oó]n principal(?:\s+en\s+el\s+establecimiento)?\s*[:?]?\s*",
         r"^hac[ií]a\s+",
         r"^era\s+",
         r"^realizaba\s+",
@@ -1158,7 +1091,7 @@ def interpreta(bruto):
 
 
 def genera_cv_ia(cli, experiencias, formacion, otros_datos_input):
-    """Genera el contenido del CV sin enviar ningún dato personal (Zero PII)."""
+    """Genera el contenido del CV sin enviar datos personales (Zero PII)."""
     prompt = f"""Estructura las siguientes experiencias laborales y formación para un CV de 1 sola página:
 
 EXPERIENCIAS DEL CANDIDATO:
@@ -1211,71 +1144,70 @@ ESTILO_TARJETAS = """
 body{
   margin:0; padding:0; background:transparent; font-family:'Libre Franklin',system-ui,sans-serif;
   --negro:#0A0A0A; --rojo:#D1122E; --texto:#1A1A1A; --suave:#555555;
-  --linea:#E2E8F0; --gris:#F1F5F9;
+  --linea:#D8D8D8; --gris:#F2F2F2;
   color:var(--texto); overflow:hidden;
 }
 .rejilla{
   display:grid; grid-template-columns:repeat(2,1fr);
-  gap:6px; align-items:stretch;
+  gap:7px; align-items:stretch;
 }
 @media (max-width:760px){ .rejilla{ grid-template-columns:1fr; } }
 
 .tarjeta{
-  background:#fff; border:1px solid var(--linea); border-left:4px solid #CBD5E1;
-  border-radius:4px; padding:6px 12px; display:flex; flex-direction:column;
-  justify-content:space-between; transition:transform .12s ease, box-shadow .12s ease;
-  box-shadow:0 1px 3px rgba(0,0,0,0.03); cursor:pointer;
+  background:#fff; border:1px solid var(--linea); border-left:4px solid #C9C9C9;
+  border-radius:0; padding:8px 12px; display:flex; flex-direction:column;
+  justify-content:space-between; transition:all .15s ease;
+  box-shadow:0 1px 3px rgba(0,0,0,0.02); cursor:pointer;
 }
 .tarjeta:hover{
-  transform:translateY(-1px); box-shadow:0 3px 8px rgba(0,0,0,0.07); border-color:#CBD5E1;
+  box-shadow:0 3px 10px rgba(0,0,0,0.07); border-color:#0A0A0A;
 }
 .tarjeta.top{
   border-left-color:var(--rojo); background:#FFFFFF;
-  box-shadow:0 2px 6px rgba(209,18,46,0.06);
 }
 .tarjeta.relleno{
-  background:#FAFAFA; border-left-color:#E2E8F0; opacity:.92;
+  background:#FAFAFA; border-left-color:#E4E4E4; opacity:.92;
 }
 
 .fila{
   display:flex; align-items:center; justify-content:space-between;
-  gap:8px; margin-bottom:2px;
+  gap:8px; margin-bottom:3px;
 }
 .identificador{ display:flex; align-items:center; gap:8px; }
 .orden{
-  font-size:clamp(0.66rem, 0.72vw, 0.72rem); font-weight:700; color:var(--suave);
+  font-size:.72rem; font-weight:700; color:var(--suave);
   font-family:'JetBrains Mono',monospace;
 }
 .codigo{
-  font-size:clamp(1.05rem, 1.18vw, 1.2rem); font-weight:700;
-  letter-spacing:.03em; color:var(--negro); font-family:'JetBrains Mono',monospace;
+  font-size:1.15rem; font-weight:700;
+  letter-spacing:.035em; color:var(--negro); font-family:'JetBrains Mono',monospace;
 }
 
 .copiar{
-  font-family:'Libre Franklin',sans-serif; font-size:clamp(0.68rem, 0.74vw, 0.74rem);
-  font-weight:600; color:var(--texto); background:#fff; border:1px solid #C4C4C4;
-  border-radius:3px; padding:.2rem .6rem; cursor:pointer;
+  font-family:'Libre Franklin',sans-serif; font-size:.7rem;
+  font-weight:600; color:var(--texto); background:#fff; border:1px solid var(--negro);
+  border-radius:0; padding:.22rem .65rem; cursor:pointer;
   transition:all .15s ease; white-space:nowrap;
 }
-.copiar:hover{ background:var(--negro); color:#fff; border-color:var(--negro); }
+.copiar:hover{ background:var(--negro); color:#fff; }
 .copiar.hecho{ background:var(--rojo); border-color:var(--rojo); color:#fff; }
 
 .denominacion{
-  font-size:clamp(0.85rem, 0.94vw, 0.92rem); font-weight:600;
-  line-height:1.25; color:var(--texto); margin:0 0 2px;
+  font-size:.88rem; font-weight:600;
+  line-height:1.26; color:var(--texto); margin:0 0 2px;
 }
 .motivo{
-  font-size:clamp(0.74rem, 0.82vw, 0.8rem); color:var(--suave);
-  line-height:1.24; margin-bottom:3px;
+  font-size:.76rem; color:var(--suave);
+  line-height:1.25; margin-bottom:3px;
 }
 
 .etiquetas-fila{
   display:flex; align-items:center; gap:5px; flex-wrap:wrap; margin-top:auto; padding-top:2px;
 }
 .etiqueta{
-  display:inline-flex; align-items:center; font-size:clamp(0.58rem, 0.65vw, 0.64rem);
+  display:inline-flex; align-items:center; font-size:.62rem;
   font-weight:700; letter-spacing:.06em; text-transform:uppercase;
-  padding:.12rem .4rem; border-radius:3px; background:var(--gris); color:var(--suave);
+  padding:.12rem .42rem; border-radius:0; background:var(--gris); color:var(--suave);
 }
 .etiqueta.recomendada{ background:var(--rojo); color:#fff; }
 .etiqueta.mando{ background:#FFF7ED; color:#C2410C; border:1px solid #FFEDD5; }
@@ -1384,12 +1316,12 @@ def pinta_tarjetas(ocupaciones):
         lineas_motivo = max(1, math.ceil(len(o["motivo"]) / 52)) if o.get("motivo") else 0
         h_denom = lineas_denom * 17
         h_motivo = (lineas_motivo * 15 + 2) if lineas_motivo else 0
-        h_base = 54
+        h_base = 56
         return h_base + h_denom + h_motivo
 
     alturas = [mide(o) for o in ocupaciones]
     filas = [alturas[i:i + 2] for i in range(0, len(alturas), 2)]
-    estimada = sum(max(f) for f in filas) + 6 * max(0, len(filas) - 1) + 4
+    estimada = sum(max(f) for f in filas) + 7 * max(0, len(filas) - 1) + 4
 
     components.html(
         f"<style>{ESTILO_TARJETAS}</style>"
@@ -1412,7 +1344,7 @@ def pinta_resultado(payload, estado=None, avance=0.06, interactivo=False, consul
         st.info("No encuentro coincidencias claras. Prueba con el nombre del puesto o función concreta.")
         return
 
-    # 1. PREGUNTA ARRIBA (centrada)
+    # 1. PREGUNTA ARRIBA (centrada, sin texto cortado)
     if payload.get("pregunta"):
         try:
             caja = st.container(key="pregunta")
@@ -1426,8 +1358,8 @@ def pinta_resultado(payload, estado=None, avance=0.06, interactivo=False, consul
             )
             if interactivo:
                 opciones = extraer_opciones(payload.get("pregunta", ""), payload.get("opciones"))
-                pesos = [max(1.0, len(opc) * 0.09) for opc in opciones]
-                spacer = max(0.4, (8.0 - sum(pesos)) / 2.0)
+                pesos = [max(1.0, len(opc) * 0.08) for opc in opciones]
+                spacer = max(0.3, (7.0 - sum(pesos)) / 2.0)
                 col_weights = [spacer] + pesos + [spacer]
                 cols = st.columns(col_weights, gap="small")
                 for idx, opc in enumerate(opciones):
@@ -1439,25 +1371,26 @@ def pinta_resultado(payload, estado=None, avance=0.06, interactivo=False, consul
     # 2. TARJETAS DE OCUPACIONES
     pinta_tarjetas(ocupaciones)
 
-    # 3. ACCIÓN DIRECTA PARA AÑADIR AL CV
+    # 3. ACCIÓN DISCRETA PARA AÑADIR AL CV
     if interactivo and ocupaciones:
-        st.markdown('<div class="seccion">Añadir al borrador de CV</div>', unsafe_allow_html=True)
-        cols_add = st.columns(min(3, len(ocupaciones)))
-        for i, col in enumerate(cols_add):
-            o_top = ocupaciones[i]
-            with col:
-                nom_corta = o_top["denominacion"][:26] + ("…" if len(o_top["denominacion"]) > 26 else "")
-                if st.button(f"➕ Añadir [{o_top['codigo']}]", key=f"btn_add_cv_{o_top['codigo']}", use_container_width=True):
+        with st.expander("💼 Guardar ocupación en el borrador de CV", expanded=False):
+            c_sel, c_btn = st.columns([3, 1])
+            with c_sel:
+                dict_ocup = {f"{o['codigo']} - {o['denominacion']}": o for o in ocupaciones[:4]}
+                elegida_txt = st.selectbox("Selecciona la ocupación a guardar:", list(dict_ocup.keys()), label_visibility="collapsed")
+            with c_btn:
+                if st.button("➕ Añadir al CV", use_container_width=True):
+                    o_sel = dict_ocup[elegida_txt]
                     st.session_state["cv_experiencias"].append({
-                        "id": int(time.time() * 1000) + i,
-                        "codigo": o_top["codigo"],
-                        "puesto_oficial": o_top["denominacion"],
+                        "id": int(time.time() * 1000),
+                        "codigo": o_sel["codigo"],
+                        "puesto_oficial": o_sel["denominacion"],
                         "descripcion_usuario": consulta,
-                        "motivo": o_top.get("motivo", ""),
+                        "motivo": o_sel.get("motivo", ""),
                         "empresa": "",
                         "periodo": "",
                     })
-                    st.toast(f"Añadido al CV: {nom_corta}", icon="💼")
+                    st.toast(f"Añadido al CV: {o_sel['codigo']}", icon="💼")
                     st.rerun()
 
     if estado:
@@ -1700,7 +1633,6 @@ st.session_state.setdefault("refuerzos_por_guardar", [])
 st.session_state.setdefault("ultima", "")
 st.session_state.setdefault("consulta", "")
 
-# Estado para el Creador de CV
 st.session_state.setdefault("cv_experiencias", [])
 st.session_state.setdefault("cv_generado", None)
 st.session_state.setdefault("cv_candidato", {
@@ -2011,7 +1943,6 @@ with tab_cv:
                 st.error("Falta configurar la clave de IA en Secrets para generar el CV.")
             else:
                 with st.spinner("Redactando CV con funciones de 20-35 palabras y títulos comerciales..."):
-                    # ZERO PII: No se envían nombres, teléfonos, emails ni códigos postales a la IA
                     cv_data = genera_cv_ia(cli, exps, cand["formacion"], cand["otros_datos"])
                     if cv_data:
                         st.session_state["cv_generado"] = cv_data
@@ -2025,7 +1956,6 @@ with tab_cv:
         else:
             b_exp1, b_exp2, b_exp3 = st.columns([1.4, 1.4, 1])
             with b_exp1:
-                # Generador de texto plano para copiar en Word
                 nombre_p = cand.get('nombre') or 'NOMBRE APELLIDOS'
                 tel_p = f"Tlf.: {cand.get('telefono')}" if cand.get('telefono') else ""
                 email_p = f"Email: {cand.get('email')}" if cand.get('email') else ""
@@ -2063,7 +1993,6 @@ with tab_cv:
             loc_val = cand.get('localidad') or 'Madrid'
             ubicacion_doc = f"{cp_val} ({loc_val})"
 
-            # Renderizado de experiencias por sector
             exp_html_bloques = ""
             for exp in cv.get("experiencias", []):
                 sector_html = f'<div class="cv-sector-title">{exp.get("sector", "").upper()}</div>' if exp.get("sector") else ""
