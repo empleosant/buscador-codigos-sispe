@@ -1,11 +1,9 @@
-# Despertador de la aplicación
+# Despertador de la aplicación.
 #
 # Ubicación en el repositorio:  .github/workflows/mantener-despierta.yml
+# Necesita también:             scripts/despertar.py
 #
-# Abre la app con un navegador real. Un ping normal devuelve 200 aunque el
-# proceso siga dormido, por eso hace falta un navegador.
-#
-# ANTES DE USARLO: cambia la URL de la línea marcada.
+# LO ÚNICO QUE HAY QUE EDITAR AQUÍ ES LA LÍNEA DE LA URL, más abajo.
 #   Streamlit:     https://tu-app.streamlit.app
 #   Hugging Face:  https://tuusuario-tuspace.hf.space   (la directa, no la de
 #                  huggingface.co/spaces/..., que la muestra dentro de un marco)
@@ -14,14 +12,19 @@ name: Mantener la app despierta
 
 on:
   schedule:
-    - cron: '0 6,18 * * *'      # 08:00 y 20:00 hora peninsular
-  workflow_dispatch:             # y a mano, desde la pestaña Actions
+    # GitHub programa en UTC. En horario de verano (CEST, UTC+2) esto son
+    # las 06:00 y las 18:00 en la Península. En invierno (CET, UTC+1) caerá
+    # una hora antes. Si te importa, cambia a '0 5,17' en octubre.
+    - cron: '0 4,16 * * *'
+  workflow_dispatch:
 
 jobs:
   despertar:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
+      - uses: actions/checkout@v4
+
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -34,69 +37,4 @@ jobs:
       - name: Abrir la aplicación
         env:
           URL: https://TU-APP.streamlit.app        # <-- cámbiala
-        run: |
-          python - <<'PY'
-          import os
-          import sys
-
-          from playwright.sync_api import sync_playwright
-
-          url = os.environ["URL"]
-
-          if "TU-APP" in url or "TU-USUARIO" in url:
-              print("ERROR: la URL sigue siendo el marcador de posicion.")
-              print("Edita este archivo y pon la direccion real de tu aplicacion.")
-              sys.exit(1)
-
-          print(f"Abriendo {url}")
-
-          with sync_playwright() as p:
-              navegador = p.chromium.launch()
-              pagina = navegador.new_page()
-
-              try:
-                  # domcontentloaded: no se espera a que "termine" de cargar,
-                  # porque Streamlit mantiene la conexion abierta y ese momento
-                  # no llega nunca.
-                  pagina.goto(url, timeout=60000, wait_until="domcontentloaded")
-              except Exception as e:
-                  print(f"No se ha podido abrir la direccion: {e}")
-                  print("Revisa que la URL sea correcta y que la app exista.")
-                  navegador.close()
-                  sys.exit(1)
-
-              pagina.wait_for_timeout(5000)
-              texto = pagina.content().lower()
-
-              # Streamlit Cloud muestra un boton; Hugging Face arranca solo.
-              if "zzz" in texto or "get this app back up" in texto:
-                  print("Estaba dormida. Pulsando el boton de reactivar...")
-                  try:
-                      pagina.get_by_role("button").first.click(timeout=15000)
-                  except Exception as e:
-                      print(f"No se ha podido pulsar el boton: {e}")
-              else:
-                  print("No aparece la pantalla de hibernacion.")
-
-              # Senal de vida: cualquier cosa con la que se pueda interactuar.
-              # Van en un solo selector separado por comas: Playwright espera a
-              # que aparezca CUALQUIERA de ellas. Probarlas de una en una
-              # sumaba un minuto de espera por cada una que faltara.
-              senales = (
-                  "input, textarea, button, "
-                  "[data-testid='stAppViewContainer'], [data-testid='stMain']"
-              )
-              try:
-                  pagina.wait_for_selector(senales, timeout=45000)
-                  print("La aplicacion responde: la interfaz esta cargada.")
-                  navegador.close()
-                  sys.exit(0)
-              except Exception:
-                  pass
-
-              # No se rinde con error: la app puede estar arrancando todavia y
-              # el aviso por correo cada vez seria mas molesto que util.
-              print("AVISO: no se ha confirmado que la interfaz este cargada.")
-              print("Puede que siga arrancando. Se reintentara en el proximo turno.")
-              navegador.close()
-          PY
+        run: python scripts/despertar.py
