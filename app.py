@@ -189,20 +189,23 @@ div[data-testid="stTextInput"] input::placeholder{ color:var(--tenue) !important
   font-size:.68rem; font-weight:700; letter-spacing:.14em; text-transform:uppercase;
   color:var(--suave); margin:1.6rem 0 .7rem;
 }
-.pregunta{
+/* La pregunta y sus botones forman un solo bloque */
+.st-key-pregunta{
   background:var(--gris); border-left:4px solid var(--negro);
-  padding:.9rem 1.15rem; margin:.2rem 0 .5rem;
+  padding:.85rem 1.15rem 1rem; margin:.3rem 0 .2rem;
 }
-
-/* Streamlit separa cada bloque con 1rem; entre las fichas y lo que sigue
-   sobraba demasiado aire. */
-div[data-testid="stVerticalBlock"]{ gap:.55rem; }
-div[data-testid="stIFrame"], iframe{ display:block; margin:0 !important; }
-.pregunta .titulo{
-  font-size:.68rem; font-weight:700; letter-spacing:.13em; text-transform:uppercase;
-  color:var(--rojo); margin-bottom:.4rem;
+.pregunta-titulo{
+  font-size:.66rem; font-weight:700; letter-spacing:.13em; text-transform:uppercase;
+  color:var(--rojo); margin-bottom:.3rem;
 }
-.pregunta .texto{ font-size:.97rem; line-height:1.45; color:var(--texto); }
+.pregunta-texto{
+  font-size:1rem; line-height:1.4; color:var(--texto); margin-bottom:.75rem;
+}
+.st-key-pregunta .stButton button{
+  background:#fff; border:1px solid var(--negro); font-weight:600;
+  padding:.4rem .6rem; min-height:38px;
+}
+.st-key-pregunta .stButton button:hover{ background:var(--negro); color:#fff; }
 .nota{ font-size:.79rem; color:var(--suave); margin:.4rem 0 .5rem; }
 .separa{ height:1px; background:var(--linea); margin:1.2rem 0 1rem; }
 
@@ -770,9 +773,15 @@ REGLAS
 5. El campo "motivo" explica en menos de 10 palabras por qué encaja, en español con acentuación correcta.
 6. No propongas ocupaciones de dirección, jefatura ni mando (niveles 10, 20, 30) salvo que la descripción diga expresamente que dirigía equipos, centros o departamentos.
 7. Respeta el entorno de trabajo que indique la descripción: domicilio particular frente a institución, centro o residencia. Si dice "en su casa" o "a domicilio", descarta las ocupaciones que digan "en instituciones".
-8. Rellena "pregunta" solo si faltan datos para decidir entre las DOS PRIMERAS ocupaciones de tu lista; si no, déjalo vacío. No preguntes por algo que la persona ya ha dicho ni por algo que solo confirme la primera opción: la respuesta tiene que servir para descartar una de las dos. La pregunta DEBE poder responderse con SÍ o con NO: pregunta por un solo hecho concreto que distinga entre las dos, redactada para leérsela en voz alta a la persona. Nunca uses la forma "¿hacía A o hacía B?", porque quien responde solo dispone de dos botones, Sí y No.
+8. Rellena "pregunta" solo si faltan datos para decidir entre las DOS PRIMERAS ocupaciones de tu lista; si no, déjalo vacío. No preguntes por algo que la persona ya ha dicho ni por algo que solo confirme la primera opción: la respuesta tiene que servir para descartar una de las dos. Requisitos de la pregunta:
+   - Se responde con SÍ o con NO. Nunca uses "¿hacía A o hacía B?": quien responde solo tiene dos botones.
+   - Va dirigida a la persona atendida y se le va a leer en voz alta. Escríbela en lenguaje llano, con las palabras que usaría cualquiera: nada de terminología del catálogo, ni sustantivos abstractos, ni "realizaba tareas de". Verbos corrientes y cosas concretas.
+   - Corta: quince palabras como mucho.
    Mal: "¿Se dedica al pulido de suelos o a otra actividad de construcción?"
-   Bien: "¿Trabajaba con máquinas pulidoras o abrillantadoras?"
+   Mal: "¿Realizaba la colocación de baldosas o azulejos en suelos y paredes?"
+   Bien: "¿Ponía baldosas o azulejos?"
+   Bien: "¿Usaba una máquina para pulir el suelo?"
+   Bien: "¿Trabajaba dentro de casas de particulares?"
 9. IMPORTANTE. Si ninguna de las candidatas describe con precisión la actividad, rellena "otros_terminos" con entre 6 y 10 palabras sueltas del vocabulario de la clasificación que deberían buscarse en su lugar (el nombre formal del oficio, herramientas, materiales). Se hará una segunda búsqueda con ellas. Si alguna candidata sí encaja, deja "otros_terminos" vacío.
 
 Responde solo con este JSON:
@@ -1304,19 +1313,24 @@ def pinta_resultado(payload, estado=None, avance=0.06, interactivo=False, consul
     pinta_tarjetas(ocupaciones)
 
     if payload.get("pregunta"):
-        st.markdown(
-            f'<div class="pregunta"><div class="titulo">Pregunta para la persona</div>'
-            f'<div class="texto">{payload["pregunta"]}</div></div>',
-            unsafe_allow_html=True,
-        )
-        if interactivo:
-            si, no, _ = st.columns([1, 1, 3])
-            if si.button("Sí", key="resp_si", use_container_width=True):
-                st.session_state["respuesta"] = (consulta, payload["pregunta"], True)
-                st.rerun()
-            if no.button("No", key="resp_no", use_container_width=True):
-                st.session_state["respuesta"] = (consulta, payload["pregunta"], False)
-                st.rerun()
+        try:
+            caja = st.container(key="pregunta")
+        except TypeError:          # Streamlit sin claves en contenedores
+            caja = st.container()
+        with caja:
+            st.markdown(
+                '<div class="pregunta-titulo">Pregunta para la persona</div>'
+                f'<div class="pregunta-texto">{payload["pregunta"]}</div>',
+                unsafe_allow_html=True,
+            )
+            if interactivo:
+                si, no, _ = st.columns([1, 1, 4], gap="small")
+                if si.button("Sí", key="resp_si", use_container_width=True):
+                    st.session_state["respuesta"] = (consulta, payload["pregunta"], True)
+                    st.rerun()
+                if no.button("No", key="resp_no", use_container_width=True):
+                    st.session_state["respuesta"] = (consulta, payload["pregunta"], False)
+                    st.rerun()
 
     if estado:
         return
