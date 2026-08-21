@@ -747,7 +747,7 @@ REGLAS
 5. El campo "motivo" explica en menos de 10 palabras por qué encaja, en español con acentuación correcta.
 6. No propongas ocupaciones de dirección, jefatura ni mando (niveles 10, 20, 30) salvo que la descripción diga expresamente que dirigía equipos, centros o departamentos.
 7. Respeta el entorno de trabajo que indique la descripción: domicilio particular frente a institución, centro o residencia. Si dice "en su casa" o "a domicilio", descarta las ocupaciones que digan "en instituciones".
-8. Rellena "pregunta" solo si faltan datos para decidir entre dos ocupaciones; si no, déjalo vacío. La pregunta DEBE poder responderse con SÍ o con NO: pregunta por un solo hecho concreto que distinga entre las dos, redactada para leérsela en voz alta a la persona. Nunca uses la forma "¿hacía A o hacía B?", porque quien responde solo dispone de dos botones, Sí y No.
+8. Rellena "pregunta" solo si faltan datos para decidir entre las DOS PRIMERAS ocupaciones de tu lista; si no, déjalo vacío. No preguntes por algo que la persona ya ha dicho ni por algo que solo confirme la primera opción: la respuesta tiene que servir para descartar una de las dos. La pregunta DEBE poder responderse con SÍ o con NO: pregunta por un solo hecho concreto que distinga entre las dos, redactada para leérsela en voz alta a la persona. Nunca uses la forma "¿hacía A o hacía B?", porque quien responde solo dispone de dos botones, Sí y No.
    Mal: "¿Se dedica al pulido de suelos o a otra actividad de construcción?"
    Bien: "¿Trabajaba con máquinas pulidoras o abrillantadoras?"
 9. IMPORTANTE. Si ninguna de las candidatas describe con precisión la actividad, rellena "otros_terminos" con entre 6 y 10 palabras sueltas del vocabulario de la clasificación que deberían buscarse en su lugar (el nombre formal del oficio, herramientas, materiales). Se hará una segunda búsqueda con ellas. Si alguna candidata sí encaja, deja "otros_terminos" vacío.
@@ -869,6 +869,50 @@ def pregunta_corta(cli, sistema, prompt, maximo=2048):
         temperature=0,
     )
     return (r.choices[0].message.content or "").strip()
+
+
+INTERPRETE = """Eres experto en el catálogo de ocupaciones del SEPE (CNO).
+
+Lees la descripción de un puesto escrita por un orientador laboral, con las
+palabras de la persona atendida, y respondes con el VOCABULARIO OFICIAL que
+usaría la clasificación para ese oficio.
+
+Devuelve SOLO entre 8 y 14 palabras sueltas separadas por espacios, en
+minúsculas y sin acentos. Empieza por el nombre formal del oficio en plural
+tal y como aparecería en la clasificación, y sigue con materiales,
+herramientas y tareas propias.
+
+No expliques nada. No repitas las palabras de la persona salvo que sean las
+oficiales. Si el texto es una pregunta, ignora la forma y quédate con el oficio.
+
+Entrada: para una persona que monta suelos
+Salida: soladores alicatadores pavimentos baldosas ceramica gres mortero solados construccion
+
+Entrada: una persona que limpia habitaciones de hotel
+Salida: camareros piso hosteleria habitaciones limpieza alojamiento hoteles ropa cama
+
+Entrada: dime el codigo de quien limpia las calles
+Salida: barrenderos limpieza viaria publica residuos aceras papeleras carro
+"""
+
+
+def interpreta_consulta(cli, texto):
+    """Traduce la consulta a vocabulario del catálogo antes de buscar.
+
+    Es la diferencia entre elegir bien y elegir entre malos candidatos: sin
+    esta pasada, el modelo solo ve la lista que ya ha decidido el buscador.
+    """
+    clave = normaliza(texto)
+    memoria = st.session_state.setdefault("interpretaciones", {})
+    if clave in memoria:
+        return memoria[clave]
+    try:
+        bruto = pregunta_corta(cli, INTERPRETE, texto)
+    except Exception:  # noqa: BLE001
+        return ""
+    limpio = " ".join(re.findall(r"[a-zñáéíóúü]+", normaliza(bruto))[:14])
+    memoria[clave] = limpio
+    return limpio
 
 
 def traduce_jerga(cli, palabras, contexto):
@@ -1311,7 +1355,22 @@ def resuelve(texto, zona, usar_ia=True, contexto="", busqueda=None):
         pinta_resultado(provisional, estado="Afinando el resultado")
 
     # Si la consulta trae jerga o marcas, se traduce a vocabulario del catálogo
+    # Primero se le pregunta al modelo qué oficio es esto, y se busca con sus
+    # palabras además de las de la persona.
     interpretado, aviso = None, ""
+    with zona.container():
+        pinta_resultado({}, estado="Interpretando el oficio", avance=0.12)
+    oficiales = interpreta_consulta(cli, texto)
+    if oficiales:
+        mejores = busca(f"{busqueda or texto} {oficiales}", tope=N_CANDIDATOS + 4)
+        if mejores:
+            encontrados = mejores
+            interpretado = ("la consulta", oficiales)
+            provisional = {
+                "ocupaciones": _basica(encontrados),
+                "otras": [(c, d) for _, c, d in encontrados[5:12]],
+            }
+
     jerga = desconocidas(texto)
 
     # Traducir cuesta un viaje extra al modelo. Solo merece la pena si la jerga
@@ -1407,6 +1466,23 @@ def resuelve(texto, zona, usar_ia=True, contexto="", busqueda=None):
         payload["fallo"] = aviso
     if not payload["ocupaciones"]:
         payload["ocupaciones"] = provisional["ocupaciones"]
+
+    # El prompt pide entre 3 y 5, pero conviene garantizarlo: una sola ficha
+    # deja la pantalla coja y esconde alternativas que sí valdrían.
+    ya = {o["codigo"] for o in payload["ocupaciones"]}
+    for _, codigo, denom in encontrados:
+        if len(payload["ocupaciones"]) >= 3:
+            break
+        if codigo in ya:
+            continue
+        payload["ocupaciones"].append({
+            "codigo": codigo,
+            "denominacion": denom,
+            "nivel": "00",
+            "nivel_texto": NIVELES["00"],
+            "motivo": "",
+        })
+        ya.add(codigo)
     elegidos = {o["codigo"] for o in payload["ocupaciones"]}
     payload["otras"] = [(c, d) for _, c, d in encontrados if c not in elegidos][:7]
 
