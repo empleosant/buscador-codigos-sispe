@@ -906,18 +906,22 @@ def pregunta_corta(cli, sistema, prompt, maximo=2048):
 INTERPRETE = """Eres experto en el catálogo de ocupaciones del SEPE (CNO).
 
 Lees la descripción de un puesto escrita por un orientador laboral, con las
-palabras de la persona atendida, y respondes con el VOCABULARIO OFICIAL que
-usaría la clasificación para ese oficio.
+palabras de la persona atendida, y devuelves el VOCABULARIO OFICIAL de los
+oficios que podría estar describiendo.
+
+Una descripción corriente admite varias lecturas: "cuidado de niños en una
+escuela" puede ser guardería, comedor escolar o tiempo libre. Devuelve entre
+2 y 3 lecturas distintas, de más a menos probable. No repitas la misma con
+otras palabras: tienen que ser oficios diferentes.
 
 Responde SOLO con este JSON:
-{"terminos":"...","grupos":"7"}
+{"lecturas":[{"terminos":"...","grupos":"5"},{"terminos":"...","grupos":"3"}]}
 
-- "terminos": entre 8 y 14 palabras sueltas separadas por espacios, en
+- "terminos": entre 6 y 12 palabras sueltas separadas por espacios, en
   minúsculas y sin acentos. Empieza por el nombre formal del oficio en plural
   tal y como aparecería en la clasificación y sigue con materiales,
   herramientas y tareas. No repitas las palabras coloquiales de la persona.
-- "grupos": uno o dos dígitos separados por espacio, el gran grupo de la CNO
-  al que pertenece el oficio:
+- "grupos": uno o dos dígitos separados por espacio, el gran grupo de la CNO:
   1 dirección · 2 técnicos y profesionales científicos · 3 técnicos de apoyo
   4 empleados de oficina · 5 restauración, servicios personales y comercio
   6 agricultura y pesca · 7 artesanos y cualificados de industria y construcción
@@ -925,14 +929,11 @@ Responde SOLO con este JSON:
 
 Si el texto es una pregunta, ignora la forma y quédate con el oficio.
 
+Entrada: cuidado de ninos en una escuela
+Salida: {"lecturas":[{"terminos":"cuidadores guarderia infantil ninos aula patio higiene","grupos":"5"},{"terminos":"vigilantes comedor escolar monitores bandeja turnos patio","grupos":"5"},{"terminos":"monitores educacion tiempo libre actividades extraescolares ludoteca","grupos":"3"}]}
+
 Entrada: para una persona que monta suelos
-Salida: {"terminos":"soladores alicatadores pavimentos baldosas ceramica gres mortero solados","grupos":"7"}
-
-Entrada: una persona que limpia habitaciones de hotel
-Salida: {"terminos":"camareros piso hosteleria habitaciones limpieza alojamiento ropa cama","grupos":"9 5"}
-
-Entrada: dime el codigo de quien pintaba casas
-Salida: {"terminos":"pintores empapeladores brocha rodillo esmalte paredes techos","grupos":"7"}
+Salida: {"lecturas":[{"terminos":"soladores alicatadores pavimentos baldosas ceramica gres mortero","grupos":"7"},{"terminos":"pulidores abrillantadores suelos terrazo pulidora","grupos":"7"}]}
 """
 
 
@@ -949,7 +950,7 @@ def interpreta_consulta(cli, texto):
     try:
         bruto = pregunta_corta(cli, INTERPRETE, texto)
     except Exception:  # noqa: BLE001
-        return "", ()
+        return []
 
     datos = {}
     try:
@@ -958,15 +959,26 @@ def interpreta_consulta(cli, texto):
     except Exception:  # noqa: BLE001
         datos = {}
 
-    terminos = " ".join(
-        re.findall(r"[a-zñáéíóúü]+", normaliza(str(datos.get("terminos", ""))))[:14]
-    )
-    grupos = tuple(re.findall(r"[1-9]", str(datos.get("grupos", ""))))[:2]
-    if not terminos:      # si no vino JSON, se aprovecha el texto suelto
-        terminos = " ".join(re.findall(r"[a-zñáéíóúü]+", normaliza(bruto))[:14])
+    crudas = datos.get("lecturas")
+    if not isinstance(crudas, list):          # formato antiguo, una sola lectura
+        crudas = [datos] if datos.get("terminos") else []
 
-    memoria[clave] = (terminos, grupos)
-    return terminos, grupos
+    lecturas = []
+    for l in crudas[:3]:
+        terminos = " ".join(
+            re.findall(r"[a-zñáéíóúü]+", normaliza(str(l.get("terminos", ""))))[:12]
+        )
+        if terminos:
+            grupos = tuple(re.findall(r"[1-9]", str(l.get("grupos", ""))))[:2]
+            lecturas.append((terminos, grupos))
+
+    if not lecturas:      # si no vino JSON, se aprovecha el texto suelto
+        suelto = " ".join(re.findall(r"[a-zñáéíóúü]+", normaliza(bruto))[:14])
+        if suelto:
+            lecturas = [(suelto, ())]
+
+    memoria[clave] = lecturas
+    return lecturas
 
 
 def traduce_jerga(cli, palabras, contexto):
@@ -1441,19 +1453,34 @@ def resuelve(texto, zona, usar_ia=True, contexto="", busqueda=None):
     interpretado, aviso = None, ""
     with zona.container():
         pinta_resultado({}, estado="Interpretando el oficio", avance=0.12)
-    oficiales, grupos = interpreta_consulta(cli, texto)
-    if oficiales:
-        # Primero solo con el vocabulario oficial: las palabras coloquiales de
-        # la persona ensucian la búsqueda ("casas" arrastra a construcción,
-        # "monta" a calzado). Solo si eso no basta se mezclan las dos.
-        mejores = busca(oficiales, tope=N_CANDIDATOS + 4, grupos=grupos)
+    lecturas = interpreta_consulta(cli, texto)
+    if lecturas:
+        # Cada lectura busca por su cuenta y los resultados se funden. Así una
+        # descripción ambigua no pierde las ocupaciones de las otras ramas: de
+        # "cuidado de niños en una escuela" salen guardería, comedor y ocio.
+        fundido, vistos = [], {}
+        for orden, (terminos, grupos) in enumerate(lecturas):
+            peso = (1.0, 0.88, 0.78)[min(orden, 2)]
+            for puntos, codigo, denom in busca(terminos, tope=12, grupos=grupos):
+                if puntos * peso > vistos.get(codigo, 0):
+                    vistos[codigo] = puntos * peso
+                    fundido.append((puntos * peso, codigo, denom))
+
+        mejores = sorted(
+            {c: (p, c, d) for p, c, d in sorted(fundido)}.values(), reverse=True
+        )[:N_CANDIDATOS + 4]
+
         if len(mejores) < 3:
             mejores = busca(
-                f"{busqueda or texto} {oficiales}", tope=N_CANDIDATOS + 4, grupos=grupos
+                f"{busqueda or texto} {lecturas[0][0]}",
+                tope=N_CANDIDATOS + 4, grupos=lecturas[0][1],
             )
         if mejores:
             encontrados = mejores
-            interpretado = ("la consulta", oficiales)
+            interpretado = (
+                "la consulta",
+                " · ".join(t.split()[0] for t, _ in lecturas),
+            )
             provisional = {
                 "ocupaciones": _basica(encontrados),
                 "otras": [(c, d) for _, c, d in encontrados[5:12]],
@@ -1464,37 +1491,6 @@ def resuelve(texto, zona, usar_ia=True, contexto="", busqueda=None):
         zona.empty()
         pinta_resultado(payload)
         return payload
-
-    jerga = desconocidas(texto)
-
-    # Traducir cuesta un viaje extra al modelo. Solo merece la pena si la jerga
-    # es una parte importante de la consulta; si es una palabra suelta entre
-    # otras que el catálogo sí entiende, la búsqueda ya suele ser buena.
-    contenido = [
-        w for w in re.findall(r"\w+", normaliza(texto))
-        if len(w) > 3 and w not in VACIAS
-    ]
-    pesa = bool(jerga) and len(jerga) >= max(1, len(contenido) * 0.5)
-
-    if jerga and pesa:
-        with zona.container():
-            pinta_resultado(provisional, estado="Interpretando el oficio")
-        extra, error = traduce_jerga(cli, jerga, texto)
-        if error:
-            aviso = error
-            provisional["fallo"] = error
-        if extra:
-            interpretado = (" ".join(jerga), extra)
-            mejores = busca(f"{texto} {extra}", tope=N_CANDIDATOS + 6)
-            if mejores:
-                encontrados = mejores
-                provisional = {
-                    "ocupaciones": _basica(encontrados),
-                    "otras": [(c, d) for _, c, d in encontrados[5:12]],
-                    "interpretado": interpretado,
-                }
-                with zona.container():
-                    pinta_resultado(provisional, estado="Afinando el resultado")
 
     def consulta_al_modelo(candidatos, etiqueta):
         """Una pasada completa: streaming, barra y lectura del JSON."""
