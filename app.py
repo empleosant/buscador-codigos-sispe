@@ -111,11 +111,15 @@ html,body,[class*="css"],.stMarkdown{
 h1 > a, h2 > a, h3 > a, .stMarkdown a.anchor-link{ display:none !important; }
 div[data-testid="InputInstructions"]{ display:none !important; }
 
-/* Eliminación de márgenes fantasma entre componentes */
-div[data-testid="stCustomComponentV1"],
+/* Eliminación total de márgenes fantasma entre iframe de tarjetas y pregunta */
+div[data-testid="stCustomComponentV1"] {
+  margin-bottom: 0px !important;
+  padding-bottom: 0px !important;
+}
 div[data-testid="stCustomComponentV1"] iframe {
   margin-bottom: 0px !important;
-  display: block;
+  padding-bottom: 0px !important;
+  display: block !important;
 }
 
 /* ---------- Cabecera fluida ---------- */
@@ -205,8 +209,9 @@ div[data-testid="stTextInput"] input{
 /* Pregunta interactiva pegada a las tarjetas */
 .st-key-pregunta{
   background:#fff; border:1px solid var(--linea); border-left:4px solid var(--rojo);
-  border-radius:4px; padding:clamp(0.5rem, 0.9vh, 0.75rem) clamp(0.75rem, 1.1vw, 1rem);
-  margin:0.25rem 0 0.35rem !important; box-shadow:0 1px 4px rgba(0,0,0,0.03);
+  border-radius:4px; padding:clamp(0.5rem, 0.85vh, 0.75rem) clamp(0.75rem, 1.1vw, 1rem);
+  margin-top:0.25rem !important; margin-bottom:0.35rem !important;
+  box-shadow:0 1px 4px rgba(0,0,0,0.03);
 }
 .pregunta-titulo{
   font-size:.62rem; font-weight:700; letter-spacing:.14em; text-transform:uppercase;
@@ -218,7 +223,7 @@ div[data-testid="stTextInput"] input{
 }
 .st-key-pregunta .stButton button{
   background:#fff; border:1px solid var(--negro); font-weight:600; border-radius:4px;
-  padding:.35rem .75rem; min-height:36px; font-size:.84rem; transition:all .15s ease;
+  padding:.35rem .75rem; min-height:34px; font-size:.84rem; transition:all .15s ease;
   white-space:normal !important; height:auto !important;
 }
 .st-key-pregunta .stButton button:hover{
@@ -711,13 +716,14 @@ REGLAS
 5. El campo "motivo" explica en menos de 10 palabras por qué encaja, en español con acentuación correcta.
 6. No propongas ocupaciones de dirección, jefatura ni mando (niveles 10, 20, 30) salvo que la descripción diga expresamente que dirigía equipos, centros o departamentos.
 7. Respeta el entorno de trabajo que indique la descripción: domicilio particular frente a institución, centro o residencia.
-8. PREGUNTA Y OPCIONES DE RESPUESTA:
-   - Rellena "pregunta" y "opciones" solo si hay duda para desempatar entre las DOS PRIMERAS ocupaciones. Si no hay duda, déjalos vacíos.
-   - "pregunta": formula la pregunta de forma directa y clara (máximo 15 palabras).
-   - "opciones": lista con 2 opciones cortas que representen las dos tareas o ramas (ej. ["Atención en caja / mostrador", "Cocina y preparación de alimentos"], ["Casas particulares", "Residencias / Centros"]). Si la pregunta es de confirmación directa sobre una sola tarea ("¿Trabajaba en cocina?"), pon ["Sí", "No"].
+8. PREGUNTA Y OPCIONES (DESAMBIGUACIÓN):
+   - Rellena "pregunta" y "opciones" solo si hay duda para desempatar entre las DOS PRIMERAS ocupaciones. Si no hay duda, deja "pregunta": "" y "opciones": [].
+   - La pregunta debe plantear una elección clara y directa (máximo 15 palabras).
+   - El campo "opciones" DEBE contener una lista con las 2 alternativas concretas (ej. ["Atención en caja / mostrador", "Cocina y preparación de comida"], ["Casas particulares", "Residencias / Centros"], o ["Sí", "No"]). NUNCA dejes "opciones" vacío si hay "pregunta".
+9. Si ninguna de las candidatas describe con precisión la actividad, rellena "otros_terminos" con entre 6 y 10 palabras sueltas de la CNO.
 
-EJEMPLOS DE RESPUESTA JSON:
-{"ocupaciones":[{"codigo":"51201027","denominacion":"CAMAREROS DE BARRA Y/O DEPENDIENTES DE CAFETERÍA","nivel":"00","motivo":"Atención en mostrador y servicio de comida rápida."},{"codigo":"93101024","denominacion":"PINCHES DE COCINA","nivel":"00","motivo":"Elaboración y preparación de alimentos en restauración."}],"pregunta":"¿A qué tarea dedicaba la mayor parte del tiempo?","opciones":["Atención en caja y mostrador","Cocina y preparación de comida"],"otros_terminos":""}
+EJEMPLO DE RESPUESTA:
+{"ocupaciones":[{"codigo":"51201027","denominacion":"CAMAREROS DE BARRA Y/O DEPENDIENTES DE CAFETERÍA","nivel":"00","motivo":"Atención en mostrador y servicio de comida rápida."},{"codigo":"93101024","denominacion":"PINCHES DE COCINA","nivel":"00","motivo":"Elaboración y preparación de alimentos en restauración."}],"pregunta":"¿A qué tarea dedicaba la mayor parte de su jornada?","opciones":["Atención en caja y mostrador","Preparación de comida en cocina"],"otros_terminos":""}
 """
 
 
@@ -927,32 +933,51 @@ def verifica(lista):
     return limpias[:6], descartadas
 
 
-def limpia_lado(op):
-    for _ in range(3):
-        op = re.sub(
-            r"^(?:la|el|los|las|un|una|unos|unas|en|a|al|del|de|para|con)\s+",
-            "", op, flags=re.IGNORECASE,
+def limpia_opcion(texto):
+    t = texto.strip().strip("¿?¡!.,;").strip()
+    for _ in range(4):
+        t = re.sub(
+            r"^(?:la|el|los|las|un|una|unos|unas|en|a|al|del|de|para|con|por|su|sus)\s+",
+            "", t, flags=re.IGNORECASE,
         ).strip()
-    return op[:40].strip().capitalize()
+    if len(t) > 36:
+        t = t[:36].rsplit(" ", 1)[0]
+    return t.capitalize()
 
 
-def extraer_opciones_de_pregunta(pregunta, opciones_json=None):
-    if opciones_json and isinstance(opciones_json, list):
-        limpias = [str(o).strip() for o in opciones_json if str(o).strip()]
+def extraer_opciones(pregunta, opciones_modelo=None):
+    if opciones_modelo and isinstance(opciones_modelo, list):
+        limpias = [str(o).strip() for o in opciones_modelo if str(o).strip()]
         if len(limpias) >= 2 and set(limpias) != {"Sí", "No"}:
-            return [limpia_lado(x) for x in limpias[:3]]
+            return [limpia_opcion(x) for x in limpias[:3]]
 
     q = pregunta.strip().strip("¿?¡!").strip()
-    intro_pattern = (
-        r"^(?:su actividad principal consist[ií]a en|se dedicaba a|"
-        r"su labor principal era|trabajaba en|hac[ií]a|era|realizaba)\s+"
-    )
-    q_sin_intro = re.sub(intro_pattern, "", q, flags=re.IGNORECASE).strip()
+    fillers = [
+        r"^su actividad principal consist[ií]a en\s+",
+        r"^su tarea principal era\s+",
+        r"^su labor principal era\s+",
+        r"^su puesto era de\s+",
+        r"^se dedicaba a\s+",
+        r"^trabajaba en\s+",
+        r"^realizaba tareas de\s+",
+        r"^hac[ií]a funciones de\s+",
+        r"^pasaba la mayor parte del tiempo en\s+",
+        r"^se ocupaba de\s+",
+        r"^hac[ií]a\s+",
+        r"^era\s+",
+        r"^realizaba\s+",
+    ]
+    q_limpia = q
+    for f in fillers:
+        q_limpia = re.sub(f, "", q_limpia, flags=re.IGNORECASE).strip()
 
-    if " o " in q_sin_intro:
-        partes = [p.strip() for p in re.split(r"\s+o\s+", q_sin_intro, maxsplit=1) if p.strip()]
+    if " o " in q_limpia:
+        partes = [p.strip() for p in re.split(r"\s+o\s+", q_limpia, maxsplit=1) if p.strip()]
         if len(partes) == 2:
-            return [limpia_lado(partes[0]), limpia_lado(partes[1])]
+            op1 = limpia_opcion(partes[0])
+            op2 = limpia_opcion(partes[1])
+            if op1 and op2 and op1.lower() != op2.lower():
+                return [op1, op2]
 
     return ["Sí", "No"]
 
@@ -978,7 +1003,7 @@ def interpreta(bruto):
         re.findall(r"[a-zñáéíóúü]+", normaliza(str(datos.get("otros_terminos", "") or "")))[:12]
     )
     pregunta = str(datos.get("pregunta", "") or "").strip()
-    opciones = extraer_opciones_de_pregunta(pregunta, datos.get("opciones")) if pregunta else []
+    opciones = extraer_opciones(pregunta, datos.get("opciones")) if pregunta else []
 
     return {
         "ocupaciones": ocupaciones,
@@ -1167,13 +1192,13 @@ def pinta_tarjetas(ocupaciones):
             f'</div>'
         )
 
-    # Medición exacta y compacta para eliminar huecos inferiores
+    # Medición exacta para eliminar cualquier hueco inferior
     def mide(o):
-        lineas_denom = max(1, math.ceil(len(o["denominacion"]) / 56))
-        lineas_motivo = max(1, math.ceil(len(o["motivo"]) / 58)) if o.get("motivo") else 0
-        h_denom = lineas_denom * 16
-        h_motivo = (lineas_motivo * 15 + 3) if lineas_motivo else 0
-        h_base = 52
+        lineas_denom = max(1, math.ceil(len(o["denominacion"]) / 48))
+        lineas_motivo = max(1, math.ceil(len(o["motivo"]) / 52)) if o.get("motivo") else 0
+        h_denom = lineas_denom * 17
+        h_motivo = (lineas_motivo * 15 + 2) if lineas_motivo else 0
+        h_base = 54
         return h_base + h_denom + h_motivo
 
     alturas = [mide(o) for o in ocupaciones]
@@ -1215,8 +1240,10 @@ def pinta_resultado(payload, estado=None, avance=0.06, interactivo=False, consul
                 unsafe_allow_html=True,
             )
             if interactivo:
-                opciones = payload.get("opciones") or ["Sí", "No"]
-                cols = st.columns(len(opciones), gap="small")
+                opciones = extraer_opciones(payload.get("pregunta", ""), payload.get("opciones"))
+                pesos = [max(1.0, len(opc) * 0.1) for opc in opciones]
+                spacer = max(0.8, 5.5 - sum(pesos))
+                cols = st.columns(pesos + [spacer], gap="small")
                 for idx, opc in enumerate(opciones):
                     with cols[idx]:
                         if st.button(opc, key=f"resp_opt_{idx}", use_container_width=True):
