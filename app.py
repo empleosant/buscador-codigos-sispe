@@ -111,7 +111,7 @@ html,body,[class*="css"],.stMarkdown{
 h1 > a, h2 > a, h3 > a, .stMarkdown a.anchor-link{ display:none !important; }
 div[data-testid="InputInstructions"]{ display:none !important; }
 
-/* Eliminación total de márgenes fantasma entre iframe de tarjetas y pregunta */
+/* Eliminación de márgenes fantasma entre iframe y contenedor */
 div[data-testid="stCustomComponentV1"] {
   margin-bottom: 0px !important;
   padding-bottom: 0px !important;
@@ -206,24 +206,27 @@ div[data-testid="stTextInput"] input{
   color:var(--suave); margin:1rem 0 .5rem;
 }
 
-/* Pregunta interactiva pegada a las tarjetas */
+/* Pregunta interactiva centrada (arriba de las tarjetas) */
 .st-key-pregunta{
-  background:#fff; border:1px solid var(--linea); border-left:4px solid var(--rojo);
-  border-radius:4px; padding:clamp(0.5rem, 0.85vh, 0.75rem) clamp(0.75rem, 1.1vw, 1rem);
-  margin-top:0.25rem !important; margin-bottom:0.35rem !important;
-  box-shadow:0 1px 4px rgba(0,0,0,0.03);
+  background:#fff; border:1px solid var(--linea); border-top:3px solid var(--rojo);
+  border-radius:4px; padding:clamp(0.45rem, 0.8vh, 0.65rem) clamp(0.8rem, 1.2vw, 1.2rem);
+  margin:0.2rem 0 0.45rem !important; box-shadow:0 1px 4px rgba(0,0,0,0.03);
+  text-align:center !important;
 }
 .pregunta-titulo{
   font-size:.62rem; font-weight:700; letter-spacing:.14em; text-transform:uppercase;
-  color:var(--rojo); margin-bottom:.15rem;
+  color:var(--rojo); margin-bottom:.12rem; text-align:center !important;
 }
 .pregunta-texto{
   font-size:clamp(0.9rem, 0.98vw, 0.98rem); line-height:1.32; font-weight:600;
-  color:var(--texto); margin-bottom:.45rem;
+  color:var(--texto); margin-bottom:.42rem; text-align:center !important;
+}
+.st-key-pregunta div[data-testid="stHorizontalBlock"]{
+  justify-content:center !important; align-items:center !important;
 }
 .st-key-pregunta .stButton button{
   background:#fff; border:1px solid var(--negro); font-weight:600; border-radius:4px;
-  padding:.35rem .75rem; min-height:34px; font-size:.84rem; transition:all .15s ease;
+  padding:.32rem .75rem; min-height:34px; font-size:.84rem; transition:all .15s ease;
   white-space:normal !important; height:auto !important;
 }
 .st-key-pregunta .stButton button:hover{
@@ -1192,7 +1195,6 @@ def pinta_tarjetas(ocupaciones):
             f'</div>'
         )
 
-    # Medición exacta para eliminar cualquier hueco inferior
     def mide(o):
         lineas_denom = max(1, math.ceil(len(o["denominacion"]) / 48))
         lineas_motivo = max(1, math.ceil(len(o["motivo"]) / 52)) if o.get("motivo") else 0
@@ -1226,8 +1228,7 @@ def pinta_resultado(payload, estado=None, avance=0.06, interactivo=False, consul
         st.info("No encuentro coincidencias claras. Prueba con el nombre del puesto o función concreta.")
         return
 
-    pinta_tarjetas(ocupaciones)
-
+    # 1. PREGUNTA ARRIBA (antes de las tarjetas)
     if payload.get("pregunta"):
         try:
             caja = st.container(key="pregunta")
@@ -1241,14 +1242,18 @@ def pinta_resultado(payload, estado=None, avance=0.06, interactivo=False, consul
             )
             if interactivo:
                 opciones = extraer_opciones(payload.get("pregunta", ""), payload.get("opciones"))
-                pesos = [max(1.0, len(opc) * 0.1) for opc in opciones]
-                spacer = max(0.8, 5.5 - sum(pesos))
-                cols = st.columns(pesos + [spacer], gap="small")
+                pesos = [max(1.0, len(opc) * 0.09) for opc in opciones]
+                spacer = max(0.4, (8.0 - sum(pesos)) / 2.0)
+                col_weights = [spacer] + pesos + [spacer]
+                cols = st.columns(col_weights, gap="small")
                 for idx, opc in enumerate(opciones):
-                    with cols[idx]:
+                    with cols[idx + 1]:
                         if st.button(opc, key=f"resp_opt_{idx}", use_container_width=True):
                             st.session_state["respuesta"] = (consulta, payload["pregunta"], opc)
                             st.rerun()
+
+    # 2. TARJETAS DE OCUPACIONES
+    pinta_tarjetas(ocupaciones)
 
     if estado:
         return
