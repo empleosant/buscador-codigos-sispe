@@ -1,6 +1,6 @@
 """
-Codificador de ocupaciones SISPE
-Interfaz de apoyo para localizar codigos oficiales antes de grabarlos en SilcoiWeb.
+Codificador de ocupaciones SISPE & Creador de CV Express
+Herramienta de apoyo para orientadores laborales y candidatos.
 """
 
 import os
@@ -76,7 +76,7 @@ def sin_cuota(e):
     return "429" in t or "RESOURCE_EXHAUSTED" in t or "quota" in t.lower()
 
 st.set_page_config(
-    page_title="Codificador de ocupaciones",
+    page_title="Codificador SISPE & Generador de CV",
     page_icon="◉",
     layout="wide",
     initial_sidebar_state="collapsed",
@@ -111,7 +111,19 @@ html,body,[class*="css"],.stMarkdown{
 h1 > a, h2 > a, h3 > a, .stMarkdown a.anchor-link{ display:none !important; }
 div[data-testid="InputInstructions"]{ display:none !important; }
 
-/* Eliminación de márgenes fantasma entre iframe y contenedor */
+/* Tabs estilizadas */
+div[data-testid="stTabs"] button {
+  font-size: clamp(0.85rem, 0.95vw, 1rem) !important;
+  font-weight: 700 !important;
+  padding: 0.5rem 1rem !important;
+  color: var(--suave) !important;
+}
+div[data-testid="stTabs"] button[aria-selected="true"] {
+  color: var(--rojo) !important;
+  border-bottom-color: var(--rojo) !important;
+}
+
+/* Eliminación de márgenes fantasma en iframe */
 div[data-testid="stCustomComponentV1"] {
   margin-bottom: 0px !important;
   padding-bottom: 0px !important;
@@ -122,7 +134,7 @@ div[data-testid="stCustomComponentV1"] iframe {
   display: block !important;
 }
 
-/* ---------- Cabecera fluida ---------- */
+/* Cabecera fluida */
 .st-key-cabecera{
   background:var(--negro);
   padding:clamp(0.55rem, 1vh, 0.8rem) clamp(1rem, 2vw, 1.8rem);
@@ -168,7 +180,7 @@ div[data-testid="stTextInput"] input{
   color:var(--texto) !important; font-family:'Libre Franklin',sans-serif !important;
 }
 
-/* Botones */
+/* Botones principales */
 .st-key-buscar button{
   background:var(--rojo) !important; color:#fff !important; border:none !important;
   border-radius:0 4px 4px 0 !important; font-weight:700 !important;
@@ -203,10 +215,10 @@ div[data-testid="stTextInput"] input{
 }
 .seccion{
   font-size:.65rem; font-weight:700; letter-spacing:.14em; text-transform:uppercase;
-  color:var(--suave); margin:1rem 0 .5rem;
+  color:var(--suave); margin:0.8rem 0 .4rem;
 }
 
-/* Pregunta interactiva centrada (arriba de las tarjetas) */
+/* Pregunta interactiva centrada */
 .st-key-pregunta{
   background:#fff; border:1px solid var(--linea); border-top:3px solid var(--rojo);
   border-radius:4px; padding:clamp(0.45rem, 0.8vh, 0.65rem) clamp(0.8rem, 1.2vw, 1.2rem);
@@ -264,8 +276,44 @@ div[data-testid="stTextInput"] input{
   text-align:center; font-size:.74rem; font-weight:600; color:var(--suave); margin:.2rem 0 0;
 }
 
-div[data-testid="stExpander"]{ border:none; background:transparent; margin-top:.1rem; }
-div[data-testid="stExpander"] summary{ font-size:.8rem; color:var(--suave); padding:.1rem 0; }
+/* Tarjeta de CV en el editor */
+.tarjeta-cv-editor {
+  background:#fff; border:1px solid var(--linea); border-left:4px solid var(--rojo);
+  border-radius:4px; padding:0.8rem 1rem; margin-bottom:0.6rem;
+  box-shadow:0 1px 4px rgba(0,0,0,0.03);
+}
+
+/* Documento de CV para impresión */
+@media print {
+  body, .stApp { background:#fff !important; }
+  .st-key-cabecera, div[data-testid="stTabs"], .no-print, button { display:none !important; }
+  .cv-document { border:none !important; box-shadow:none !important; padding:0 !important; }
+}
+.cv-document {
+  background:#fff; border:1px solid var(--linea); border-radius:6px;
+  padding:2rem 2.5rem; max-width:850px; margin:0.5rem auto;
+  box-shadow:0 4px 18px rgba(0,0,0,0.06); font-family:'Libre Franklin',sans-serif;
+}
+.cv-header { border-bottom:2px solid var(--negro); padding-bottom:0.8rem; margin-bottom:1.2rem; }
+.cv-name { font-size:1.8rem; font-weight:700; color:var(--negro); margin:0 0 0.2rem; }
+.cv-contact { font-size:0.88rem; color:var(--suave); }
+.cv-section { margin-bottom:1.3rem; }
+.cv-section-title {
+  font-size:0.82rem; font-weight:700; letter-spacing:0.12em; text-transform:uppercase;
+  color:var(--rojo); border-bottom:1px solid var(--linea); padding-bottom:0.25rem; margin-bottom:0.6rem;
+}
+.cv-profile { font-size:0.92rem; line-height:1.45; color:var(--texto); margin:0; }
+.cv-item { margin-bottom:0.85rem; }
+.cv-item-header { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:0.2rem; }
+.cv-puesto { font-size:0.96rem; font-weight:700; color:var(--negro); }
+.cv-periodo { font-size:0.82rem; font-weight:600; color:var(--suave); font-family:'JetBrains Mono',monospace; }
+.cv-bullets { margin:0.2rem 0 0 1.1rem; padding:0; font-size:0.88rem; line-height:1.4; color:var(--texto); }
+.cv-bullets li { margin-bottom:0.2rem; }
+.cv-tags-container { display:flex; flex-wrap:wrap; gap:6px; }
+.cv-tag {
+  font-size:0.76rem; font-weight:600; background:var(--gris); color:var(--texto);
+  padding:0.2rem 0.55rem; border-radius:3px; border:1px solid var(--linea);
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -713,20 +761,59 @@ Selecciona entre 3 y 5, de mayor a menor afinidad.
 
 REGLAS
 1. Usa únicamente códigos y denominaciones literales de la lista de candidatos. No inventes ni modifiques ninguno.
-2. Los candidatos llegan ordenados por coincidencia de palabras, NO por acierto. Ese orden es solo una pista: elige siempre la ocupación cuya denominación describa la actividad real, aunque esté al final de la lista.
+2. Los candidatos llegan ordenados por coincidencia de palabras, NO por acierto.
 3. Devuelve SIEMPRE entre 3 y 5 ocupaciones, aunque dudes.
-4. Nivel profesional: 90 aprendices (sin experiencia) / 00 técnicos o sin categoría (estándar con experiencia) / 10 dirección / 20 mandos intermedios / 30 jefes de equipo / 70 auxiliares / 80 peones.
-5. El campo "motivo" explica en menos de 10 palabras por qué encaja, en español con acentuación correcta.
-6. No propongas ocupaciones de dirección, jefatura ni mando (niveles 10, 20, 30) salvo que la descripción diga expresamente que dirigía equipos, centros o departamentos.
-7. Respeta el entorno de trabajo que indique la descripción: domicilio particular frente a institución, centro o residencia.
-8. PREGUNTA Y OPCIONES (DESAMBIGUACIÓN):
+4. Nivel profesional: 90 aprendices / 00 técnicos o estándar / 10 dirección / 20 mandos / 30 jefes / 70 auxiliares / 80 peones.
+5. Motivo: menos de 10 palabras explicando por qué encaja.
+6. Respeta el entorno de trabajo (domicilio frente a institución o centro).
+7. PREGUNTA Y OPCIONES (DESAMBIGUACIÓN):
    - Rellena "pregunta" y "opciones" solo si hay duda para desempatar entre las DOS PRIMERAS ocupaciones. Si no hay duda, deja "pregunta": "" y "opciones": [].
    - La pregunta debe plantear una elección clara y directa (máximo 15 palabras).
-   - El campo "opciones" DEBE contener una lista con las 2 alternativas concretas (ej. ["Atención en caja / mostrador", "Cocina y preparación de comida"], ["Casas particulares", "Residencias / Centros"], o ["Sí", "No"]). NUNCA dejes "opciones" vacío si hay "pregunta".
-9. Si ninguna de las candidatas describe con precisión la actividad, rellena "otros_terminos" con entre 6 y 10 palabras sueltas de la CNO.
+   - "opciones": lista con 2 alternativas concretas (ej. ["Atención en caja / mostrador", "Cocina y preparación de comida"], ["Casas particulares", "Residencias / Centros"], o ["Sí", "No"]).
+8. Si ninguna encaja, rellena "otros_terminos" con 6 a 10 términos oficiales de la CNO.
 
 EJEMPLO DE RESPUESTA:
 {"ocupaciones":[{"codigo":"51201027","denominacion":"CAMAREROS DE BARRA Y/O DEPENDIENTES DE CAFETERÍA","nivel":"00","motivo":"Atención en mostrador y servicio de comida rápida."},{"codigo":"93101024","denominacion":"PINCHES DE COCINA","nivel":"00","motivo":"Elaboración y preparación de alimentos en restauración."}],"pregunta":"¿A qué tarea dedicaba la mayor parte de su jornada?","opciones":["Atención en caja y mostrador","Preparación de comida en cocina"],"otros_terminos":""}
+"""
+
+
+PROMPT_CV_SISTEMA = """Eres un orientador laboral experto del Servicio Público de Empleo (SEPE) y redactor profesional de currículums de alto impacto.
+
+Recibes los datos de un candidato, sus puestos (con denominaciones oficiales del catálogo SISPE/CNO y descripciones de sus tareas), su formación y datos de contacto.
+
+Tu objetivo es generar un CV estructurado, redactado con rigor, empleando verbos de acción y vocabulario formal de competencias.
+
+Devuelve SOLO un JSON con esta estructura exacta:
+{
+  "perfil_profesional": "Párrafo de 3-4 líneas que resume la trayectoria, fortalezas técnicas, actitud y disponibilidad.",
+  "experiencias": [
+    {
+      "puesto": "Denominación profesional del puesto (p. ej. Camarero de barra y sala)",
+      "empresa": "Nombre de la empresa o sector",
+      "periodo": "Fechas o duración indicada",
+      "logros_tareas": [
+        "Viñeta con verbo de acción describiendo responsabilidad con terminología técnica",
+        "Viñeta describiendo herramientas, procesos o atención al cliente",
+        "Viñeta destacando eficiencia, organización o trabajo en equipo"
+      ]
+    }
+  ],
+  "competencias": [
+    "Competencia 1",
+    "Competencia 2",
+    "Competencia 3",
+    "Competencia 4",
+    "Competencia 5",
+    "Competencia 6"
+  ],
+  "formacion": [
+    "Titulación o curso"
+  ],
+  "datos_adicionales": [
+    "Permiso de conducir B y vehículo propio",
+    "Disponibilidad horaria total"
+  ]
+}
 """
 
 
@@ -798,17 +885,9 @@ def _flujo_openai(cli, prompt):
 
 INTERPRETE = """Eres experto en el catálogo de ocupaciones del SEPE (CNO).
 
-Lees la descripción de un puesto escrita por un orientador laboral, con las
-palabras de la persona atendida, y devuelves el VOCABULARIO OFICIAL de los
-oficios que podría estar describiendo.
+Lees la descripción de un puesto y devuelves el VOCABULARIO OFICIAL de los oficios que podría estar describiendo. Devuelve entre 2 y 3 lecturas distintas.
 
-Una descripción corriente admite varias lecturas: "cuidado de niños en una
-escuela" puede ser guardería, comedor escolar o tiempo libre. Devuelve entre
-2 y 3 lecturas distintas, de más a menos probable.
-
-Si la descripción incluye dos funciones distintas o tareas combinadas
-(ej. "cobro en caja y repongo", "conduzco y reparto"), genera una lectura
-específica para cada una de las actividades.
+Si la descripción incluye dos funciones distintas o tareas combinadas (ej. "cobro en caja y repongo"), genera una lectura específica para cada una.
 
 Responde SOLO con este JSON:
 {"lecturas":[{"terminos":"...","grupos":"5"},{"terminos":"...","grupos":"3"}]}
@@ -1015,6 +1094,54 @@ def interpreta(bruto):
         "descartadas": descartadas,
         "mas_terminos": sugeridos,
     }
+
+
+def genera_cv_ia(cli, candidato, experiencias, formacion, datos_extra):
+    prompt = f"""Genera el CV profesional para el siguiente candidato:
+DATOS DEL CANDIDATO:
+- Nombre: {candidato.get('nombre', 'Candidato/a')}
+- Localidad: {candidato.get('localidad', '')}
+- Carné / Vehículo: {candidato.get('carnet', '')}
+- Disponibilidad: {candidato.get('disponibilidad', '')}
+
+EXPERIENCIAS LABORALES (en orden cronológico):
+"""
+    for i, exp in enumerate(experiencias, 1):
+        prompt += f"""
+Puesto {i}:
+- Denominación oficial SISPE: {exp.get('puesto_oficial', '')} (Código CNO: {exp.get('codigo', '')})
+- Empresa / Sector: {exp.get('empresa', 'Empresa del sector')}
+- Periodo / Fechas: {exp.get('periodo', 'Reciente')}
+- Tareas descritas por el candidato: {exp.get('descripcion_usuario', '')} {exp.get('motivo', '')}
+"""
+
+    prompt += f"""
+FORMACIÓN Y CURSOS:
+{formacion or 'Educación Secundaria / Formación básica'}
+
+OTROS DATOS / IDIOMAS / HABILIDADES:
+{datos_extra or 'Incorporación inmediata'}
+"""
+    try:
+        cfg = dict(system_instruction=PROMPT_CV_SISTEMA, max_output_tokens=2500, response_mime_type="application/json")
+        if PROVEEDOR == "gemini":
+            r = cli.models.generate_content(
+                model=modelo_actual(), contents=prompt,
+                config=types.GenerateContentConfig(**cfg),
+            )
+            bruto = (getattr(r, "text", "") or "").strip()
+        else:
+            r = cli.chat.completions.create(
+                model=modelo_actual(),
+                messages=[{"role": "system", "content": PROMPT_CV_SISTEMA}, {"role": "user", "content": prompt}],
+                max_tokens=2500, temperature=0.2, response_format={"type": "json_object"},
+            )
+            bruto = (r.choices[0].message.content or "").strip()
+
+        texto = re.sub(r"^```(?:json)?|```$", "", bruto, flags=re.MULTILINE).strip()
+        return json.loads(texto)
+    except Exception:  # noqa: BLE001
+        return None
 
 
 # ---------------------------------------------------------------------------
@@ -1228,7 +1355,7 @@ def pinta_resultado(payload, estado=None, avance=0.06, interactivo=False, consul
         st.info("No encuentro coincidencias claras. Prueba con el nombre del puesto o función concreta.")
         return
 
-    # 1. PREGUNTA ARRIBA (antes de las tarjetas)
+    # 1. PREGUNTA ARRIBA (centrada)
     if payload.get("pregunta"):
         try:
             caja = st.container(key="pregunta")
@@ -1254,6 +1381,27 @@ def pinta_resultado(payload, estado=None, avance=0.06, interactivo=False, consul
 
     # 2. TARJETAS DE OCUPACIONES
     pinta_tarjetas(ocupaciones)
+
+    # 3. ACCIÓN DIRECTA PARA AÑADIR AL CV
+    if interactivo and ocupaciones:
+        st.markdown('<div class="seccion">Añadir al borrador de CV</div>', unsafe_allow_html=True)
+        cols_add = st.columns(min(3, len(ocupaciones)))
+        for i, col in enumerate(cols_add):
+            o_top = ocupaciones[i]
+            with col:
+                nom_corta = o_top["denominacion"][:26] + ("…" if len(o_top["denominacion"]) > 26 else "")
+                if st.button(f"➕ Añadir [{o_top['codigo']}]", key=f"btn_add_cv_{o_top['codigo']}", use_container_width=True):
+                    st.session_state["cv_experiencias"].append({
+                        "id": int(time.time() * 1000) + i,
+                        "codigo": o_top["codigo"],
+                        "puesto_oficial": o_top["denominacion"],
+                        "descripcion_usuario": consulta,
+                        "motivo": o_top.get("motivo", ""),
+                        "empresa": "",
+                        "periodo": "",
+                    })
+                    st.toast(f"Añadido al CV: {nom_corta}", icon="💼")
+                    st.rerun()
 
     if estado:
         return
@@ -1474,7 +1622,7 @@ def resuelve(texto, zona, usar_ia=True, contexto="", busqueda=None):
 
 
 # ---------------------------------------------------------------------------
-# INTERFAZ
+# INTERFAZ & ESTADO
 # ---------------------------------------------------------------------------
 
 try:
@@ -1494,6 +1642,15 @@ st.session_state.setdefault("por_guardar", [])
 st.session_state.setdefault("refuerzos_por_guardar", [])
 st.session_state.setdefault("ultima", "")
 st.session_state.setdefault("consulta", "")
+
+# Estado para el Creador de CV
+st.session_state.setdefault("cv_experiencias", [])
+st.session_state.setdefault("cv_generado", None)
+st.session_state.setdefault("cv_candidato", {
+    "nombre": "", "telefono": "", "email": "",
+    "localidad": "", "carnet": "", "disponibilidad": "",
+    "formacion": "", "datos_extra": "",
+})
 
 EJEMPLOS = [
     "Una persona que limpia habitaciones de hotel",
@@ -1573,7 +1730,7 @@ def empezar_de_nuevo():
 
 
 # ---------------------------------------------------------------------------
-# Desambiguación interactiva con opciones adaptativas
+# Desambiguación interactiva
 # ---------------------------------------------------------------------------
 
 entrada, contexto, busqueda, rotulo = None, "", None, None
@@ -1593,8 +1750,9 @@ if respuesta:
 if not entrada:
     entrada = st.session_state.pop("pendiente", None)
 
+
 # ---------------------------------------------------------------------------
-# Banda de cabecera
+# BANDA DE CABECERA
 # ---------------------------------------------------------------------------
 
 try:
@@ -1628,56 +1786,265 @@ with banda:
 if entrada:
     st.session_state["ultima"] = entrada
 
+
 # ---------------------------------------------------------------------------
-# Cuerpo
+# PESTAÑAS PRINCIPALES: CODIFICADOR Y CREADOR DE CV
 # ---------------------------------------------------------------------------
 
-if entrada:
-    st.markdown(
-        f'<div class="consulta-box"><div class="consulta-texto">{rotulo or entrada}</div></div>',
-        unsafe_allow_html=True,
-    )
-    zona = st.empty()
-    payload = resuelve(
-        entrada, zona,
-        usar_ia=st.session_state["usar_ia"],
-        contexto=contexto, busqueda=busqueda,
-    )
-    st.session_state["actual"] = (rotulo or entrada, payload)
-    st.session_state["registro"].append((
-        rotulo or entrada,
-        " | ".join(o["codigo"] for o in payload.get("ocupaciones", [])),
-    ))
-    st.rerun()
+n_cv = len(st.session_state["cv_experiencias"])
+tab_codificador, tab_cv = st.tabs([
+    "🔍 Codificador SISPE",
+    f"📄 Creador de CV ({n_cv})" if n_cv else "📄 Creador de CV",
+])
 
-elif st.session_state["actual"]:
-    consulta, payload = st.session_state["actual"]
-    st.markdown(
-        f'<div class="consulta-box"><div class="consulta-texto">{consulta}</div></div>',
-        unsafe_allow_html=True,
-    )
-    pinta_resultado(payload, interactivo=True, consulta=consulta)
 
-    st.markdown('<div class="separa"></div>', unsafe_allow_html=True)
-    st.button("↺", key="reinicio", help="Nueva búsqueda", on_click=empezar_de_nuevo)
-    st.markdown('<div class="pie-nueva">Nueva búsqueda</div>', unsafe_allow_html=True)
+# ===========================================================================
+# PESTAÑA 1: CODIFICADOR SISPE
+# ===========================================================================
+with tab_codificador:
+    if entrada:
+        st.markdown(
+            f'<div class="consulta-box"><div class="consulta-texto">{rotulo or entrada}</div></div>',
+            unsafe_allow_html=True,
+        )
+        zona = st.empty()
+        payload = resuelve(
+            entrada, zona,
+            usar_ia=st.session_state["usar_ia"],
+            contexto=contexto, busqueda=busqueda,
+        )
+        st.session_state["actual"] = (rotulo or entrada, payload)
+        st.session_state["registro"].append((
+            rotulo or entrada,
+            " | ".join(o["codigo"] for o in payload.get("ocupaciones", [])),
+        ))
+        st.rerun()
 
-else:
-    st.markdown('<div class="seccion">Prueba con</div>', unsafe_allow_html=True)
-    arranque = "Una persona que "
-    for i in range(0, len(EJEMPLOS), 2):
-        fila = EJEMPLOS[i:i + 2]
-        cols = st.columns(2, gap="small")
-        for col, ej in zip(cols, fila):
-            rotulo_ej = (
-                f"{arranque}**{ej[len(arranque):]}**"
-                if ej.startswith(arranque) else f"**{ej}**"
-            )
-            col.button(
-                rotulo_ej, use_container_width=True, key=f"ej_{i}_{ej[-14:]}",
-                on_click=usar_ejemplo, args=(ej,),
-            )
+    elif st.session_state["actual"]:
+        consulta, payload = st.session_state["actual"]
+        st.markdown(
+            f'<div class="consulta-box"><div class="consulta-texto">{consulta}</div></div>',
+            unsafe_allow_html=True,
+        )
+        pinta_resultado(payload, interactivo=True, consulta=consulta)
 
+        st.markdown('<div class="separa"></div>', unsafe_allow_html=True)
+        st.button("↺", key="reinicio", help="Nueva búsqueda", on_click=empezar_de_nuevo)
+        st.markdown('<div class="pie-nueva">Nueva búsqueda</div>', unsafe_allow_html=True)
+
+    else:
+        st.markdown('<div class="seccion">Prueba con</div>', unsafe_allow_html=True)
+        arranque = "Una persona que "
+        for i in range(0, len(EJEMPLOS), 2):
+            fila = EJEMPLOS[i:i + 2]
+            cols = st.columns(2, gap="small")
+            for col, ej in zip(cols, fila):
+                rotulo_ej = (
+                    f"{arranque}**{ej[len(arranque):]}**"
+                    if ej.startswith(arranque) else f"**{ej}**"
+                )
+                col.button(
+                    rotulo_ej, use_container_width=True, key=f"ej_{i}_{ej[-14:]}",
+                    on_click=usar_ejemplo, args=(ej,),
+                )
+
+
+# ===========================================================================
+# PESTAÑA 2: CREADOR DE CV EXPRESS
+# ===========================================================================
+with tab_cv:
+    exps = st.session_state["cv_experiencias"]
+
+    col_izq, col_der = st.columns([1.2, 1.8], gap="large")
+
+    with col_izq:
+        st.markdown("### 1. Datos del Candidato")
+        cand = st.session_state["cv_candidato"]
+        cand["nombre"] = st.text_input("Nombre completo", value=cand["nombre"], placeholder="Ej. Juan Pérez García")
+        c1, c2 = st.columns(2)
+        with c1:
+            cand["telefono"] = st.text_input("Teléfono", value=cand["telefono"], placeholder="600 000 000")
+        with c2:
+            cand["localidad"] = st.text_input("Localidad", value=cand["localidad"], placeholder="Madrid, España")
+        cand["email"] = st.text_input("Correo electrónico", value=cand["email"], placeholder="juan.perez@email.com")
+
+        c3, c4 = st.columns(2)
+        with c3:
+            cand["carnet"] = st.text_input("Carné / Vehículo", value=cand["carnet"], placeholder="Permiso B, coche")
+        with c4:
+            cand["disponibilidad"] = st.text_input("Disponibilidad", value=cand["disponibilidad"], placeholder="Inmediata, completa")
+
+        cand["formacion"] = st.text_area(
+            "Formación y cursos", value=cand["formacion"],
+            placeholder="Ej. Graduado en ESO, Curso de Manipulador de Alimentos (20h)...",
+            height=70,
+        )
+
+        st.markdown("---")
+        st.markdown(f"### 2. Experiencias acumuladas ({len(exps)})")
+        st.caption("Ordena tus puestos del más reciente al más antiguo con ⬆️ y ⬇️.")
+
+        if not exps:
+            st.info("Aún no has añadido experiencias. Busca en el **Codificador SISPE** y pulsa **➕ Añadir al CV**, o añade una manualmente debajo.")
+
+        # Listado reordenable de experiencias
+        borrar_idx = None
+        for idx, exp in enumerate(exps):
+            with st.container():
+                st.markdown(f"**{idx + 1}. {exp.get('puesto_oficial', 'Puesto de trabajo')}** `[{exp.get('codigo', '')}]`")
+                c_e1, c_e2 = st.columns(2)
+                with c_e1:
+                    exp["empresa"] = st.text_input("Empresa o sector", value=exp.get("empresa", ""), key=f"emp_{exp['id']}", placeholder="Ej. McDonald's")
+                with c_e2:
+                    exp["periodo"] = st.text_input("Fechas / Periodo", value=exp.get("periodo", ""), key=f"per_{exp['id']}", placeholder="Ej. 2022 - 2024")
+
+                exp["descripcion_usuario"] = st.text_area(
+                    "Tareas realizadas", value=exp.get("descripcion_usuario", ""),
+                    key=f"tar_{exp['id']}", height=55, placeholder="Qué hacía en el puesto...",
+                )
+
+                b_subir, b_bajar, b_quitar, _ = st.columns([1, 1, 1, 3])
+                with b_subir:
+                    if st.button("⬆️", key=f"up_{exp['id']}", help="Mover arriba", disabled=(idx == 0)):
+                        exps[idx], exps[idx - 1] = exps[idx - 1], exps[idx]
+                        st.rerun()
+                with b_bajar:
+                    if st.button("⬇️", key=f"down_{exp['id']}", help="Mover abajo", disabled=(idx == len(exps) - 1)):
+                        exps[idx], exps[idx + 1] = exps[idx + 1], exps[idx]
+                        st.rerun()
+                with b_quitar:
+                    if st.button("🗑️", key=f"del_{exp['id']}", help="Quitar puesto"):
+                        borrar_idx = idx
+                st.markdown("<div style='height:8px; border-bottom:1px solid #E2E8F0; margin-bottom:10px;'></div>", unsafe_allow_html=True)
+
+        if borrar_idx is not None:
+            exps.pop(borrar_idx)
+            st.rerun()
+
+        if st.button("➕ Añadir experiencia manual", use_container_width=True):
+            exps.append({
+                "id": int(time.time() * 1000),
+                "codigo": "00000000",
+                "puesto_oficial": "Puesto personalizado",
+                "descripcion_usuario": "",
+                "motivo": "",
+                "empresa": "",
+                "periodo": "",
+            })
+            st.rerun()
+
+        st.markdown("---")
+        btn_generar_cv = st.button("✨ Redactar CV con IA", key="btn_redactar_cv", type="primary", use_container_width=True, disabled=(len(exps) == 0))
+
+    # Columna derecha: Previsualización y exportación
+    with col_der:
+        st.markdown("### 3. Vista Previa del Currículum")
+
+        if btn_generar_cv:
+            cli = cliente()
+            if cli is None:
+                st.error("Falta configurar la clave de IA en Secrets para generar el CV.")
+            else:
+                with st.spinner("Redactando un CV profesional y optimizado..."):
+                    cv_data = genera_cv_ia(cli, cand, exps, cand["formacion"], cand.get("datos_extra", ""))
+                    if cv_data:
+                        st.session_state["cv_generado"] = cv_data
+                    else:
+                        st.error("No se ha podido estructurar el CV. Inténtalo de nuevo.")
+
+        cv = st.session_state.get("cv_generado")
+
+        if not cv:
+            st.info("Rellena los datos a la izquierda y pulsa **✨ Redactar CV con IA** para ver tu documento maquetado.")
+        else:
+            # Barra de acciones de exportación
+            b_exp1, b_exp2, b_exp3 = st.columns([1.5, 1.5, 1])
+            with b_exp1:
+                # Texto plano para copiar
+                texto_cv = f"""CURRÍCULUM VITAE: {cand.get('nombre', '').upper()}
+Contacto: {cand.get('telefono', '')} | {cand.get('email', '')} | {cand.get('localidad', '')}
+Carné: {cand.get('carnet', '')} | Disponibilidad: {cand.get('disponibilidad', '')}
+
+PERFIL PROFESIONAL:
+{cv.get('perfil_profesional', '')}
+
+EXPERIENCIA LABORAL:
+"""
+                for exp in cv.get("experiencias", []):
+                    texto_cv += f"\n* {exp.get('puesto', '').upper()} ({exp.get('empresa', '')} | {exp.get('periodo', '')})\n"
+                    for b in exp.get("logros_tareas", []):
+                        texto_cv += f"  - {b}\n"
+
+                texto_cv += f"\nCOMPETENCIAS CLAVE:\n" + ", ".join(cv.get("competencias", []))
+                texto_cv += f"\n\nFORMACIÓN:\n" + "\n".join([f"- {f}" for f in cv.get("formacion", [])])
+                if cv.get("datos_adicionales"):
+                    texto_cv += f"\n\nINFORMACIÓN ADICIONAL:\n" + "\n".join([f"- {a}" for f in cv.get("datos_adicionales", []) for a in [f]])
+
+                with st.popover("📋 Copiar en texto"):
+                    st.text_area("Selecciona y copia para Word / Correo:", value=texto_cv, height=300)
+
+            with b_exp2:
+                # Disparador de impresión nativa a PDF
+                if st.button("🖨️ Imprimir / Guardar PDF", use_container_width=True):
+                    components.html("<script>window.parent.print();</script>", height=0)
+
+            with b_exp3:
+                if st.button("🗑️ Limpiar", use_container_width=True):
+                    st.session_state["cv_generado"] = None
+                    st.rerun()
+
+            # Render HTML elegante del CV
+            nombre_cand = cand.get("nombre") or "CANDIDATO/A"
+            contacto_items = [cand.get("telefono"), cand.get("email"), cand.get("localidad"), cand.get("carnet")]
+            contacto_str = " &nbsp;&bull;&nbsp; ".join([c for c in contacto_items if c])
+
+            exp_html = ""
+            for exp in cv.get("experiencias", []):
+                cab_emp = f"{exp.get('empresa', '')} &middot; {exp.get('periodo', '')}" if exp.get("empresa") and exp.get("periodo") else (exp.get("empresa") or exp.get("periodo", ""))
+                bullets_html = "".join([f"<li>{b}</li>" for b in exp.get("logros_tareas", [])])
+                exp_html += f"""
+                <div class="cv-item">
+                  <div class="cv-item-header">
+                    <span class="cv-puesto">{exp.get('puesto', '')}</span>
+                    <span class="cv-periodo">{cab_emp}</span>
+                  </div>
+                  <ul class="cv-bullets">{bullets_html}</ul>
+                </div>
+                """
+
+            comp_html = "".join([f'<span class="cv-tag">{c}</span>' for c in cv.get("competencias", [])])
+            form_html = "".join([f"<li>{f}</li>" for f in cv.get("formacion", [])])
+            adic_html = "".join([f"<li>{a}</li>" for a in cv.get("datos_adicionales", [])])
+
+            cv_doc_html = f"""
+            <div class="cv-document">
+              <div class="cv-header">
+                <div class="cv-name">{nombre_cand}</div>
+                <div class="cv-contact">{contacto_str}</div>
+              </div>
+              <div class="cv-section">
+                <div class="cv-section-title">Perfil Profesional</div>
+                <p class="cv-profile">{cv.get('perfil_profesional', '')}</p>
+              </div>
+              <div class="cv-section">
+                <div class="cv-section-title">Experiencia Laboral</div>
+                {exp_html}
+              </div>
+              <div class="cv-section">
+                <div class="cv-section-title">Competencias Clave</div>
+                <div class="cv-tags-container">{comp_html}</div>
+              </div>
+              <div class="cv-section">
+                <div class="cv-section-title">Formación y Capacitación</div>
+                <ul class="cv-bullets">{form_html}</ul>
+              </div>
+              {"<div class='cv-section'><div class='cv-section-title'>Información Adicional</div><ul class='cv-bullets'>" + adic_html + "</ul></div>" if adic_html else ""}
+            </div>
+            """
+            st.markdown(cv_doc_html, unsafe_allow_html=True)
+
+
+# Sincronización final de términos y refuerzos aprendidos
 for clave, valor in st.session_state.pop("por_guardar", []):
     guarda_termino(clave, valor)
 
