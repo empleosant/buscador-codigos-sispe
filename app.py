@@ -105,7 +105,7 @@ st.markdown("""
 html,body,[class*="css"],.stMarkdown{
   font-family:'Libre Franklin',system-ui,sans-serif; color:var(--texto);
 }
-.block-container{ padding:0 1rem .6rem !important; max-width:1200px; }
+.block-container{ padding:0 1rem .5rem !important; max-width:1200px; }
 #MainMenu, footer, header[data-testid="stHeader"]{ visibility:hidden; height:0; }
 [data-testid="stHeaderActionElements"]{ display:none !important; }
 h1 > a, h2 > a, h3 > a, .stMarkdown a.anchor-link{ display:none !important; }
@@ -195,7 +195,7 @@ div[data-testid="stTextInput"] input{
   color:var(--suave); margin:1.2rem 0 .6rem;
 }
 
-/* Pregunta interactiva */
+/* Pregunta interactiva con botones adaptativos */
 .st-key-pregunta{
   background:#fff; border:1px solid var(--linea); border-left:4px solid var(--rojo);
   border-radius:4px; padding:clamp(0.6rem, 1.1vh, 0.85rem) clamp(0.8rem, 1.2vw, 1.1rem);
@@ -207,13 +207,16 @@ div[data-testid="stTextInput"] input{
 }
 .pregunta-texto{
   font-size:clamp(0.92rem, 1vw, 1.02rem); line-height:1.35; font-weight:600;
-  color:var(--texto); margin-bottom:.5rem;
+  color:var(--texto); margin-bottom:.55rem;
 }
 .st-key-pregunta .stButton button{
   background:#fff; border:1px solid var(--negro); font-weight:600; border-radius:4px;
-  padding:.3rem .7rem; min-height:36px; font-size:.85rem;
+  padding:.4rem .85rem; min-height:38px; font-size:.85rem; transition:all .15s ease;
+  white-space:normal !important; height:auto !important;
 }
-.st-key-pregunta .stButton button:hover{ background:var(--negro); color:#fff; }
+.st-key-pregunta .stButton button:hover{
+  background:var(--negro); color:#fff; border-color:var(--negro);
+}
 
 .nota{ font-size:.76rem; color:var(--suave); margin:.2rem 0; }
 .separa{ height:1px; background:var(--linea); margin:clamp(0.3rem, 0.7vh, 0.5rem) 0; }
@@ -696,17 +699,19 @@ Selecciona entre 3 y 5, de mayor a menor afinidad.
 REGLAS
 1. Usa únicamente códigos y denominaciones literales de la lista de candidatos. No inventes ni modifiques ninguno.
 2. Los candidatos llegan ordenados por coincidencia de palabras, NO por acierto. Ese orden es solo una pista: elige siempre la ocupación cuya denominación describa la actividad real, aunque esté al final de la lista.
-3. Devuelve SIEMPRE entre 3 y 5 ocupaciones, aunque dudes. La duda se expresa en "pregunta", nunca acortando la lista.
+3. Devuelve SIEMPRE entre 3 y 5 ocupaciones, aunque dudes.
 4. Nivel profesional: 90 aprendices (sin experiencia) / 00 técnicos o sin categoría (estándar con experiencia) / 10 dirección / 20 mandos intermedios / 30 jefes de equipo / 70 auxiliares / 80 peones.
 5. El campo "motivo" explica en menos de 10 palabras por qué encaja, en español con acentuación correcta.
 6. No propongas ocupaciones de dirección, jefatura ni mando (niveles 10, 20, 30) salvo que la descripción diga expresamente que dirigía equipos, centros o departamentos.
 7. Respeta el entorno de trabajo que indique la descripción: domicilio particular frente a institución, centro o residencia.
-8. Rellena "pregunta" solo si faltan datos para decidir entre las DOS PRIMERAS ocupaciones de tu lista; si no, déjalo vacío. Si la persona realiza tareas mixtas (ej. caja y reposición, almacén y reparto), incluye ambas ocupaciones en los dos primeros puestos y formula una pregunta binaria y llana para saber cuál ocupaba la mayor parte del tiempo.
-   - Preguntas cortas, directas, para responder Sí o No. Máximo 15 palabras.
-9. IMPORTANTE. Si ninguna de las candidatas describe con precisión la actividad, rellena "otros_terminos" con entre 6 y 10 palabras sueltas del vocabulario de la clasificación que deberían buscarse en su lugar.
+8. PREGUNTA Y OPCIONES: Rellena "pregunta" y "opciones" solo si hay ambigüedad para decidir entre las DOS PRIMERAS ocupaciones de tu lista; si no, déjalos vacíos.
+   - "pregunta": formula una duda directa para la persona atendida (máximo 15 palabras).
+   - "opciones": lista con 2 opciones cortas y concretas que representen cada rama o tarea (ej. ["Atención en caja / mostrador", "Cocina y preparación de comida"], ["En casas particulares", "En residencias"], o ["Sí", "No"]).
+   - NUNCA uses preguntas con botones de Sí/No cuando la duda sea elegir entre dos áreas o tareas: en esos casos pon los nombres de las tareas en "opciones".
+9. IMPORTANTE: Si ninguna de las candidatas describe con precisión la actividad, rellena "otros_terminos" con entre 6 y 10 palabras sueltas del vocabulario oficial de la CNO que deberían buscarse.
 
 Responde solo con este JSON:
-{"ocupaciones":[{"codigo":"12345678","denominacion":"...","nivel":"00","motivo":"..."}],"pregunta":"","otros_terminos":""}
+{"ocupaciones":[{"codigo":"12345678","denominacion":"...","nivel":"00","motivo":"..."}],"pregunta":"","opciones":[],"otros_terminos":""}
 """
 
 
@@ -930,15 +935,24 @@ def interpreta(bruto):
                 datos = {}
     if not datos:
         ocupaciones, descartadas = verifica(objetos_parciales(texto))
-        return {"ocupaciones": ocupaciones, "pregunta": "", "descartadas": descartadas}
+        return {"ocupaciones": ocupaciones, "pregunta": "", "opciones": [], "descartadas": descartadas}
 
     ocupaciones, descartadas = verifica(datos.get("ocupaciones"))
     sugeridos = " ".join(
         re.findall(r"[a-zñáéíóúü]+", normaliza(str(datos.get("otros_terminos", "") or "")))[:12]
     )
+    pregunta = str(datos.get("pregunta", "") or "").strip()
+    raw_opciones = datos.get("opciones", [])
+    opciones = []
+    if isinstance(raw_opciones, list):
+        opciones = [str(o).strip() for o in raw_opciones if str(o).strip()][:3]
+    if pregunta and not opciones:
+        opciones = ["Sí", "No"]
+
     return {
         "ocupaciones": ocupaciones,
-        "pregunta": str(datos.get("pregunta", "") or "").strip(),
+        "pregunta": pregunta,
+        "opciones": opciones,
         "descartadas": descartadas,
         "mas_terminos": sugeridos,
     }
@@ -1171,13 +1185,13 @@ def pinta_resultado(payload, estado=None, avance=0.06, interactivo=False, consul
                 unsafe_allow_html=True,
             )
             if interactivo:
-                si, no, _ = st.columns([1, 1, 5], gap="small")
-                if si.button("Sí", key="resp_si", use_container_width=True):
-                    st.session_state["respuesta"] = (consulta, payload["pregunta"], True)
-                    st.rerun()
-                if no.button("No", key="resp_no", use_container_width=True):
-                    st.session_state["respuesta"] = (consulta, payload["pregunta"], False)
-                    st.rerun()
+                opciones = payload.get("opciones") or ["Sí", "No"]
+                cols = st.columns(len(opciones), gap="small")
+                for idx, opc in enumerate(opciones):
+                    with cols[idx]:
+                        if st.button(opc, key=f"resp_opt_{idx}", use_container_width=True):
+                            st.session_state["respuesta"] = (consulta, payload["pregunta"], opc)
+                            st.rerun()
 
     if estado:
         return
@@ -1497,23 +1511,22 @@ def empezar_de_nuevo():
 
 
 # ---------------------------------------------------------------------------
-# Desambiguación interactiva
+# Desambiguación interactiva con opciones adaptativas
 # ---------------------------------------------------------------------------
 
 entrada, contexto, busqueda, rotulo = None, "", None, None
 
 respuesta = st.session_state.pop("respuesta", None)
 if respuesta:
-    original, pregunta, afirmativa = respuesta
+    original, pregunta, eleccion = respuesta
     entrada = original
-    rotulo = f"{original}  ·  {'Sí' if afirmativa else 'No'}"
+    rotulo = f"{original}  ·  {eleccion}"
     contexto = (
-        f"\n\nACLARACIÓN: a la pregunta «{pregunta}» la persona responde "
-        f"{'SÍ' if afirmativa else 'NO'}. Ten en cuenta esta respuesta y no "
-        f"vuelvas a plantear la misma duda."
+        f"\n\nACLARACIÓN: a la pregunta «{pregunta}» la persona respondió "
+        f"«{eleccion}». Ten en cuenta esta aclaración para priorizar la opción adecuada "
+        f"y no vuelvas a plantear la misma duda."
     )
-    if afirmativa:
-        busqueda = f"{original} {pregunta}"
+    busqueda = f"{original} {eleccion}"
 
 if not entrada:
     entrada = st.session_state.pop("pendiente", None)
