@@ -32,24 +32,16 @@ except ImportError:                     # noqa: S110
     OpenAI = None
 
 CATALOGO = "ocupaciones_sispe_ultraligero.txt"
-# Opcional: lo genera enriquecer.py una sola vez. Si está, la app busca también
-# por el vocabulario coloquial de cada ocupación.
 AMPLIADO = "terminos_ampliados.txt"
 N_CANDIDATOS = 16
 ESPERA_MAXIMA = 45      # segundos antes de rendirse con el modelo
 
 # ---------------------------------------------------------------------------
 # PROVEEDOR DE IA
-# Cambia esta única línea para migrar: "gemini", "groq" o "mistral".
-# La clave correspondiente va en los Secrets de Streamlit.
 # ---------------------------------------------------------------------------
 PROVEEDOR = "gemini"
 
 PROVEEDORES = {
-    # El primero es el preferido. Si agota cuota o no existe, se pasa al
-    # siguiente automáticamente. Cuotas gratuitas al día, agosto 2026:
-    #   gemini-3.5-flash-lite  500      gemini-3.1-flash-lite  500
-    #   gemini-3.6-flash        20  <-- por eso no va el primero
     "gemini": {
         "clave": "GEMINI_API_KEY",
         "modelos": [
@@ -91,7 +83,7 @@ st.set_page_config(
 )
 
 # ---------------------------------------------------------------------------
-# ESTILO
+# ESTILO COMPACTO (Ajustado para pantalla completa sin scroll)
 # ---------------------------------------------------------------------------
 
 st.markdown("""
@@ -100,44 +92,43 @@ st.markdown("""
 
 :root{
   --negro:#0A0A0A;
-  --rojo:#D1122E;          /* rojo corporativo */
+  --rojo:#D1122E;
   --rojo-oscuro:#A50E24;
   --texto:#1A1A1A;
-  --suave:#6B6B6B;
+  --suave:#666666;
   --tenue:#9A9A9A;
-  --linea:#D8D8D8;
-  --gris:#F4F4F5;
-  --fondo-tarjeta:#FFFFFF;
+  --linea:#E0E0E0;
+  --gris:#F5F5F7;
 }
 
 .stApp{ background:#FAFAFA; }
 html,body,[class*="css"],.stMarkdown{
   font-family:'Libre Franklin',system-ui,sans-serif; color:var(--texto);
 }
-.block-container{ padding:0 0 2rem; max-width:1180px; }
+.block-container{ padding:0 0 .5rem !important; max-width:1180px; }
 #MainMenu, footer, header[data-testid="stHeader"]{ visibility:hidden; height:0; }
 [data-testid="stHeaderActionElements"]{ display:none !important; }
 h1 > a, h2 > a, h3 > a, .stMarkdown a.anchor-link{ display:none !important; }
 div[data-testid="InputInstructions"]{ display:none !important; }
 
-/* ---------- Banda de cabecera fija ---------- */
+/* ---------- Banda de cabecera compacta ---------- */
 .st-key-cabecera{
-  background:var(--negro); padding:1.2rem 2rem 1.35rem; margin-bottom:1rem;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+  background:var(--negro); padding:.75rem 2rem .8rem; margin-bottom:.5rem;
+  box-shadow:0 2px 10px rgba(0,0,0,0.06);
 }
 .rotulo{
-  color:#8A8A8A; font-size:.64rem; font-weight:600; letter-spacing:.16em;
-  text-transform:uppercase; margin:0 0 .15rem;
+  color:#8A8A8A; font-size:.58rem; font-weight:600; letter-spacing:.16em;
+  text-transform:uppercase; margin:0 0 .08rem;
 }
 .rotulo span{ color:var(--rojo); font-weight:700; }
 
 /* Título */
 .st-key-marca button{
   background:transparent !important; border:none !important; box-shadow:none !important;
-  padding:0 !important; justify-content:flex-start !important; margin-bottom:.65rem;
+  padding:0 !important; justify-content:flex-start !important; margin-bottom:.35rem;
 }
 .st-key-marca button p{
-  color:#fff !important; font-size:1.55rem !important; font-weight:700 !important;
+  color:#fff !important; font-size:1.3rem !important; font-weight:700 !important;
   letter-spacing:-.025em; margin:0 !important; text-align:left !important;
   border-bottom:2px solid transparent; transition:border-color .15s ease;
 }
@@ -159,24 +150,23 @@ div[data-testid="InputInstructions"]{ display:none !important; }
   border-color:var(--rojo) !important; box-shadow:0 0 0 2px var(--rojo) !important;
 }
 div[data-testid="stTextInput"] input{
-  padding:.78rem 1.1rem !important; font-size:1rem !important;
+  padding:.48rem .9rem !important; font-size:.92rem !important;
   color:var(--texto) !important; font-family:'Libre Franklin',sans-serif !important;
 }
-div[data-testid="stTextInput"] input::placeholder{ color:var(--tenue) !important; font-size:.92rem; }
+div[data-testid="stTextInput"] input::placeholder{ color:var(--tenue) !important; font-size:.86rem; }
 
 /* ---------- Botones ---------- */
 .st-key-buscar button{
   background:var(--rojo) !important; color:#fff !important; border:none !important;
-  border-radius:0 4px 4px 0 !important; font-weight:700 !important; font-size:.95rem !important;
-  padding:.75rem 1rem !important; min-height:48px !important; letter-spacing:.02em;
+  border-radius:0 4px 4px 0 !important; font-weight:700 !important; font-size:.88rem !important;
+  padding:.48rem .9rem !important; min-height:40px !important; letter-spacing:.02em;
   transition:background .15s ease;
 }
 .st-key-buscar button:hover{ background:var(--rojo-oscuro) !important; }
 .st-key-buscar button p{ color:#fff !important; font-weight:700 !important; }
 
-/* Ajustes popover */
 .st-key-ajustes button{
-  width:48px !important; height:48px !important; min-height:48px !important;
+  width:40px !important; height:40px !important; min-height:40px !important;
   border-radius:4px !important; padding:0 !important;
   background:#1A1A1A !important; border:1px solid #333 !important; color:#fff !important;
   display:flex !important; align-items:center !important; justify-content:center !important;
@@ -186,66 +176,39 @@ div[data-testid="stTextInput"] input::placeholder{ color:var(--tenue) !important
   background:var(--rojo) !important; border-color:var(--rojo) !important; color:#fff !important;
 }
 
-/* Píldoras de historial */
-.historial-barra{
-  display:flex; align-items:center; gap:.5rem; overflow-x:auto;
-  padding:.2rem 0 .4rem; margin-top:.3rem; scrollbar-width:none;
-}
-.historial-barra::-webkit-scrollbar{ display:none; }
-.historial-label{
-  font-size:.65rem; font-weight:700; color:#777; text-transform:uppercase;
-  letter-spacing:.08em; white-space:nowrap;
-}
-.st-key-pildora button{
-  background:#1E1E1E !important; border:1px solid #333 !important; border-radius:14px !important;
-  padding:.22rem .65rem !important; min-height:26px !important;
-}
-.st-key-pildora button p{
-  color:#DDD !important; font-size:.73rem !important; font-weight:500 !important;
-  margin:0 !important; white-space:nowrap !important;
-}
-.st-key-pildora button:hover{
-  background:var(--rojo) !important; border-color:var(--rojo) !important;
-}
-.st-key-pildora button:hover p{ color:#fff !important; }
-
 /* ---------- Cuerpo ---------- */
 .cuerpo{ padding:0 2rem; }
 .consulta-box{
-  display:flex; justify-content:space-between; align-items:flex-end;
-  border-bottom:2px solid var(--negro); padding-bottom:.5rem; margin:.2rem 0 1rem;
+  border-bottom:2px solid var(--negro); padding-bottom:.25rem; margin:.1rem 0 .4rem;
 }
 .consulta-texto{
-  font-size:1.08rem; font-weight:700; letter-spacing:-.015em; color:var(--texto);
-}
-.atajos-hint{
-  font-size:.72rem; color:var(--suave); font-weight:500; font-family:'JetBrains Mono',monospace;
+  font-size:.98rem; font-weight:700; letter-spacing:-.015em; color:var(--texto);
 }
 .seccion{
-  font-size:.68rem; font-weight:700; letter-spacing:.14em; text-transform:uppercase;
-  color:var(--suave); margin:1.6rem 0 .7rem;
+  font-size:.62rem; font-weight:700; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--suave); margin:1rem 0 .5rem;
 }
 
 /* Pregunta interactiva */
 .st-key-pregunta{
   background:#fff; border:1px solid var(--linea); border-left:4px solid var(--rojo);
-  border-radius:4px; padding:1rem 1.25rem 1.1rem; margin:.5rem 0 1.2rem;
-  box-shadow:0 2px 10px rgba(0,0,0,0.03);
+  border-radius:4px; padding:.65rem .95rem; margin:.3rem 0 .6rem;
+  box-shadow:0 1px 6px rgba(0,0,0,0.03);
 }
 .pregunta-titulo{
-  font-size:.68rem; font-weight:700; letter-spacing:.14em; text-transform:uppercase;
-  color:var(--rojo); margin-bottom:.35rem; display:flex; align-items:center; gap:6px;
+  font-size:.62rem; font-weight:700; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--rojo); margin-bottom:.2rem;
 }
 .pregunta-texto{
-  font-size:1.05rem; line-height:1.45; font-weight:600; color:var(--texto); margin-bottom:.85rem;
+  font-size:.92rem; line-height:1.35; font-weight:600; color:var(--texto); margin-bottom:.55rem;
 }
 .st-key-pregunta .stButton button{
   background:#fff; border:1px solid var(--negro); font-weight:600; border-radius:4px;
-  padding:.45rem .8rem; min-height:40px; font-size:.9rem;
+  padding:.3rem .65rem; min-height:34px; font-size:.82rem;
 }
 .st-key-pregunta .stButton button:hover{ background:var(--negro); color:#fff; }
-.nota{ font-size:.8rem; color:var(--suave); margin:.4rem 0 .5rem; }
-.separa{ height:1px; background:var(--linea); margin:1.5rem 0 1.2rem; }
+.nota{ font-size:.74rem; color:var(--suave); margin:.2rem 0 .3rem; }
+.separa{ height:1px; background:var(--linea); margin:.45rem 0 .35rem; }
 
 /* Botón circular de reinicio */
 .st-key-reinicio,
@@ -255,14 +218,14 @@ div[data-testid="stTextInput"] input::placeholder{ color:var(--tenue) !important
   display:flex !important; justify-content:center !important; width:100% !important;
 }
 .st-key-reinicio button{
-  width:64px !important; height:64px !important; min-height:64px !important;
+  width:44px !important; height:44px !important; min-height:44px !important;
   border-radius:50% !important; padding:0 !important;
   border:2px solid var(--negro) !important; background:#fff !important;
   display:flex !important; align-items:center !important; justify-content:center !important;
-  transition:all .22s cubic-bezier(.2,.85,.3,1); box-shadow:0 3px 12px rgba(0,0,0,0.06);
+  transition:all .2s cubic-bezier(.2,.85,.3,1); box-shadow:0 2px 8px rgba(0,0,0,0.05);
 }
 .st-key-reinicio button p{
-  font-size:1.8rem !important; line-height:1 !important; margin:0 !important;
+  font-size:1.35rem !important; line-height:1 !important; margin:0 !important;
   color:var(--negro) !important;
 }
 .st-key-reinicio button:hover{
@@ -271,14 +234,11 @@ div[data-testid="stTextInput"] input::placeholder{ color:var(--tenue) !important
 }
 .st-key-reinicio button:hover p{ color:#fff !important; }
 .pie-nueva{
-  text-align:center; font-size:.82rem; font-weight:600; color:var(--suave); margin:.5rem 0 0;
-  letter-spacing:.02em;
+  text-align:center; font-size:.74rem; font-weight:600; color:var(--suave); margin:.2rem 0 0;
 }
 
-@media (max-width: 640px){
-  .consulta-box{ flex-direction:column; align-items:flex-start; gap:4px; }
-  .atajos-hint{ display:none; }
-}
+div[data-testid="stExpander"]{ border:none; background:transparent; margin-top:.2rem; }
+div[data-testid="stExpander"] summary{ font-size:.8rem; color:var(--suave); padding:.2rem 0; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -287,16 +247,11 @@ div[data-testid="stTextInput"] input::placeholder{ color:var(--tenue) !important
 # ---------------------------------------------------------------------------
 
 def normaliza(t):
-    """Limpia caracteres de unión y acentos sin fundir palabras compuestas."""
     t = re.sub(r"[/\\_\-]+", " ", t)
     return "".join(
         c for c in unicodedata.normalize("NFD", t) if unicodedata.category(c) != "Mn"
     ).lower().strip()
 
-
-# ---------------------------------------------------------------------------
-# VOCABULARIO
-# ---------------------------------------------------------------------------
 
 VOCABULARIO = "vocabulario.json"
 
@@ -335,10 +290,6 @@ NIVELES = {
     "90": "Aprendices",
 }
 
-
-# ---------------------------------------------------------------------------
-# DICCIONARIO COMPARTIDO
-# ---------------------------------------------------------------------------
 
 ARCHIVO_GIST = "lexico.json"
 ARCHIVO_REFUERZOS = "refuerzos.json"
@@ -488,7 +439,6 @@ def diccionario():
 
 
 def raiz(w):
-    """Lematizador ampliado para español con neutralización verbal y nominal."""
     if len(w) > 6 and (w.endswith("ando") or w.endswith("iendo")):
         w = w[:-4]
     elif len(w) > 5 and (w.endswith("aba") or w.endswith("ado") or w.endswith("ido")):
@@ -583,10 +533,7 @@ def carga_indice():
 IDX = carga_indice()
 
 if not IDX["ok"]:
-    st.error(
-        f"Falta el archivo **{CATALOGO}**. Súbelo al repositorio, junto a app.py, "
-        "con ese nombre exacto."
-    )
+    st.error(f"Falta el archivo **{CATALOGO}**.")
     st.stop()
 
 
@@ -820,48 +767,6 @@ def _flujo_openai(cli, prompt):
             yield texto
 
 
-TRADUCTOR = """Eres experto en la Clasificación Nacional de Ocupaciones (CNO)
-y en el catálogo de ocupaciones del SEPE.
-
-Recibes jerga de oficio, marcas comerciales o nombres coloquiales.
-Devuelve SOLO palabras sueltas separadas por espacios, entre 8 y 14. Empieza por
-las palabras que compondrían la DENOMINACIÓN OFICIAL de esa ocupación en la
-clasificación y sigue con materiales, herramientas y tareas.
-Sin comas, sin frases, sin explicaciones, sin mayúsculas.
-
-Entrada: kelly
-Salida: camareros piso hosteleria limpieza habitaciones hoteles alojamiento
-
-Entrada: ferrallista
-Salida: ferrallistas armaduras hormigon armado construccion montadores hierro obra
-"""
-
-
-def pregunta_corta(cli, sistema, prompt, maximo=2048):
-    if PROVEEDOR == "gemini":
-        cfg = dict(system_instruction=sistema, max_output_tokens=maximo)
-        try:
-            cfg["thinking_config"] = types.ThinkingConfig(thinking_level="minimal")
-        except Exception:  # noqa: BLE001
-            pass
-        r = cli.models.generate_content(
-            model=modelo_actual(), contents=prompt,
-            config=types.GenerateContentConfig(**cfg),
-        )
-        return (getattr(r, "text", "") or "").strip()
-
-    r = cli.chat.completions.create(
-        model=modelo_actual(),
-        messages=[
-            {"role": "system", "content": sistema},
-            {"role": "user", "content": prompt},
-        ],
-        max_tokens=maximo,
-        temperature=0,
-    )
-    return (r.choices[0].message.content or "").strip()
-
-
 INTERPRETE = """Eres experto en el catálogo de ocupaciones del SEPE (CNO).
 
 Lees la descripción de un puesto escrita por un orientador laboral, con las
@@ -887,7 +792,24 @@ def interpreta_consulta(cli, texto):
     if clave in memoria:
         return memoria[clave]
     try:
-        bruto = pregunta_corta(cli, INTERPRETE, texto)
+        cfg = dict(system_instruction=INTERPRETE, max_output_tokens=2048)
+        if PROVEEDOR == "gemini":
+            try:
+                cfg["thinking_config"] = types.ThinkingConfig(thinking_level="minimal")
+            except Exception:  # noqa: BLE001
+                pass
+            r = cli.models.generate_content(
+                model=modelo_actual(), contents=texto,
+                config=types.GenerateContentConfig(**cfg),
+            )
+            bruto = (getattr(r, "text", "") or "").strip()
+        else:
+            r = cli.chat.completions.create(
+                model=modelo_actual(),
+                messages=[{"role": "system", "content": INTERPRETE}, {"role": "user", "content": texto}],
+                max_tokens=2048, temperature=0,
+            )
+            bruto = (r.choices[0].message.content or "").strip()
     except Exception:  # noqa: BLE001
         return []
 
@@ -1014,7 +936,7 @@ def interpreta(bruto):
 
 
 # ---------------------------------------------------------------------------
-# RENDER & TARJETAS
+# TARJETAS COMPACTAS
 # ---------------------------------------------------------------------------
 
 ESTILO_TARJETAS = """
@@ -1022,81 +944,76 @@ ESTILO_TARJETAS = """
 *{ box-sizing:border-box; }
 body{
   margin:0; background:transparent; font-family:'Libre Franklin',system-ui,sans-serif;
-  --negro:#0A0A0A; --rojo:#D1122E; --texto:#1A1A1A; --suave:#6B6B6B;
-  --linea:#E5E5E5; --gris:#F4F4F5;
+  --negro:#0A0A0A; --rojo:#D1122E; --texto:#1A1A1A; --suave:#666666;
+  --linea:#E2E8F0; --gris:#F1F5F9;
   color:var(--texto);
 }
 .rejilla{
-  display:grid; grid-template-columns:repeat(2,1fr); gap:.65rem; align-items:stretch;
+  display:grid; grid-template-columns:repeat(2,1fr); gap:.45rem; align-items:stretch;
 }
 @media (max-width:760px){ .rejilla{ grid-template-columns:1fr; } }
 
 .tarjeta{
   background:#fff; border:1px solid var(--linea); border-left:4px solid #CBD5E1;
-  border-radius:4px; padding:.75rem 1.05rem; display:flex; flex-direction:column;
-  justify-content:space-between; transition:transform .15s ease, box-shadow .15s ease;
-  box-shadow:0 1px 4px rgba(0,0,0,0.03); cursor:pointer; position:relative;
+  border-radius:4px; padding:.45rem .75rem; display:flex; flex-direction:column;
+  justify-content:space-between; transition:transform .12s ease, box-shadow .12s ease;
+  box-shadow:0 1px 3px rgba(0,0,0,0.03); cursor:pointer; min-height:68px;
 }
 .tarjeta:hover{
-  transform:translateY(-2px); box-shadow:0 4px 14px rgba(0,0,0,0.08); border-color:#CBD5E1;
+  transform:translateY(-1px); box-shadow:0 3px 10px rgba(0,0,0,0.07); border-color:#CBD5E1;
 }
 .tarjeta.top{
   border-left-color:var(--rojo); background:#FFFFFF;
-  box-shadow:0 2px 8px rgba(209,18,46,0.08);
+  box-shadow:0 2px 6px rgba(209,18,46,0.06);
 }
 .tarjeta.relleno{
   background:#FAFAFA; border-left-color:#E2E8F0; opacity:.92;
 }
 
-.fila{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:.35rem; }
-.identificador{ display:flex; align-items:center; gap:8px; }
+.fila{ display:flex; align-items:center; justify-content:space-between; gap:6px; margin-bottom:.15rem; }
+.identificador{ display:flex; align-items:center; gap:6px; }
 .orden{
-  font-size:.72rem; font-weight:700; color:var(--suave);
+  font-size:.66rem; font-weight:700; color:var(--suave);
   font-family:'JetBrains Mono',monospace;
 }
 .codigo{
-  font-size:1.22rem; font-weight:700; letter-spacing:.04em; color:var(--negro);
+  font-size:1.05rem; font-weight:700; letter-spacing:.03em; color:var(--negro);
   font-family:'JetBrains Mono',monospace;
 }
-.botones-accion{ display:flex; align-items:center; gap:5px; }
 
 .copiar{
-  font-family:'Libre Franklin',sans-serif; font-size:.72rem; font-weight:600;
+  font-family:'Libre Franklin',sans-serif; font-size:.68rem; font-weight:600;
   color:var(--texto); background:#fff; border:1px solid #C4C4C4; border-radius:3px;
-  padding:.26rem .65rem; cursor:pointer; transition:all .15s ease; white-space:nowrap;
+  padding:.18rem .55rem; cursor:pointer; transition:all .15s ease; white-space:nowrap;
 }
 .copiar:hover{ background:var(--negro); color:#fff; border-color:var(--negro); }
 .copiar.hecho{ background:var(--rojo); border-color:var(--rojo); color:#fff; }
 
 .denominacion{
-  font-size:.92rem; font-weight:600; line-height:1.35; color:var(--texto); margin:0 0 .25rem;
+  font-size:.83rem; font-weight:600; line-height:1.24; color:var(--texto); margin:0 0 .15rem;
 }
 .motivo{
-  font-size:.8rem; color:var(--suave); line-height:1.35; margin-bottom:.5rem;
+  font-size:.73rem; color:var(--suave); line-height:1.22; margin-bottom:.25rem;
 }
 
 .etiquetas-fila{
-  display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-top:auto; padding-top:.4rem;
+  display:flex; align-items:center; gap:5px; flex-wrap:wrap; margin-top:auto; padding-top:.2rem;
 }
 .etiqueta{
-  display:inline-flex; align-items:center; font-size:.64rem; font-weight:700; letter-spacing:.06em;
-  text-transform:uppercase; padding:.2rem .5rem; border-radius:3px;
+  display:inline-flex; align-items:center; font-size:.58rem; font-weight:700; letter-spacing:.06em;
+  text-transform:uppercase; padding:.12rem .4rem; border-radius:3px;
   background:var(--gris); color:var(--suave);
 }
 .etiqueta.recomendada{ background:var(--rojo); color:#fff; }
 .etiqueta.mando{ background:#FFF7ED; color:#C2410C; border:1px solid #FFEDD5; }
-
-.atajo-hint{
-  font-family:'JetBrains Mono',monospace; font-size:.65rem; color:#999;
-  background:#F1F5F9; border-radius:2px; padding:1px 4px; margin-left:2px;
-}
 """
 
 GUION_INTERACTIVO = """
 function copiarTexto(texto, boton){
   navigator.clipboard.writeText(texto).then(() => {
+    boton.textContent = 'Copiado';
     boton.classList.add('hecho');
-    setTimeout(() => { boton.classList.remove('hecho'); }, 1400);
+    setTimeout(() => { boton.textContent = 'Copiar'; boton.classList.remove('hecho'); }, 1400);
   }).catch(() => {
     const caja = document.createElement('textarea');
     caja.value = texto;
@@ -1104,14 +1021,15 @@ function copiarTexto(texto, boton){
     caja.select();
     document.execCommand('copy');
     document.body.removeChild(caja);
+    boton.textContent = 'Copiado';
     boton.classList.add('hecho');
-    setTimeout(() => { boton.classList.remove('hecho'); }, 1400);
+    setTimeout(() => { boton.textContent = 'Copiar'; boton.classList.remove('hecho'); }, 1400);
   });
 }
 
 function alto(){
   parent.postMessage(
-    {type:'streamlit:setFrameHeight', height: document.documentElement.scrollHeight + 10},
+    {type:'streamlit:setFrameHeight', height: document.documentElement.scrollHeight + 4},
     '*'
   );
 }
@@ -1179,11 +1097,7 @@ def pinta_tarjetas(ocupaciones):
             f'        <span class="orden">{i:02d}</span>'
             f'        <span class="codigo">{o["codigo"]}</span>'
             f'      </div>'
-            f'      <div class="botones-accion">'
-            f'        <button class="copiar" data-cod="{o["codigo"]}" title="Copiar código (Atajo: tecla {i})">'
-            f'          Copiar <span class="atajo-hint">[{i}]</span>'
-            f'        </button>'
-            f'      </div>'
+            f'      <button class="copiar" data-cod="{o["codigo"]}">Copiar</button>'
             f'    </div>'
             f'    <div class="denominacion">{o["denominacion"]}</div>'
             f'    {motivo_html}'
@@ -1192,19 +1106,18 @@ def pinta_tarjetas(ocupaciones):
             f'</div>'
         )
 
-    # Cálculo dinámico de altura para evitar cortes en filas inferiores
+    # Medición de altura compacta para evitar scrolls
     def mide(o):
-        lineas_denom = max(1, math.ceil(len(o["denominacion"]) / 46))
-        lineas_motivo = max(1, math.ceil(len(o["motivo"]) / 44)) if o.get("motivo") else 0
-        h_denom = lineas_denom * 22
-        h_motivo = (lineas_motivo * 19 + 8) if lineas_motivo else 0
-        h_base = 96
+        lineas_denom = max(1, math.ceil(len(o["denominacion"]) / 48))
+        lineas_motivo = max(1, math.ceil(len(o["motivo"]) / 46)) if o.get("motivo") else 0
+        h_denom = lineas_denom * 17
+        h_motivo = (lineas_motivo * 15 + 4) if lineas_motivo else 0
+        h_base = 56
         return h_base + h_denom + h_motivo
 
     alturas = [mide(o) for o in ocupaciones]
     filas = [alturas[i:i + 2] for i in range(0, len(alturas), 2)]
-    estimada = sum(max(f) for f in filas) + 14 * max(0, len(filas) - 1) + 28
-    estimada = max(estimada, 450)
+    estimada = sum(max(f) for f in filas) + 8 * max(0, len(filas) - 1) + 12
 
     components.html(
         f"<style>{ESTILO_TARJETAS}</style>"
@@ -1224,11 +1137,7 @@ def pinta_resultado(payload, estado=None, avance=0.06, interactivo=False, consul
 
     ocupaciones = payload.get("ocupaciones", [])
     if not ocupaciones:
-        st.info(
-            "No encuentro coincidencias claras. Prueba con el nombre del puesto "
-            "o con una función concreta: *reparto en moto*, *atención telefónica*, "
-            "*carretilla elevadora*."
-        )
+        st.info("No encuentro coincidencias claras. Prueba con el nombre del puesto o función concreta.")
         return
 
     pinta_tarjetas(ocupaciones)
@@ -1245,11 +1154,11 @@ def pinta_resultado(payload, estado=None, avance=0.06, interactivo=False, consul
                 unsafe_allow_html=True,
             )
             if interactivo:
-                si, no, _ = st.columns([1.2, 1.2, 4], gap="small")
-                if si.button("Sí", key="resp_si", use_container_width=True, help="Atajo: Tecla S"):
+                si, no, _ = st.columns([1, 1, 5], gap="small")
+                if si.button("Sí", key="resp_si", use_container_width=True):
                     st.session_state["respuesta"] = (consulta, payload["pregunta"], True)
                     st.rerun()
-                if no.button("No", key="resp_no", use_container_width=True, help="Atajo: Tecla N"):
+                if no.button("No", key="resp_no", use_container_width=True):
                     st.session_state["respuesta"] = (consulta, payload["pregunta"], False)
                     st.rerun()
 
@@ -1269,18 +1178,15 @@ def pinta_resultado(payload, estado=None, avance=0.06, interactivo=False, consul
             arranque = len(payload.get("ocupaciones", [])) + 1
             for orden, (cod, den) in enumerate(otras, arranque):
                 st.markdown(
-                    f'<div style="padding:.35rem 0;border-bottom:1px solid var(--borde)">'
+                    f'<div style="padding:.2rem 0;border-bottom:1px solid var(--linea)">'
                     f'<span style="font-family:JetBrains Mono,monospace;font-weight:700;'
-                    f'letter-spacing:.08em">{cod}</span> &nbsp; '
-                    f'<span style="font-size:.9rem">{den}</span></div>',
+                    f'font-size:.82rem;letter-spacing:.04em">{cod}</span> &nbsp; '
+                    f'<span style="font-size:.82rem">{den}</span></div>',
                     unsafe_allow_html=True,
                 )
 
     if payload.get("fallo"):
-        st.markdown(
-            '<div class="nota">Resultados del catálogo, sin afinar.</div>',
-            unsafe_allow_html=True,
-        )
+        st.markdown('<div class="nota">Resultados del catálogo, sin afinar.</div>', unsafe_allow_html=True)
         if MANTENIMIENTO:
             with st.expander("Ver el motivo"):
                 st.code(payload["fallo"], language=None)
@@ -1485,7 +1391,6 @@ except Exception:  # noqa: BLE001
 
 st.session_state.setdefault("actual", None)
 st.session_state.setdefault("registro", [])
-st.session_state.setdefault("historial_reciente", [])
 st.session_state.setdefault("pendiente", None)
 st.session_state.setdefault("usar_ia", True)
 st.session_state.setdefault("cache", {})
@@ -1532,8 +1437,7 @@ def panel_ajustes():
         if not MANTENIMIENTO:
             st.caption(
                 f"{len(IDX['registros'])} ocupaciones del catálogo oficial. "
-                "Describe solo el puesto: sin nombres, DNI ni datos "
-                "identificativos de la persona."
+                "Describe solo el puesto: sin datos identificativos."
             )
             return
 
@@ -1543,11 +1447,12 @@ def panel_ajustes():
                 st.error(f"No hay clave {AJUSTES['clave']} en los Secrets.")
             else:
                 try:
-                    eco = pregunta_corta(
-                        prueba, "Responde únicamente con la palabra ok.",
-                        "ok", maximo=2048,
+                    cfg = dict(system_instruction="Responde únicamente con la palabra ok.", max_output_tokens=2048)
+                    r = prueba.models.generate_content(
+                        model=modelo_actual(), contents="ok",
+                        config=types.GenerateContentConfig(**cfg),
                     )
-                    st.success(f"{modelo_actual()}: {eco[:60] or '(respuesta vacía)'}")
+                    st.success(f"{modelo_actual()}: {(getattr(r, 'text', '') or '').strip()[:60]}")
                 except Exception as e:  # noqa: BLE001
                     st.error(f"{type(e).__name__}: {e}")
 
@@ -1555,35 +1460,10 @@ def panel_ajustes():
         gist_activo, _ = _credenciales()
         if gist_activo:
             st.markdown("**Diccionario compartido**")
-            st.caption(
-                f"{len(compartido)} términos aprendidos entre todas. "
-                "Se guardan solos al aparecer."
-            )
+            st.caption(f"{len(compartido)} términos aprendidos.")
             if st.button("Comprobar que guarda", use_container_width=True):
                 correcto, detalle = prueba_gist()
                 (st.success if correcto else st.error)(detalle)
-        elif st.session_state.get("lexico"):
-            st.markdown("**Términos aprendidos**")
-            st.caption("Solo en esta sesión. Pégalos en SINONIMOS para conservarlos.")
-
-        refuerzos = refuerzos_compartidos()
-        if refuerzos:
-            st.markdown("**Correcciones aprendidas**")
-            st.caption(f"{len(refuerzos)} ocupaciones con vocabulario reforzado.")
-            st.code(
-                "\n".join(
-                    f"{c}  {IDX['por_codigo'].get(c, '')[:34]}  ←  {t}"
-                    for c, t in sorted(refuerzos.items())
-                ),
-                language=None,
-            )
-
-        vistos = {**compartido, **st.session_state.get("lexico", {})}
-        if vistos:
-            st.code(
-                "\n".join(f'"{k}": "{v}",' for k, v in sorted(vistos.items()) if v),
-                language=None,
-            )
 
 
 def usar_ejemplo(texto_ejemplo):
@@ -1636,7 +1516,7 @@ with banda:
         unsafe_allow_html=True,
     )
     st.button("Codificador de ocupaciones", key="marca", on_click=empezar_de_nuevo)
-    campo, boton, ajustes = st.columns([6, 1.1, 0.6], gap="small")
+    campo, boton, ajustes = st.columns([6.4, 1.1, 0.5], gap="small")
     with campo:
         texto = st.text_input(
             "Consulta", label_visibility="collapsed", key="consulta",
@@ -1647,20 +1527,6 @@ with banda:
     with ajustes:
         panel_ajustes()
 
-    recientes = st.session_state.get("historial_reciente", [])
-    if recientes:
-        st.markdown('<div class="historial-barra"><span class="historial-label">Recientes:</span>', unsafe_allow_html=True)
-        cols_hist = st.columns(len(recientes) + 4, gap="small")
-        for idx, rec in enumerate(recientes[:4]):
-            with cols_hist[idx]:
-                st.button(
-                    rec[:22] + ("…" if len(rec) > 22 else ""),
-                    key=f"hist_{idx}_{rec[:8]}",
-                    on_click=usar_ejemplo,
-                    args=(rec,),
-                    use_container_width=True,
-                )
-
     escrito = (texto or "").strip()
     if escrito and not entrada:
         if buscar or escrito != st.session_state.get("ultima", ""):
@@ -1669,8 +1535,6 @@ with banda:
 
 if entrada:
     st.session_state["ultima"] = entrada
-    hist = [h for h in st.session_state.get("historial_reciente", []) if h != entrada]
-    st.session_state["historial_reciente"] = [entrada] + hist[:5]
 
 # ---------------------------------------------------------------------------
 # Cuerpo
@@ -1678,10 +1542,7 @@ if entrada:
 
 if entrada:
     st.markdown(
-        f'<div class="consulta-box">'
-        f'  <div class="consulta-texto">{rotulo or entrada}</div>'
-        f'  <div class="atajos-hint">Atajos: [1-6] Copiar ficha</div>'
-        f'</div>',
+        f'<div class="consulta-box"><div class="consulta-texto">{rotulo or entrada}</div></div>',
         unsafe_allow_html=True,
     )
     zona = st.empty()
@@ -1700,34 +1561,10 @@ if entrada:
 elif st.session_state["actual"]:
     consulta, payload = st.session_state["actual"]
     st.markdown(
-        f'<div class="consulta-box">'
-        f'  <div class="consulta-texto">{consulta}</div>'
-        f'  <div class="atajos-hint">Atajos: [1-6] Copiar ficha</div>'
-        f'</div>',
+        f'<div class="consulta-box"><div class="consulta-texto">{consulta}</div></div>',
         unsafe_allow_html=True,
     )
     pinta_resultado(payload, interactivo=True, consulta=consulta)
-
-    ocupaciones = payload.get("ocupaciones", [])
-    if MANTENIMIENTO and len(ocupaciones) > 1 and _credenciales()[0]:
-        st.markdown(
-            '<div class="seccion">¿Cuál era la correcta?</div>', unsafe_allow_html=True
-        )
-        cols = st.columns(len(ocupaciones))
-        for col, o in zip(cols, ocupaciones):
-            with col:
-                if st.button(o["codigo"], key=f"ok_{o['codigo']}",
-                             use_container_width=True):
-                    palabras = [
-                        raiz(w) for w in re.findall(r"\w+", normaliza(consulta))
-                        if len(w) > 3 and w not in VACIAS
-                    ]
-                    if guarda_refuerzo(o["codigo"], palabras):
-                        st.success(
-                            f"Aprendido: esas palabras llevarán a {o['codigo']}."
-                        )
-                    else:
-                        st.warning("No se ha podido guardar la corrección.")
 
     st.markdown('<div class="separa"></div>', unsafe_allow_html=True)
     st.button("↺", key="reinicio", help="Nueva búsqueda", on_click=empezar_de_nuevo)
