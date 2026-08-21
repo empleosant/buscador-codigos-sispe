@@ -742,12 +742,15 @@ Selecciona entre 3 y 5, de mayor a menor afinidad.
 REGLAS
 1. Usa únicamente códigos y denominaciones literales de la lista de candidatos. No inventes ni modifiques ninguno.
 2. Los candidatos llegan ordenados por coincidencia de palabras, NO por acierto. Ese orden es solo una pista: elige siempre la ocupación cuya denominación describa la actividad real, aunque esté al final de la lista. Desconfía de las coincidencias de palabra suelta entre sectores distintos (por ejemplo "montar" o "pisos" significan cosas muy diferentes en construcción y en calzado).
-3. Nivel profesional: 90 aprendices (sin experiencia) / 00 técnicos o sin categoría (estándar con experiencia) / 10 dirección / 20 mandos intermedios / 30 jefes de equipo / 70 auxiliares / 80 peones.
-4. El campo "motivo" explica en menos de 10 palabras por qué encaja, en español con acentuación correcta.
-5. No propongas ocupaciones de dirección, jefatura ni mando (niveles 10, 20, 30) salvo que la descripción diga expresamente que dirigía equipos, centros o departamentos.
-6. Respeta el entorno de trabajo que indique la descripción: domicilio particular frente a institución, centro o residencia. Si dice "en su casa" o "a domicilio", descarta las ocupaciones que digan "en instituciones".
-7. Rellena "pregunta" solo si faltan datos para decidir entre dos ocupaciones; si no, déjalo vacío.
-8. IMPORTANTE. Si ninguna de las candidatas describe con precisión la actividad, rellena "otros_terminos" con entre 6 y 10 palabras sueltas del vocabulario de la clasificación que deberían buscarse en su lugar (el nombre formal del oficio, herramientas, materiales). Se hará una segunda búsqueda con ellas. Si alguna candidata sí encaja, deja "otros_terminos" vacío.
+3. Devuelve SIEMPRE entre 3 y 5 ocupaciones, aunque dudes. La duda se expresa en "pregunta", nunca acortando la lista.
+4. Nivel profesional: 90 aprendices (sin experiencia) / 00 técnicos o sin categoría (estándar con experiencia) / 10 dirección / 20 mandos intermedios / 30 jefes de equipo / 70 auxiliares / 80 peones.
+5. El campo "motivo" explica en menos de 10 palabras por qué encaja, en español con acentuación correcta.
+6. No propongas ocupaciones de dirección, jefatura ni mando (niveles 10, 20, 30) salvo que la descripción diga expresamente que dirigía equipos, centros o departamentos.
+7. Respeta el entorno de trabajo que indique la descripción: domicilio particular frente a institución, centro o residencia. Si dice "en su casa" o "a domicilio", descarta las ocupaciones que digan "en instituciones".
+8. Rellena "pregunta" solo si faltan datos para decidir entre dos ocupaciones; si no, déjalo vacío. La pregunta DEBE poder responderse con SÍ o con NO: pregunta por un solo hecho concreto que distinga entre las dos, redactada para leérsela en voz alta a la persona. Nunca uses la forma "¿hacía A o hacía B?", porque quien responde solo dispone de dos botones, Sí y No.
+   Mal: "¿Se dedica al pulido de suelos o a otra actividad de construcción?"
+   Bien: "¿Trabajaba con máquinas pulidoras o abrillantadoras?"
+9. IMPORTANTE. Si ninguna de las candidatas describe con precisión la actividad, rellena "otros_terminos" con entre 6 y 10 palabras sueltas del vocabulario de la clasificación que deberían buscarse en su lugar (el nombre formal del oficio, herramientas, materiales). Se hará una segunda búsqueda con ellas. Si alguna candidata sí encaja, deja "otros_terminos" vacío.
 
 Responde solo con este JSON:
 {"ocupaciones":[{"codigo":"12345678","denominacion":"...","nivel":"00","motivo":"..."}],"pregunta":"","otros_terminos":""}
@@ -1438,10 +1441,10 @@ st.session_state.setdefault("cache", {})
 st.session_state.setdefault("lexico", {})
 st.session_state.setdefault("modelo_ok", 0)
 st.session_state.setdefault("respuesta", None)
-st.session_state.setdefault("ultima", "")
 st.session_state.setdefault("por_guardar", [])
 st.session_state.setdefault("refuerzos_por_guardar", [])
 st.session_state.setdefault("ultima", "")
+st.session_state.setdefault("consulta", "")
 
 EJEMPLOS = [
     "Una persona que limpia habitaciones de hotel",
@@ -1540,6 +1543,30 @@ def panel_ajustes():
         )
 
 
+def usar_ejemplo(texto):
+    """Lanza un ejemplo dejando el estado limpio.
+
+    Vaciar el cajón aquí es imprescindible: si se quedara el texto anterior,
+    al redibujar la página el control de duplicados lo tomaría por una
+    consulta nueva y lanzaría una segunda búsqueda encima de la del ejemplo.
+    """
+    st.session_state["pendiente"] = texto
+    st.session_state["consulta"] = ""
+    st.session_state["actual"] = None
+    st.session_state["ultima"] = ""
+
+
+def empezar_de_nuevo():
+    """Vuelve al estado inicial y vacía el cuadro de texto.
+
+    Va como retrollamada del botón: Streamlit no permite modificar el valor
+    de un campo una vez creado dentro de la misma pasada, pero sí desde aquí.
+    """
+    st.session_state["actual"] = None
+    st.session_state["consulta"] = ""
+    st.session_state["ultima"] = ""
+
+
 # ---------------------------------------------------------------------------
 # Respuesta a una pregunta de desambiguación
 # ---------------------------------------------------------------------------
@@ -1576,9 +1603,7 @@ with banda:
         '<div class="rotulo">Catálogo SISPE <span>&middot;</span> SilcoiWeb</div>',
         unsafe_allow_html=True,
     )
-    if st.button("Codificador de ocupaciones", key="marca"):
-        st.session_state["actual"] = None
-        st.rerun()
+    st.button("Codificador de ocupaciones", key="marca", on_click=empezar_de_nuevo)
     # Sin st.form: así el botón de ajustes puede convivir en la misma fila.
     # El campo de texto ya reejecuta la app al pulsar Enter.
     campo, boton, ajustes = st.columns([6, 1.1, 0.6], gap="small")
@@ -1651,20 +1676,25 @@ elif st.session_state["actual"]:
                         st.warning("No se ha podido guardar la corrección.")
 
     st.markdown('<div class="separa"></div>', unsafe_allow_html=True)
-    if st.button("↺", key="reinicio", help="Nueva búsqueda"):
-        st.session_state["actual"] = None
-        st.rerun()
+    st.button("↺", key="reinicio", help="Nueva búsqueda", on_click=empezar_de_nuevo)
     st.markdown('<div class="pie-nueva">Nueva búsqueda</div>', unsafe_allow_html=True)
 
 else:
     st.markdown('<div class="seccion">Prueba con</div>', unsafe_allow_html=True)
+    arranque = "Una persona que "
     for i in range(0, len(EJEMPLOS), 2):
         fila = EJEMPLOS[i:i + 2]
         cols = st.columns(2, gap="small")
         for col, ej in zip(cols, fila):
-            if col.button(ej, use_container_width=True, key=f"ej_{i}_{ej[:18]}"):
-                st.session_state["pendiente"] = ej
-                st.rerun()
+            # el oficio en negrita, el arranque de la frase en peso normal
+            rotulo = (
+                f"{arranque}**{ej[len(arranque):]}**"
+                if ej.startswith(arranque) else f"**{ej}**"
+            )
+            col.button(
+                rotulo, use_container_width=True, key=f"ej_{i}_{ej[-14:]}",
+                on_click=usar_ejemplo, args=(ej,),
+            )
 
 # Con el resultado ya en pantalla, se publica lo aprendido para el resto
 for clave, valor in st.session_state.pop("por_guardar", []):
