@@ -13,6 +13,8 @@ terminos_ampliados.txt            jerga por ocupación (lo genera enriquecer.py)
 requirements.txt                  dependencias
 .streamlit/config.toml            colores del tema
 enriquecer.py                     genera terminos_ampliados.txt (no lo usa la app)
+evaluar.py                        batería de pruebas del buscador
+casos.csv                         casos de prueba con su código correcto
 scripts/despertar.py              despertador (no lo usa la app)
 .github/workflows/…               programa el despertador
 ```
@@ -47,6 +49,27 @@ limpia.
 - **Modelo de IA**: bloque `PROVEEDORES`. Es una lista con relevo automático.
 - **Proveedor**: constante `PROVEEDOR` (`gemini`, `groq`, `mistral`).
 - **Vocabulario**: `vocabulario.json`. Si falta, la app arranca en modo mínimo.
+
+## Batería de pruebas
+
+Antes de subir cualquier cambio en `vocabulario.json` o en el buscador:
+
+```
+python evaluar.py
+```
+
+Pasa los casos de `casos.csv` contra la búsqueda local en un par de segundos.
+No llama a la IA ni gasta cuota. Devuelve el porcentaje de aciertos y detalla
+los que fallan.
+
+- `python evaluar.py --detalle` enseña los tres primeros de cada caso.
+- `python evaluar.py --actualizar` reescribe `casos.csv` con lo que devuelve
+  ahora. Úsalo solo cuando hayas comprobado a mano que el resultado nuevo es
+  el correcto.
+
+**Cada consulta real que falle debería acabar en `casos.csv`**, con el código
+que tú sabes que es el bueno. La columna `tope` admite 1 (tiene que salir el
+primero) o 3 (basta con que esté entre los tres primeros).
 
 ## Garantía sobre los datos
 
