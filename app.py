@@ -34,7 +34,7 @@ except ImportError:                     # noqa: S110
 CATALOGO = "ocupaciones_sispe_ultraligero.txt"
 AMPLIADO = "terminos_ampliados.txt"
 N_CANDIDATOS = 16
-ESPERA_MAXIMA = 45      # segundos antes de rendirse con el modelo
+ESPERA_MAXIMA = 45
 
 # ---------------------------------------------------------------------------
 # PROVEEDOR DE IA
@@ -83,58 +83,60 @@ st.set_page_config(
 )
 
 # ---------------------------------------------------------------------------
-# ESTILO COMPACTO (Ajustado para pantalla completa sin scroll)
+# ESTILO FLUIDO Y ADAPTATIVO
 # ---------------------------------------------------------------------------
 
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@400;500;600;700&family=JetBrains+Mono:wght@600;700&display=swap');
 
 :root{
   --negro:#0A0A0A;
   --rojo:#D1122E;
   --rojo-oscuro:#A50E24;
   --texto:#1A1A1A;
-  --suave:#666666;
-  --tenue:#9A9A9A;
-  --linea:#E0E0E0;
-  --gris:#F5F5F7;
+  --suave:#555555;
+  --tenue:#8E8E93;
+  --linea:#E2E8F0;
+  --gris:#F1F5F9;
 }
 
 .stApp{ background:#FAFAFA; }
 html,body,[class*="css"],.stMarkdown{
   font-family:'Libre Franklin',system-ui,sans-serif; color:var(--texto);
 }
-.block-container{ padding:0 0 .5rem !important; max-width:1180px; }
+.block-container{ padding:0 1rem .6rem !important; max-width:1200px; }
 #MainMenu, footer, header[data-testid="stHeader"]{ visibility:hidden; height:0; }
 [data-testid="stHeaderActionElements"]{ display:none !important; }
 h1 > a, h2 > a, h3 > a, .stMarkdown a.anchor-link{ display:none !important; }
 div[data-testid="InputInstructions"]{ display:none !important; }
 
-/* ---------- Banda de cabecera compacta ---------- */
+/* ---------- Cabecera fluida ---------- */
 .st-key-cabecera{
-  background:var(--negro); padding:.75rem 2rem .8rem; margin-bottom:.5rem;
+  background:var(--negro);
+  padding:clamp(0.6rem, 1.2vh, 0.9rem) clamp(1rem, 2vw, 1.8rem);
+  margin-bottom:clamp(0.3rem, 0.8vh, 0.6rem);
   box-shadow:0 2px 10px rgba(0,0,0,0.06);
 }
 .rotulo{
-  color:#8A8A8A; font-size:.58rem; font-weight:600; letter-spacing:.16em;
-  text-transform:uppercase; margin:0 0 .08rem;
+  color:#8A8A8A; font-size:clamp(0.58rem, 0.65vw, 0.66rem); font-weight:600;
+  letter-spacing:.16em; text-transform:uppercase; margin:0 0 .1rem;
 }
 .rotulo span{ color:var(--rojo); font-weight:700; }
 
 /* Título */
 .st-key-marca button{
   background:transparent !important; border:none !important; box-shadow:none !important;
-  padding:0 !important; justify-content:flex-start !important; margin-bottom:.35rem;
+  padding:0 !important; justify-content:flex-start !important; margin-bottom:.4rem;
 }
 .st-key-marca button p{
-  color:#fff !important; font-size:1.3rem !important; font-weight:700 !important;
-  letter-spacing:-.025em; margin:0 !important; text-align:left !important;
-  border-bottom:2px solid transparent; transition:border-color .15s ease;
+  color:#fff !important; font-size:clamp(1.25rem, 1.5vw, 1.5rem) !important;
+  font-weight:700 !important; letter-spacing:-.025em; margin:0 !important;
+  text-align:left !important; border-bottom:2px solid transparent; transition:border-color .15s ease;
 }
 .st-key-marca button:hover p{ border-bottom-color:var(--rojo); }
 
-/* ---------- Campo de búsqueda ---------- */
+/* Campo de búsqueda */
 .st-key-cabecera div[data-testid="stTextInput"] div[data-baseweb="base-input"],
 .st-key-cabecera div[data-testid="stTextInput"] input,
 .st-key-cabecera div[data-testid="stTextInput"] input:focus,
@@ -150,23 +152,26 @@ div[data-testid="InputInstructions"]{ display:none !important; }
   border-color:var(--rojo) !important; box-shadow:0 0 0 2px var(--rojo) !important;
 }
 div[data-testid="stTextInput"] input{
-  padding:.48rem .9rem !important; font-size:.92rem !important;
+  padding:clamp(0.45rem, 0.9vh, 0.65rem) clamp(0.7rem, 1vw, 1rem) !important;
+  font-size:clamp(0.88rem, 0.95vw, 0.98rem) !important;
   color:var(--texto) !important; font-family:'Libre Franklin',sans-serif !important;
 }
-div[data-testid="stTextInput"] input::placeholder{ color:var(--tenue) !important; font-size:.86rem; }
 
-/* ---------- Botones ---------- */
+/* Botones */
 .st-key-buscar button{
   background:var(--rojo) !important; color:#fff !important; border:none !important;
-  border-radius:0 4px 4px 0 !important; font-weight:700 !important; font-size:.88rem !important;
-  padding:.48rem .9rem !important; min-height:40px !important; letter-spacing:.02em;
+  border-radius:0 4px 4px 0 !important; font-weight:700 !important;
+  font-size:clamp(0.84rem, 0.9vw, 0.92rem) !important;
+  padding:clamp(0.45rem, 0.9vh, 0.65rem) 1rem !important;
+  min-height:clamp(38px, 4.2vh, 46px) !important; letter-spacing:.02em;
   transition:background .15s ease;
 }
 .st-key-buscar button:hover{ background:var(--rojo-oscuro) !important; }
 .st-key-buscar button p{ color:#fff !important; font-weight:700 !important; }
 
 .st-key-ajustes button{
-  width:40px !important; height:40px !important; min-height:40px !important;
+  width:clamp(38px, 4.2vh, 46px) !important; height:clamp(38px, 4.2vh, 46px) !important;
+  min-height:clamp(38px, 4.2vh, 46px) !important;
   border-radius:4px !important; padding:0 !important;
   background:#1A1A1A !important; border:1px solid #333 !important; color:#fff !important;
   display:flex !important; align-items:center !important; justify-content:center !important;
@@ -176,41 +181,44 @@ div[data-testid="stTextInput"] input::placeholder{ color:var(--tenue) !important
   background:var(--rojo) !important; border-color:var(--rojo) !important; color:#fff !important;
 }
 
-/* ---------- Cuerpo ---------- */
-.cuerpo{ padding:0 2rem; }
+/* Consulta activa */
 .consulta-box{
-  border-bottom:2px solid var(--negro); padding-bottom:.25rem; margin:.1rem 0 .4rem;
+  border-bottom:2px solid var(--negro); padding-bottom:.25rem;
+  margin:0 0 clamp(0.3rem, 0.8vh, 0.6rem);
 }
 .consulta-texto{
-  font-size:.98rem; font-weight:700; letter-spacing:-.015em; color:var(--texto);
+  font-size:clamp(0.96rem, 1.1vw, 1.1rem); font-weight:700;
+  letter-spacing:-.015em; color:var(--texto);
 }
 .seccion{
-  font-size:.62rem; font-weight:700; letter-spacing:.14em; text-transform:uppercase;
-  color:var(--suave); margin:1rem 0 .5rem;
+  font-size:.65rem; font-weight:700; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--suave); margin:1.2rem 0 .6rem;
 }
 
 /* Pregunta interactiva */
 .st-key-pregunta{
   background:#fff; border:1px solid var(--linea); border-left:4px solid var(--rojo);
-  border-radius:4px; padding:.65rem .95rem; margin:.3rem 0 .6rem;
-  box-shadow:0 1px 6px rgba(0,0,0,0.03);
+  border-radius:4px; padding:clamp(0.6rem, 1.1vh, 0.85rem) clamp(0.8rem, 1.2vw, 1.1rem);
+  margin:.3rem 0 .5rem; box-shadow:0 1px 6px rgba(0,0,0,0.03);
 }
 .pregunta-titulo{
   font-size:.62rem; font-weight:700; letter-spacing:.14em; text-transform:uppercase;
   color:var(--rojo); margin-bottom:.2rem;
 }
 .pregunta-texto{
-  font-size:.92rem; line-height:1.35; font-weight:600; color:var(--texto); margin-bottom:.55rem;
+  font-size:clamp(0.92rem, 1vw, 1.02rem); line-height:1.35; font-weight:600;
+  color:var(--texto); margin-bottom:.5rem;
 }
 .st-key-pregunta .stButton button{
   background:#fff; border:1px solid var(--negro); font-weight:600; border-radius:4px;
-  padding:.3rem .65rem; min-height:34px; font-size:.82rem;
+  padding:.3rem .7rem; min-height:36px; font-size:.85rem;
 }
 .st-key-pregunta .stButton button:hover{ background:var(--negro); color:#fff; }
-.nota{ font-size:.74rem; color:var(--suave); margin:.2rem 0 .3rem; }
-.separa{ height:1px; background:var(--linea); margin:.45rem 0 .35rem; }
 
-/* Botón circular de reinicio */
+.nota{ font-size:.76rem; color:var(--suave); margin:.2rem 0; }
+.separa{ height:1px; background:var(--linea); margin:clamp(0.3rem, 0.7vh, 0.5rem) 0; }
+
+/* Botón de reinicio */
 .st-key-reinicio,
 .st-key-reinicio > div,
 .st-key-reinicio [data-testid="stTooltipHoverTarget"],
@@ -218,15 +226,16 @@ div[data-testid="stTextInput"] input::placeholder{ color:var(--tenue) !important
   display:flex !important; justify-content:center !important; width:100% !important;
 }
 .st-key-reinicio button{
-  width:44px !important; height:44px !important; min-height:44px !important;
+  width:clamp(42px, 4.8vh, 50px) !important; height:clamp(42px, 4.8vh, 50px) !important;
+  min-height:clamp(42px, 4.8vh, 50px) !important;
   border-radius:50% !important; padding:0 !important;
   border:2px solid var(--negro) !important; background:#fff !important;
   display:flex !important; align-items:center !important; justify-content:center !important;
   transition:all .2s cubic-bezier(.2,.85,.3,1); box-shadow:0 2px 8px rgba(0,0,0,0.05);
 }
 .st-key-reinicio button p{
-  font-size:1.35rem !important; line-height:1 !important; margin:0 !important;
-  color:var(--negro) !important;
+  font-size:clamp(1.3rem, 1.6vw, 1.6rem) !important; line-height:1 !important;
+  margin:0 !important; color:var(--negro) !important;
 }
 .st-key-reinicio button:hover{
   background:var(--rojo) !important; border-color:var(--rojo) !important;
@@ -234,11 +243,11 @@ div[data-testid="stTextInput"] input::placeholder{ color:var(--tenue) !important
 }
 .st-key-reinicio button:hover p{ color:#fff !important; }
 .pie-nueva{
-  text-align:center; font-size:.74rem; font-weight:600; color:var(--suave); margin:.2rem 0 0;
+  text-align:center; font-size:.76rem; font-weight:600; color:var(--suave); margin:.25rem 0 0;
 }
 
-div[data-testid="stExpander"]{ border:none; background:transparent; margin-top:.2rem; }
-div[data-testid="stExpander"] summary{ font-size:.8rem; color:var(--suave); padding:.2rem 0; }
+div[data-testid="stExpander"]{ border:none; background:transparent; margin-top:.15rem; }
+div[data-testid="stExpander"] summary{ font-size:.82rem; color:var(--suave); padding:.15rem 0; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -414,7 +423,7 @@ def prueba_gist():
         return False, f"Al releer: {type(e).__name__}: {e}"
 
     if marca not in vuelta:
-        return False, "Se escribió, pero al releer no aparece. Revisa el nombre del archivo."
+        return False, "Se escribió, pero al releer no aparece."
 
     del vuelta[marca]
     try:
@@ -936,7 +945,7 @@ def interpreta(bruto):
 
 
 # ---------------------------------------------------------------------------
-# TARJETAS COMPACTAS
+# TARJETAS FLUIDAS
 # ---------------------------------------------------------------------------
 
 ESTILO_TARJETAS = """
@@ -944,20 +953,23 @@ ESTILO_TARJETAS = """
 *{ box-sizing:border-box; }
 body{
   margin:0; background:transparent; font-family:'Libre Franklin',system-ui,sans-serif;
-  --negro:#0A0A0A; --rojo:#D1122E; --texto:#1A1A1A; --suave:#666666;
+  --negro:#0A0A0A; --rojo:#D1122E; --texto:#1A1A1A; --suave:#555555;
   --linea:#E2E8F0; --gris:#F1F5F9;
   color:var(--texto);
 }
 .rejilla{
-  display:grid; grid-template-columns:repeat(2,1fr); gap:.45rem; align-items:stretch;
+  display:grid; grid-template-columns:repeat(2,1fr);
+  gap:clamp(0.4rem, 0.9vh, 0.65rem); align-items:stretch;
 }
 @media (max-width:760px){ .rejilla{ grid-template-columns:1fr; } }
 
 .tarjeta{
   background:#fff; border:1px solid var(--linea); border-left:4px solid #CBD5E1;
-  border-radius:4px; padding:.45rem .75rem; display:flex; flex-direction:column;
-  justify-content:space-between; transition:transform .12s ease, box-shadow .12s ease;
-  box-shadow:0 1px 3px rgba(0,0,0,0.03); cursor:pointer; min-height:68px;
+  border-radius:4px;
+  padding:clamp(0.55rem, 1.1vh, 0.8rem) clamp(0.75rem, 1.2vw, 1rem);
+  display:flex; flex-direction:column; justify-content:space-between;
+  transition:transform .12s ease, box-shadow .12s ease;
+  box-shadow:0 1px 3px rgba(0,0,0,0.03); cursor:pointer;
 }
 .tarjeta:hover{
   transform:translateY(-1px); box-shadow:0 3px 10px rgba(0,0,0,0.07); border-color:#CBD5E1;
@@ -970,39 +982,45 @@ body{
   background:#FAFAFA; border-left-color:#E2E8F0; opacity:.92;
 }
 
-.fila{ display:flex; align-items:center; justify-content:space-between; gap:6px; margin-bottom:.15rem; }
-.identificador{ display:flex; align-items:center; gap:6px; }
+.fila{
+  display:flex; align-items:center; justify-content:space-between;
+  gap:8px; margin-bottom:clamp(0.15rem, 0.4vh, 0.25rem);
+}
+.identificador{ display:flex; align-items:center; gap:8px; }
 .orden{
-  font-size:.66rem; font-weight:700; color:var(--suave);
+  font-size:clamp(0.68rem, 0.75vw, 0.74rem); font-weight:700; color:var(--suave);
   font-family:'JetBrains Mono',monospace;
 }
 .codigo{
-  font-size:1.05rem; font-weight:700; letter-spacing:.03em; color:var(--negro);
-  font-family:'JetBrains Mono',monospace;
+  font-size:clamp(1.1rem, 1.25vw, 1.25rem); font-weight:700;
+  letter-spacing:.03em; color:var(--negro); font-family:'JetBrains Mono',monospace;
 }
 
 .copiar{
-  font-family:'Libre Franklin',sans-serif; font-size:.68rem; font-weight:600;
-  color:var(--texto); background:#fff; border:1px solid #C4C4C4; border-radius:3px;
-  padding:.18rem .55rem; cursor:pointer; transition:all .15s ease; white-space:nowrap;
+  font-family:'Libre Franklin',sans-serif; font-size:clamp(0.7rem, 0.78vw, 0.76rem);
+  font-weight:600; color:var(--texto); background:#fff; border:1px solid #C4C4C4;
+  border-radius:3px; padding:.22rem .65rem; cursor:pointer;
+  transition:all .15s ease; white-space:nowrap;
 }
 .copiar:hover{ background:var(--negro); color:#fff; border-color:var(--negro); }
 .copiar.hecho{ background:var(--rojo); border-color:var(--rojo); color:#fff; }
 
 .denominacion{
-  font-size:.83rem; font-weight:600; line-height:1.24; color:var(--texto); margin:0 0 .15rem;
+  font-size:clamp(0.88rem, 0.98vw, 0.95rem); font-weight:600;
+  line-height:1.28; color:var(--texto); margin:0 0 .2rem;
 }
 .motivo{
-  font-size:.73rem; color:var(--suave); line-height:1.22; margin-bottom:.25rem;
+  font-size:clamp(0.76rem, 0.85vw, 0.82rem); color:var(--suave);
+  line-height:1.26; margin-bottom:.35rem;
 }
 
 .etiquetas-fila{
-  display:flex; align-items:center; gap:5px; flex-wrap:wrap; margin-top:auto; padding-top:.2rem;
+  display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-top:auto; padding-top:.25rem;
 }
 .etiqueta{
-  display:inline-flex; align-items:center; font-size:.58rem; font-weight:700; letter-spacing:.06em;
-  text-transform:uppercase; padding:.12rem .4rem; border-radius:3px;
-  background:var(--gris); color:var(--suave);
+  display:inline-flex; align-items:center; font-size:clamp(0.6rem, 0.68vw, 0.66rem);
+  font-weight:700; letter-spacing:.06em; text-transform:uppercase;
+  padding:.14rem .45rem; border-radius:3px; background:var(--gris); color:var(--suave);
 }
 .etiqueta.recomendada{ background:var(--rojo); color:#fff; }
 .etiqueta.mando{ background:#FFF7ED; color:#C2410C; border:1px solid #FFEDD5; }
@@ -1106,18 +1124,17 @@ def pinta_tarjetas(ocupaciones):
             f'</div>'
         )
 
-    # Medición de altura compacta para evitar scrolls
     def mide(o):
-        lineas_denom = max(1, math.ceil(len(o["denominacion"]) / 48))
-        lineas_motivo = max(1, math.ceil(len(o["motivo"]) / 46)) if o.get("motivo") else 0
-        h_denom = lineas_denom * 17
-        h_motivo = (lineas_motivo * 15 + 4) if lineas_motivo else 0
-        h_base = 56
+        lineas_denom = max(1, math.ceil(len(o["denominacion"]) / 46))
+        lineas_motivo = max(1, math.ceil(len(o["motivo"]) / 44)) if o.get("motivo") else 0
+        h_denom = lineas_denom * 20
+        h_motivo = (lineas_motivo * 17 + 4) if lineas_motivo else 0
+        h_base = 64
         return h_base + h_denom + h_motivo
 
     alturas = [mide(o) for o in ocupaciones]
     filas = [alturas[i:i + 2] for i in range(0, len(alturas), 2)]
-    estimada = sum(max(f) for f in filas) + 8 * max(0, len(filas) - 1) + 12
+    estimada = sum(max(f) for f in filas) + 10 * max(0, len(filas) - 1) + 14
 
     components.html(
         f"<style>{ESTILO_TARJETAS}</style>"
@@ -1180,8 +1197,8 @@ def pinta_resultado(payload, estado=None, avance=0.06, interactivo=False, consul
                 st.markdown(
                     f'<div style="padding:.2rem 0;border-bottom:1px solid var(--linea)">'
                     f'<span style="font-family:JetBrains Mono,monospace;font-weight:700;'
-                    f'font-size:.82rem;letter-spacing:.04em">{cod}</span> &nbsp; '
-                    f'<span style="font-size:.82rem">{den}</span></div>',
+                    f'font-size:.84rem;letter-spacing:.04em">{cod}</span> &nbsp; '
+                    f'<span style="font-size:.84rem">{den}</span></div>',
                     unsafe_allow_html=True,
                 )
 
