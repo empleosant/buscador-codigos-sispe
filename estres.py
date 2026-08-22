@@ -25,6 +25,14 @@ import sys
 import time
 import unicodedata
 
+# Windows: la consola no siempre acepta «·», «…» ni acentos. Sin esto, la
+# batería puede morir con UnicodeEncodeError al redirigir la salida a un
+# archivo, que es un error confuso y no tiene nada que ver con las pruebas.
+try:
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+except Exception:  # noqa: BLE001  consolas antiguas
+    pass
+
 from motor_pruebas import cabecera, carga_motor
 
 DETALLE = "--detalle" in sys.argv

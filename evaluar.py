@@ -25,6 +25,12 @@ import csv
 import os
 import sys
 
+# Windows: evita UnicodeEncodeError al redirigir la salida a un archivo.
+try:
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+except Exception:  # noqa: BLE001
+    pass
+
 from motor_pruebas import cabecera, carga_motor
 
 CASOS = "casos.csv"
