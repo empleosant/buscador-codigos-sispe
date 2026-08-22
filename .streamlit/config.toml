@@ -1,9 +1,9 @@
 # Tema de la aplicación. Sin esto, Streamlit pinta los focos y los acentos
-# en su rojo por defecto, que choca con la paleta.
+# en su rojo por defecto (#FF4B4B), que no es el rojo corporativo.
 
 [theme]
-primaryColor = "#0E7C6B"
-backgroundColor = "#EEF2F4"
-secondaryBackgroundColor = "#FFFFFF"
-textColor = "#1B2B33"
+primaryColor = "#D1122E"
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#F2F2F2"
+textColor = "#1A1A1A"
 font = "sans serif"
