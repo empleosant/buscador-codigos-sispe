@@ -1,3 +1,4 @@
+# Actualizado desde Claude
 streamlit>=1.40
 google-genai>=1.0
 openai>=1.40
