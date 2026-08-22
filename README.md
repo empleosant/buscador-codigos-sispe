@@ -15,7 +15,8 @@ requirements.txt                  dependencias
 enriquecer.py                     genera terminos_ampliados.txt (no lo usa la app)
 motor_pruebas.py                  carga app.py sin la interfaz (lo usan las pruebas)
 evaluar.py                        aciertos: 40 consultas con su código correcto
-casos.csv                         los 40 casos
+casos.csv                         los 40 casos (referencia, se edita a mano)
+informe_evaluacion.csv            salida de --informe, regenerable, no versionado
 estres.py                         robustez: que nada se rompa por lo bajo
 scripts/despertar.py              despertador (no lo usa la app)
 .github/workflows/…               programa el despertador
@@ -65,12 +66,20 @@ python evaluar.py && python estres.py
 código correcto sale donde debe.
 
 - `--detalle` enseña los tres primeros de cada caso.
-- `--actualizar` reescribe `casos.csv` con lo que devuelve ahora. Úsalo solo
-  cuando hayas comprobado a mano que el resultado nuevo es el correcto.
+- `--informe` vuelca a `informe_evaluacion.csv` lo que devuelve el motor:
+  esperado, estado, en qué posición salió el código correcto y los tres
+  primeros resultados. No toca `casos.csv`.
+
+`casos.csv` es la referencia y **solo se edita a mano**. Existió un flag
+`--actualizar` que la reescribía con la salida del propio motor: eso convertía
+en «correcto» lo que el buscador contestara ese día, de modo que una regresión
+quedaba consagrada como verdad en la siguiente pasada. Ya no existe; si alguien
+lo usa, el script aborta y explica por qué.
 
 **Cada consulta real que falle debería acabar en `casos.csv`**, con el código
-que tú sabes que es el bueno. La columna `tope` admite 1 (tiene que salir el
-primero) o 3 (basta con que esté entre los tres primeros).
+comprobado contra el catálogo oficial o contra un caso ya grabado en SilcoiWeb,
+nunca copiado de lo que contesta el motor. La columna `tope` admite 1 (tiene que
+salir el primero) o 3 (basta con que esté entre los tres primeros).
 
 **`estres.py` — robustez.** No afirma qué código es correcto: comprueba que el
 buscador se comporta con sensatez pase lo que pase. Ocho pruebas: que no
