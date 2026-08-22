@@ -1,0 +1,58 @@
+# Pasa las dos baterías de pruebas cada vez que se sube un cambio.
+#
+# Ubicación en el repositorio:  .github/workflows/pruebas.yml
+#
+# No hay nada que configurar. No usa claves ni gasta cuota de IA: las pruebas
+# sustituyen Streamlit y Gemini por versiones de mentira y solo prueban la
+# búsqueda local.
+#
+# Dónde se ve el resultado:
+#   · Pestaña Actions del repositorio.
+#   · Un tic verde o un aspa roja junto a cada commit en la lista de commits.
+#   · GitHub manda un correo cuando algo pasa de verde a rojo.
+
+name: Pruebas del buscador
+
+on:
+  push:
+    paths:
+      - 'app.py'
+      - 'evaluar.py'
+      - 'estres.py'
+      - 'motor_pruebas.py'
+      - 'casos.csv'
+      - 'vocabulario.json'
+      - 'ocupaciones_sispe_ultraligero.txt'
+      - 'terminos_ampliados.txt'
+  pull_request:
+  workflow_dispatch:          # y a mano, desde la pestaña Actions
+
+jobs:
+  probar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Aciertos — los 40 casos de casos.csv
+        run: python evaluar.py
+
+      - name: Robustez — batería de estrés
+        run: python estres.py
+
+      - name: Resumen
+        if: always()
+        run: |
+          if [ "${{ job.status }}" = "success" ]; then
+            echo "### Las pruebas pasan. El cambio se puede dar por bueno." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### Alguna prueba falla." >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Abre el paso que salió en rojo para ver qué caso concreto." >> $GITHUB_STEP_SUMMARY
+            echo "Lo más probable es un cambio en \`raiz()\` o en \`vocabulario.json\`." >> $GITHUB_STEP_SUMMARY
+          fi
