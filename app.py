@@ -466,18 +466,30 @@ def diccionario():
 
 
 def raiz(w):
-    if len(w) > 6 and (w.endswith("ando") or w.endswith("iendo")):
-        w = w[:-4]
-    elif len(w) > 5 and (w.endswith("aba") or w.endswith("ado") or w.endswith("ido")):
-        w = w[:-3]
-    elif len(w) > 5 and w.endswith("dor"):
-        w = w[:-3]
-    elif len(w) > 5 and w.endswith("or"):
-        w = w[:-2]
-    elif len(w) > 5 and w.endswith("es"):
+    """Lematizador mínimo: número, después sufijo de agente, después género.
+
+    Las tres fases son INDEPENDIENTES a propósito. Si se juntan en una cadena
+    elif, el plural y el singular de la misma palabra dejan de lematizar
+    igual: "montadores" se queda en "montador" (solo se aplica la regla de
+    plural) mientras que "montador" llega a "mont". El catálogo está en plural
+    y el ciudadano escribe en singular, así que dejan de encontrarse. Se probó
+    el 21/08/2026 y rompía 216 nombres de agente del catálogo.
+
+    Tampoco conviene meter aquí participios (-ado, -ido): en este catálogo
+    "cuidado", "montado" o "trasdosado" son sustantivos, no formas verbales, y
+    recortarlos los confunde con "cuidador" y "montador".
+
+    El gerundio (-ando, -iendo) se probó y no aporta: el pase de
+    interpretación ya normaliza la consulta antes de la búsqueda local.
+
+    Antes de tocar esta función:  python evaluar.py && python estres.py
+    """
+    if len(w) > 5 and w.endswith("es"):
         w = w[:-2]
     elif len(w) > 4 and w.endswith("s"):
         w = w[:-1]
+    if len(w) > 5 and w.endswith("or"):
+        w = w[:-2]
     if len(w) > 4 and w[-1] in "aoe":
         w = w[:-1]
     return w
@@ -1472,6 +1484,11 @@ def resuelve(texto, zona, usar_ia=True, contexto="", busqueda=None):
     memoria[clave] = payload
     return payload
 
+
+# === FIN DEL MOTOR ===
+# No muevas esta línea ni la borres: las pruebas (evaluar.py, estres.py)
+# cargan app.py hasta aquí para probar el buscador sin dibujar pantalla.
+# Todo lo que vaya por debajo es interfaz y no se prueba.
 
 # ---------------------------------------------------------------------------
 # INTERFAZ
