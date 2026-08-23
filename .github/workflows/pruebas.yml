@@ -43,6 +43,7 @@ jobs:
         run: python evaluar.py
 
       - name: Robustez — batería de estrés
+        if: always()          # se ejecuta aunque la primera batería falle
         run: python estres.py
 
       - name: Resumen
