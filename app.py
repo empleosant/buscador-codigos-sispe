@@ -1628,6 +1628,7 @@ st.session_state.setdefault("ultima", "")
 st.session_state.setdefault("consulta", "")
 st.session_state.setdefault("cv_experiencias", [])
 st.session_state.setdefault("cv_auto_orden", True)
+st.session_state.setdefault("cv_manuales", 0)
 
 EJEMPLOS = [
     "Una persona que limpia habitaciones de hotel",
@@ -1788,10 +1789,12 @@ def sugiere_funciones(denominacion, motivo=""):
 def pon_funciones(codigo):
     for e in st.session_state["cv_experiencias"]:
         if e["codigo"] == codigo:
-            texto = sugiere_funciones(e["denominacion"], e.get("motivo", ""))
+            texto = sugiere_funciones(
+                e["denominacion"] or e["puesto"], e.get("motivo", ""),
+            )
             if texto:
                 e["funciones"] = texto
-                st.session_state.pop(f"fun_{codigo}", None)
+                st.session_state[f"fun_{codigo}"] = texto
             else:
                 st.session_state["cv_aviso"] = (
                     "No he podido proponer funciones ahora mismo. "
@@ -1813,6 +1816,27 @@ def anade_al_carrito(codigo, denominacion, motivo):
         "motivo": motivo,
         "sector": "",
         "puesto": a_oracion(denominacion),
+        "contexto": "",
+        "funciones": "",
+        "desde": "",
+        "hasta": "",
+    })
+
+
+def anade_a_mano():
+    """Una experiencia que no viene del codificador.
+
+    No todo lo que se pone en un curriculo hace falta codificarlo en SISPE, y
+    hay quien llega con el itinerario ya contado. El codigo interno solo sirve
+    para que cada ficha conserve sus datos al moverla.
+    """
+    n = st.session_state["cv_manuales"] = st.session_state.get("cv_manuales", 0) + 1
+    st.session_state["cv_experiencias"].append({
+        "codigo": f"mano-{n}",
+        "denominacion": "",
+        "motivo": "",
+        "sector": "",
+        "puesto": "",
         "contexto": "",
         "funciones": "",
         "desde": "",
@@ -2016,10 +2040,16 @@ with tab_cv:
     exps = st.session_state["cv_experiencias"]
 
     if not exps:
-        st.info(
-            "Todavía no has añadido ningún puesto. Busca una ocupación en el "
-            "Codificador y pulsa el botón de añadir que sale bajo las tarjetas."
-        )
+        st.markdown('<div class="seccion">Experiencia laboral</div>', unsafe_allow_html=True)
+        with st.container(border=True):
+            st.markdown("**Todavía no hay ninguna experiencia**")
+            st.caption(
+                "Puedes traerlas del Codificador, buscando la ocupación y "
+                "pulsando el botón rojo que sale bajo las tarjetas, o "
+                "escribirlas aquí directamente si no necesitas codificarlas."
+            )
+            st.button("Añadir una experiencia a mano", type="primary",
+                      use_container_width=True, on_click=anade_a_mano)
     else:
         st.markdown('<div class="seccion">Experiencia laboral</div>', unsafe_allow_html=True)
         st.caption(
@@ -2042,10 +2072,13 @@ with tab_cv:
                               use_container_width=True, on_click=mueve, args=(i, -1))
                 abajo.button("↓", key=f"baja_{e['codigo']}", disabled=(i == len(exps) - 1),
                              use_container_width=True, on_click=mueve, args=(i, 1))
+                if e["denominacion"]:
+                    apunte = f"{e['codigo']} · {e['denominacion'][:40]}"
+                else:
+                    apunte = "Añadida a mano, sin código"
                 titulo.markdown(
-                    f"**{e['puesto'] or a_oracion(e['denominacion'])}** &nbsp;&nbsp;"
-                    f"<span style='color:#888;font-size:.8rem'>{e['codigo']} · "
-                    f"{e['denominacion'][:40]}</span>",
+                    f"**{e['puesto'] or a_oracion(e['denominacion']) or 'Experiencia sin nombre'}**"
+                    f" &nbsp;&nbsp;<span style='color:#888;font-size:.8rem'>{apunte}</span>",
                     unsafe_allow_html=True,
                 )
                 fuera.button("Quitar", key=f"quita_{e['codigo']}", use_container_width=True,
@@ -2055,8 +2088,8 @@ with tab_cv:
                 e["sector"] = c1.text_input(
                     "Sector", value=e["sector"], key=f"sec_{e['codigo']}",
                     placeholder="Construcción, Hostelería, Conducción profesional…",
-                    help="Agrupa los puestos del mismo ramo en el currículo. "
-                         "No sale del catálogo: lo pones tú.",
+                    help="Opcional. Solo aparece en el currículo si agrupa dos o "
+                         "más experiencias del mismo ramo. No sale del catálogo.",
                 )
                 e["puesto"] = c2.text_input(
                     "Puesto, tal como quieres que salga", value=e["puesto"], key=f"pue_{e['codigo']}",
@@ -2088,8 +2121,9 @@ with tab_cv:
                          "no las de esta persona. Quita lo que no hiciera antes "
                          "de darlo por bueno.",
                 )
+                st.session_state.setdefault(f"fun_{e['codigo']}", e["funciones"])
                 e["funciones"] = st.text_area(
-                    "Funciones", value=e["funciones"], key=f"fun_{e['codigo']}",
+                    "Funciones", key=f"fun_{e['codigo']}",
                     height=90, label_visibility="collapsed",
                     placeholder="Qué hacía en ese puesto, en dos o tres líneas.",
                 )
@@ -2101,6 +2135,9 @@ with tab_cv:
                        help="Coloca el más reciente arriba.")
         else:
             izq.caption("Se ordenan solos por fecha, del más reciente al más antiguo.")
+        st.button("Añadir otra experiencia a mano", use_container_width=True,
+                  on_click=anade_a_mano)
+
         if der.button("Vaciar la lista", use_container_width=True):
             st.session_state["cv_experiencias"] = []
             st.rerun()
@@ -2118,12 +2155,24 @@ with tab_cv:
         # ------------------------------------------------------------------
         st.markdown('<div class="seccion">Cómo va quedando</div>', unsafe_allow_html=True)
 
+        # El sector solo es un agrupador: se escribe si reune dos o mas puestos.
+        # Con uno solo seria un titulo para una linea, que gasta espacio sin
+        # aportar nada, y en un curriculo de una pagina el espacio es el limite.
+        cuenta = {}
+        for e in exps:
+            if e["sector"].strip():
+                cuenta[e["sector"].strip().upper()] = cuenta.get(
+                    e["sector"].strip().upper(), 0) + 1
+        agrupan = {k for k, v in cuenta.items() if v >= 2}
+
         lineas, sector_actual = [], None
         for e in exps:
-            sector = (e["sector"] or "Otros").upper()
-            if sector != sector_actual:
+            sector = e["sector"].strip().upper()
+            if sector in agrupan and sector != sector_actual:
                 lineas.append(f"\n{sector}")
                 sector_actual = sector
+            elif sector not in agrupan:
+                sector_actual = None
 
             periodo = ""
             if e["desde"] or e["hasta"]:
@@ -2143,8 +2192,8 @@ with tab_cv:
 
         st.code("EXPERIENCIA LABORAL\n" + "\n".join(lineas), language=None)
         st.caption(
-            "Vista provisional en texto. El documento con formato, listo para "
-            "imprimir en un A4, es el paso siguiente."
+            "Vista provisional en texto. El documento con formato, en un A4, es "
+            "el paso siguiente; ahí decidiremos qué se recorta si no cabe."
         )
 
 _pendientes = st.session_state.pop("por_guardar", [])
