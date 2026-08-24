@@ -1,0 +1,9 @@
+# Salida regenerable de las baterías de pruebas
+informe_evaluacion.csv
+
+# Python
+__pycache__/
+*.py[cod]
+
+# Secrets locales de Streamlit (nunca versionar claves)
+.streamlit/secrets.toml
