@@ -34,7 +34,7 @@ except ImportError:                     # noqa: S110
 CATALOGO = "ocupaciones_sispe_ultraligero.txt"
 AMPLIADO = "terminos_ampliados.txt"
 N_CANDIDATOS = 16
-UMBRAL_RELLENO = 0.25   # sube a 0.35 para menos tarjetas, baja a 0.15 para mas
+UMBRAL_RELLENO = 0.35   # sube para menos tarjetas, baja para mas
 ESPERA_MAXIMA = 45
 
 # ---------------------------------------------------------------------------
