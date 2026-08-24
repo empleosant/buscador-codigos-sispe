@@ -34,7 +34,12 @@ except ImportError:                     # noqa: S110
 CATALOGO = "ocupaciones_sispe_ultraligero.txt"
 AMPLIADO = "terminos_ampliados.txt"
 N_CANDIDATOS = 16
-ESPERA_MAXIMA = 45
+VENTAJA_CLARA = 3.0   # cuántas veces debe superar el 1º del buscador al 2º
+                      # para que mande él en lugar del modelo (sube para que
+                      # mande menos, baja para que mande más)
+ESPERA_MAXIMA = 30   # segundos por intento. A 45 una llamada atascada te dejaba
+                     # mirando la pantalla; a 12 se cortaban llamadas que iban a
+                     # terminar bien y caias al catalogo sin afinar.
 
 # ---------------------------------------------------------------------------
 # PROVEEDOR DE IA
@@ -341,6 +346,8 @@ def _peticion(url, token, datos=None, metodo="GET"):
 
 @st.cache_data(ttl=300, show_spinner=False)
 def _lee_gist(archivo):
+    # Sale a GitHub. Se relee cada 5 minutos, asi que de vez en cuando una
+    # busqueda paga este viaje sin que se note de donde viene.
     gist, token = _credenciales()
     if not gist:
         return {}
@@ -955,8 +962,20 @@ def limpia_opcion(texto):
             r"^(?:la|el|los|las|un|una|unos|unas|en|a|al|del|de|para|con|por|su|sus)\s+",
             "", t, flags=re.IGNORECASE,
         ).strip()
-    if len(t) > 36:
-        t = t[:36].rsplit(" ", 1)[0]
+    if len(t) > 44:
+        t = t[:44].rsplit(" ", 1)[0]
+        # Cortar por una palabra entera no basta: si el corte cae justo detras
+        # de un conector queda "Gestion de contabilidad y", que no significa
+        # nada. Se retrocede hasta que la ultima palabra tenga contenido.
+        colgantes = {
+            "y", "o", "u", "e", "de", "del", "al", "a", "en", "con", "por",
+            "para", "sin", "sobre", "the", "la", "el", "los", "las", "un",
+            "una", "mas", "más", "que", "su", "sus",
+        }
+        piezas = t.split()
+        while len(piezas) > 1 and piezas[-1].lower().strip(",;") in colgantes:
+            piezas.pop()
+        t = " ".join(piezas) + "…"
     return t.capitalize()
 
 
@@ -1169,7 +1188,7 @@ def pinta_tarjetas(ocupaciones):
 
     trozos = []
     for i, o in enumerate(ocupaciones, 1):
-        es_primera = (i == 1 and not o.get("relleno"))
+        es_primera = (i == 1 and not o.get("provisional"))
         es_mando = o.get("nivel") in ("10", "20", "30")
 
         clases = ["tarjeta"]
@@ -1230,7 +1249,13 @@ def pinta_tarjetas(ocupaciones):
 def pinta_resultado(payload, estado=None, avance=0.06, interactivo=False, consulta=""):
     if estado:
         st.progress(min(avance, 0.95), text=estado)
-        return
+        # Antes se volvia aqui, asi que durante la espera solo se veia la barra.
+        # Pero el catalogo ya ha respondido en el primer milisegundo y esos
+        # resultados estaban calculados y guardados sin llegar a mostrarse. Si
+        # los hay, se pintan bajo la barra y se sustituyen cuando el modelo
+        # termina: la espera es la misma, pero deja de ser una pantalla vacia.
+        if not payload.get("ocupaciones"):
+            return
     if payload.get("aviso"):
         st.info(payload["aviso"])
         return
@@ -1254,8 +1279,11 @@ def pinta_resultado(payload, estado=None, avance=0.06, interactivo=False, consul
             )
             if interactivo:
                 opciones = extraer_opciones(payload.get("pregunta", ""), payload.get("opciones"))
-                pesos = [max(1.0, len(opc) * 0.09) for opc in opciones]
-                spacer = max(0.4, (8.0 - sum(pesos)) / 2.0)
+                # El ancho se reparte segun lo que ocupa cada texto. Con el
+                # limite en 44 caracteres hace falta algo mas de holgura que
+                # antes, o el boton vuelve a cortar la frase por su cuenta.
+                pesos = [max(1.2, len(opc) * 0.105) for opc in opciones]
+                spacer = max(0.2, (9.0 - sum(pesos)) / 2.0)
                 col_weights = [spacer] + pesos + [spacer]
                 cols = st.columns(col_weights, gap="small")
                 for idx, opc in enumerate(opciones):
@@ -1310,10 +1338,34 @@ def pinta_resultado(payload, estado=None, avance=0.06, interactivo=False, consul
 # LOGICA DE CONSULTA
 # ---------------------------------------------------------------------------
 
+class cronometra:
+    """Mide lo que tarda cada llamada al modelo y lo guarda para el panel.
+
+    Solo observa: no cambia ni un resultado. Sirve para dejar de decidir a ojo
+    dónde se va el tiempo. Se ve en el panel de ajustes con ?mantenimiento=1.
+    """
+
+    def __init__(self, etiqueta):
+        self.etiqueta = etiqueta
+
+    def __enter__(self):
+        self.t0 = time.perf_counter()
+        return self
+
+    def __exit__(self, *_):
+        segundos = time.perf_counter() - self.t0
+        st.session_state.setdefault("tiempos", []).append((self.etiqueta, segundos))
+        return False
+
+
 def _basica(encontrados, motivo=""):
+    # "provisional" marca lo que sale del catalogo sin que el modelo lo haya
+    # revisado: ni durante la espera, ni cuando el modelo falla. Esas tarjetas
+    # no llevan la marca de recomendada, porque nadie las ha recomendado.
     return [{
         "codigo": c, "denominacion": d, "nivel": "00",
         "nivel_texto": NIVELES["00"], "motivo": motivo,
+        "provisional": True,
     } for _, c, d in encontrados[:5]]
 
 
@@ -1335,6 +1387,12 @@ def resuelve(texto, zona, usar_ia=True, contexto="", busqueda=None):
         return payload
 
     encontrados = busca(busqueda or texto, tope=N_CANDIDATOS)
+    # Lo que devuelve el buscador para lo que ESCRIBIO la persona, antes de que
+    # la IA reinterprete y sustituya `encontrados`. La decision de quien manda
+    # tiene que tomarse sobre esto, no sobre la busqueda reescrita por el
+    # modelo: ahi las puntuaciones se aplanan y la ventaja real desaparece.
+    literales = encontrados[:2]
+    st.session_state["tiempos"] = []
     cli = cliente() if usar_ia else None
 
     if not encontrados and cli is None:
@@ -1351,9 +1409,36 @@ def resuelve(texto, zona, usar_ia=True, contexto="", busqueda=None):
         return memoria[clave]
 
     provisional = {
-        "ocupaciones": _basica(encontrados),
+        "ocupaciones": _basica(encontrados, "Resultado del catálogo, sin afinar todavía."),
         "otras": [(c, d) for _, c, d in encontrados[5:12]],
     }
+
+    # ATAJO SIN IA.
+    # Si el buscador saca al segundo mas de VENTAJA_CLARA veces, la persona ha
+    # escrito practicamente el nombre de la ocupacion y no hay nada que
+    # interpretar. Llamar al modelo ahi solo anade tres viajes a Google, entre
+    # diez y treinta segundos de espera y consumo de cuota, para acabar en el
+    # mismo sitio (o peor: para "montador de placa de pladur" proponia
+    # escayolistas). Se contesta al instante con lo que dice el catalogo.
+    # El resto de resultados sigue disponible en "Ver otras ocupaciones".
+    if literales and not contexto:
+        segundo_l = literales[1][0] if len(literales) > 1 else 0.0
+        if segundo_l <= 0 or (literales[0][0] / segundo_l) > VENTAJA_CLARA:
+            _, cod_a, den_a = literales[0]
+            atajo = {
+                "ocupaciones": [{
+                    "codigo": cod_a,
+                    "denominacion": den_a,
+                    "nivel": "00",
+                    "nivel_texto": NIVELES["00"],
+                    "motivo": "Coincidencia directa con lo que escribiste.",
+                }],
+                "otras": [(c, d) for _, c, d in encontrados[1:9]],
+            }
+            with zona.container():
+                pinta_resultado(atajo)
+            memoria[clave] = atajo
+            return atajo
 
     if cli is None:
         with zona.container():
@@ -1366,7 +1451,8 @@ def resuelve(texto, zona, usar_ia=True, contexto="", busqueda=None):
     interpretado, aviso = None, ""
     with zona.container():
         pinta_resultado({}, estado="Interpretando el oficio", avance=0.12)
-    lecturas = interpreta_consulta(cli, texto)
+    with cronometra("1. Interpretar el oficio"):
+        lecturas = interpreta_consulta(cli, texto)
     if lecturas:
         fundido, vistos = [], {}
         for orden, (terminos, grupos) in enumerate(lecturas):
@@ -1392,7 +1478,7 @@ def resuelve(texto, zona, usar_ia=True, contexto="", busqueda=None):
                 " · ".join(t.split()[0] for t, _ in lecturas),
             )
             provisional = {
-                "ocupaciones": _basica(encontrados),
+                "ocupaciones": _basica(encontrados, "Resultado del catálogo, sin afinar todavía."),
                 "otras": [(c, d) for _, c, d in encontrados[5:12]],
             }
 
@@ -1421,7 +1507,8 @@ def resuelve(texto, zona, usar_ia=True, contexto="", busqueda=None):
 
     try:
         lista = "\n".join(f"{c}:{d}" for _, c, d in encontrados)
-        payload = consulta_al_modelo(lista, "Afinando el resultado")
+        with cronometra("2. Afinar el resultado"):
+            payload = consulta_al_modelo(lista, "Afinando el resultado")
 
         if payload.get("mas_terminos"):
             with zona.container():
@@ -1431,10 +1518,11 @@ def resuelve(texto, zona, usar_ia=True, contexto="", busqueda=None):
             if ampliados:
                 encontrados = ampliados
                 interpretado = ("la descripción", payload["mas_terminos"])
-                segunda = consulta_al_modelo(
-                    "\n".join(f"{c}:{d}" for _, c, d in ampliados),
-                    "Afinando el resultado",
-                )
+                with cronometra("3. Ampliar la búsqueda"):
+                    segunda = consulta_al_modelo(
+                        "\n".join(f"{c}:{d}" for _, c, d in ampliados),
+                        "Afinando el resultado",
+                    )
                 if segunda["ocupaciones"]:
                     payload = segunda
     except Exception as e:  # noqa: BLE001
@@ -1461,11 +1549,48 @@ def resuelve(texto, zona, usar_ia=True, contexto="", busqueda=None):
     if not payload["ocupaciones"]:
         payload["ocupaciones"] = provisional["ocupaciones"]
 
-    # Se muestran solo las ocupaciones que el modelo considera pertinentes,
-    # cada una con su explicacion. Antes se completaban seis tarjetas siempre,
-    # llenando los huecos con lo siguiente del catalogo aunque no tuviera
-    # ninguna relacion con lo buscado, y eso restaba confianza en las que si
-    # eran buenas. Lo descartado sigue a un clic, en "Ver otras ocupaciones".
+    # Se muestran las ocupaciones que el modelo considera pertinentes. Ya no se
+    # completan seis tarjetas siempre: rellenar el hueco con lo siguiente del
+    # catalogo, sin relacion con lo buscado, restaba confianza en las buenas.
+    # Lo descartado sigue a un clic, en "Ver otras ocupaciones del catalogo".
+    #
+    # Pero el buscador no puede quedar mudo. El modelo reinterpreta la consulta
+    # y a veces se aleja de lo que se escribio: para "montador de placa de
+    # pladur" ha llegado a proponer escayolistas y albañiles, que no estan ni
+    # entre los seis mejores del catalogo. Por eso:
+    #
+    #   1) el mejor resultado del buscador entra SIEMPRE como tarjeta,
+    #   2) y si ademas arrasa (VENTAJA_CLARA veces mas puntos que el segundo),
+    #      se pone el primero y es el que lleva la marca de recomendada.
+    #
+    # Una ventaja aplastante significa que la persona escribio casi el nombre
+    # exacto de la ocupacion; ahi interpretar sobra. Cuando la ventaja es corta
+    # hay ambiguedad real y manda el modelo, que para eso esta.
+    ya = {o["codigo"] for o in payload["ocupaciones"]}
+    if literales:
+        puntos, codigo_c, denom = literales[0]
+        segundo = literales[1][0] if len(literales) > 1 else 0.0
+        arrasa = segundo <= 0 or (puntos / segundo) > VENTAJA_CLARA
+
+        if codigo_c not in ya:
+            tarjeta = {
+                "codigo": codigo_c,
+                "denominacion": denom,
+                "nivel": "00",
+                "nivel_texto": NIVELES["00"],
+                "motivo": "Mejor coincidencia del catálogo con lo que escribiste.",
+            }
+            if arrasa:
+                payload["ocupaciones"].insert(0, tarjeta)
+            else:
+                payload["ocupaciones"].append(tarjeta)
+        elif arrasa and payload["ocupaciones"][0]["codigo"] != codigo_c:
+            i_mejor = next(
+                i for i, o in enumerate(payload["ocupaciones"])
+                if o["codigo"] == codigo_c
+            )
+            payload["ocupaciones"].insert(0, payload["ocupaciones"].pop(i_mejor))
+
     elegidos = {o["codigo"] for o in payload["ocupaciones"]}
     payload["otras"] = [(c, d) for _, c, d in encontrados if c not in elegidos][:8]
 
@@ -1542,6 +1667,13 @@ def panel_ajustes():
             )
             return
 
+        tiempos = st.session_state.get("tiempos", [])
+        if tiempos:
+            st.caption("Última consulta, segundo a segundo:")
+            for etiqueta, seg in tiempos:
+                st.caption(f"· {etiqueta}: **{seg:.1f} s**")
+            st.caption(f"· Total esperando al modelo: **{sum(t for _, t in tiempos):.1f} s**")
+
         if st.button("Probar la conexión con la IA", use_container_width=True):
             prueba = cliente()
             if prueba is None:
@@ -1574,20 +1706,50 @@ def usar_ejemplo(texto_ejemplo):
     st.session_state["ultima"] = ""
 
 
+SUELTAS_ES = ("r", "n", "l", "d", "s", "z", "j")
+
+
+def a_oracion(denom):
+    """Pasa la denominacion oficial a algo que se pueda poner en un CV.
+
+    El catalogo va en MAYUSCULAS y en plural ("CAMAREROS DE PISO"), porque asi
+    consta oficialmente y asi debe verse en el codificador. Pero un curriculo
+    se escribe en singular y en tipo oracion ("Camarero de piso"). El singular
+    es aproximado a proposito: el campo queda editable y la persona lo ajusta.
+    """
+    base = re.sub(r"\s*\([^)]*\)", "", denom).strip().lower()
+    # Coletillas del catalogo que no pintan nada en un curriculo.
+    base = re.sub(r",?\s*(en general|en gral\.?|n\.c\.o\.p\.?)\s*$", "", base).strip()
+    base = base.strip(" ,;")
+    if not base:
+        return ""
+
+    def singular(palabra):
+        if palabra.endswith("es") and len(palabra) > 4 and palabra[-3] in SUELTAS_ES:
+            return palabra[:-2]
+        if palabra.endswith("s") and len(palabra) > 3:
+            return palabra[:-1]
+        return palabra
+
+    piezas = base.split()
+    # "matarifes-carniceros" y demas compuestos: cada mitad va en plural.
+    piezas[0] = "-".join(singular(x) for x in piezas[0].split("-"))
+    return " ".join(piezas).capitalize()
+
+
 def en_carrito(codigo):
     return any(e["codigo"] == codigo for e in st.session_state["cv_experiencias"])
 
 
 def anade_al_carrito(codigo, denominacion, motivo):
-    """Guarda un puesto en el carrito. No toca el catálogo ni el buscador."""
     if en_carrito(codigo):
         return
     st.session_state["cv_experiencias"].append({
         "codigo": codigo,
-        "denominacion": denominacion,   # tal cual el catálogo, en mayúsculas
-        "motivo": motivo,               # la frase que propuso la IA al buscar
+        "denominacion": denominacion,
+        "motivo": motivo,
         "sector": "",
-        "puesto": "",                   # se rellena en la pestaña del CV
+        "puesto": a_oracion(denominacion),
         "contexto": "",
         "funciones": "",
         "desde": "",
@@ -1595,24 +1757,44 @@ def anade_al_carrito(codigo, denominacion, motivo):
     })
 
 
-def botones_carrito(ocupaciones):
-    """Una fila de botones reales bajo las tarjetas.
+def quita_del_carrito(i):
+    st.session_state["cv_experiencias"].pop(i)
 
-    No se pueden poner dentro de las tarjetas: se dibujan con components.html,
-    en un marco aislado, y un botón de ahí dentro no puede avisar a la app.
+
+def mueve(i, salto):
+    e = st.session_state["cv_experiencias"]
+    j = i + salto
+    if 0 <= j < len(e):
+        e[i], e[j] = e[j], e[i]
+
+
+def _anio(texto):
+    m = re.findall(r"(19|20)\d{2}", texto or "")
+    return int((texto or "")[texto.find(m[-1]):][:4]) if m else 0
+
+
+def ordena_por_fechas():
+    """Mas reciente primero, que es como se lee un curriculo."""
+    st.session_state["cv_experiencias"].sort(
+        key=lambda e: (_anio(e["hasta"]), _anio(e["desde"])), reverse=True,
+    )
+
+
+def botones_carrito(ocupaciones):
+    """Botones reales bajo las tarjetas.
+
+    No pueden ir dentro: las tarjetas se dibujan con components.html, en un
+    marco aislado, y un boton de ahi dentro no puede avisar a la aplicacion.
     """
     if not ocupaciones:
         return
     st.markdown('<div class="seccion">Añadir al currículo</div>', unsafe_allow_html=True)
     cols = st.columns(min(len(ocupaciones), 3), gap="small")
     for i, o in enumerate(ocupaciones):
-        col = cols[i % len(cols)]
         puesto = en_carrito(o["codigo"])
-        col.button(
+        cols[i % len(cols)].button(
             ("Añadido · " if puesto else "+ CV · ") + o["codigo"],
-            key=f"addcv_{o['codigo']}",
-            use_container_width=True,
-            disabled=puesto,
+            key=f"addcv_{o['codigo']}", use_container_width=True, disabled=puesto,
             on_click=anade_al_carrito,
             args=(o["codigo"], o["denominacion"], o.get("motivo", "")),
         )
@@ -1742,31 +1924,123 @@ with tab_codificador:
                     on_click=usar_ejemplo, args=(ej,),
                 )
 
+    # Estas dos escrituras van a la API de GitHub y ocurren AL TERMINAR la
+    # busqueda, cuando el usuario ya cree que ha acabado. No se veian en el panel
+    # porque solo se cronometraba a Gemini; aqui pueden irse varios segundos.
 
 with tab_cv:
-    st.markdown(
-        '<div class="seccion">Creador de CV</div>',
-        unsafe_allow_html=True,
-    )
     exps = st.session_state["cv_experiencias"]
+
     if not exps:
         st.info(
             "Todavía no has añadido ningún puesto. Busca una ocupación en el "
-            "Codificador y pulsa el botón de añadir que aparece bajo las tarjetas."
+            "Codificador y pulsa el botón de añadir que sale bajo las tarjetas."
         )
     else:
-        for i, e in enumerate(exps, 1):
-            st.markdown(
-                f'**{i}. {e["denominacion"].capitalize()}** &nbsp; `{e["codigo"]}`',
-            )
-            if e["motivo"]:
-                st.caption(e["motivo"])
-        if st.button("Vaciar la lista", key="cv_vaciar"):
+        st.markdown('<div class="seccion">Experiencia laboral</div>', unsafe_allow_html=True)
+        st.caption(
+            "El nombre del puesto viene del catálogo, pasado a singular y "
+            "minúscula para el currículo. Cámbialo si no encaja: manda lo que "
+            "escribas aquí, no lo que diga el catálogo."
+        )
+
+        for i, e in enumerate(exps):
+            with st.container(border=True):
+                arriba, abajo, titulo, fuera = st.columns([0.8, 0.8, 7, 1.2], gap="small")
+                arriba.button("↑", key=f"sube_{i}", disabled=(i == 0),
+                              use_container_width=True, on_click=mueve, args=(i, -1))
+                abajo.button("↓", key=f"baja_{i}", disabled=(i == len(exps) - 1),
+                             use_container_width=True, on_click=mueve, args=(i, 1))
+                titulo.markdown(
+                    f"**{e['puesto'] or a_oracion(e['denominacion'])}** &nbsp;&nbsp;"
+                    f"<span style='color:#888;font-size:.8rem'>{e['codigo']} · "
+                    f"{e['denominacion'][:40]}</span>",
+                    unsafe_allow_html=True,
+                )
+                fuera.button("Quitar", key=f"quita_{i}", use_container_width=True,
+                             on_click=quita_del_carrito, args=(i,))
+
+                c1, c2 = st.columns(2, gap="medium")
+                e["sector"] = c1.text_input(
+                    "Sector", value=e["sector"], key=f"sec_{i}",
+                    placeholder="Construcción, Hostelería, Conducción profesional…",
+                    help="Agrupa los puestos del mismo ramo en el currículo. "
+                         "No sale del catálogo: lo pones tú.",
+                )
+                e["puesto"] = c2.text_input(
+                    "Puesto, tal como quieres que salga", value=e["puesto"], key=f"pue_{i}",
+                )
+
+                c3, c4 = st.columns(2, gap="medium")
+                e["desde"] = c3.text_input("Desde", value=e["desde"], key=f"des_{i}",
+                                           placeholder="2016")
+                e["hasta"] = c4.text_input("Hasta", value=e["hasta"], key=f"has_{i}",
+                                           placeholder="2022, o «actualmente»")
+
+                e["contexto"] = st.text_input(
+                    "Dónde", value=e["contexto"], key=f"ctx_{i}",
+                    placeholder="Empresas de construcción y obras públicas en Madrid capital.",
+                    help="Puedes nombrar las empresas o describir el tipo de "
+                         "empresa, que es útil cuando han sido muchas o no se "
+                         "recuerdan los nombres.",
+                )
+                e["funciones"] = st.text_area(
+                    "Funciones", value=e["funciones"], key=f"fun_{i}", height=90,
+                    placeholder="Qué hacía en ese puesto, en dos o tres líneas.",
+                    help="De momento se escribe a mano. El botón para que la IA "
+                         "proponga funciones típicas llegará en el paso siguiente.",
+                )
+
+        izq, der = st.columns([1, 1], gap="small")
+        izq.button("Ordenar por fechas", use_container_width=True,
+                   on_click=ordena_por_fechas,
+                   help="Coloca el más reciente arriba, que es como se lee un currículo.")
+        if der.button("Vaciar la lista", use_container_width=True):
             st.session_state["cv_experiencias"] = []
             st.rerun()
 
-for clave, valor in st.session_state.pop("por_guardar", []):
-    guarda_termino(clave, valor)
+        # ------------------------------------------------------------------
+        # Vista previa
+        # ------------------------------------------------------------------
+        st.markdown('<div class="seccion">Cómo va quedando</div>', unsafe_allow_html=True)
 
-for codigo, palabras in st.session_state.pop("refuerzos_por_guardar", []):
-    guarda_refuerzo(codigo, palabras)
+        lineas, sector_actual = [], None
+        for e in exps:
+            sector = (e["sector"] or "Otros").upper()
+            if sector != sector_actual:
+                lineas.append(f"\n{sector}")
+                sector_actual = sector
+
+            periodo = ""
+            if e["desde"] or e["hasta"]:
+                rango = " - ".join(x for x in (e["desde"], e["hasta"]) if x)
+                a1, a2 = _anio(e["desde"]), _anio(e["hasta"])
+                if a1 and a2 and a2 >= a1:
+                    anios = max(1, a2 - a1)
+                    periodo = f" ({anios} año{'s' if anios != 1 else ''} - {rango})"
+                else:
+                    periodo = f" ({rango})"
+
+            lineas.append(f"·   {e['puesto'] or a_oracion(e['denominacion'])}{periodo}")
+            if e["contexto"]:
+                lineas.append(e["contexto"])
+            if e["funciones"]:
+                lineas.append(f"Funciones: {e['funciones']}")
+
+        st.code("EXPERIENCIA LABORAL\n" + "\n".join(lineas), language=None)
+        st.caption(
+            "Vista provisional en texto. El documento con formato, listo para "
+            "imprimir en un A4, es el paso siguiente."
+        )
+
+_pendientes = st.session_state.pop("por_guardar", [])
+if _pendientes:
+    with cronometra("4. Guardar términos aprendidos (GitHub)"):
+        for clave, valor in _pendientes:
+            guarda_termino(clave, valor)
+
+_refuerzos = st.session_state.pop("refuerzos_por_guardar", [])
+if _refuerzos:
+    with cronometra("5. Guardar correcciones de orden (GitHub)"):
+        for codigo, palabras in _refuerzos:
+            guarda_refuerzo(codigo, palabras)
