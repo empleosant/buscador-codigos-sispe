@@ -1,78 +1,56 @@
-"""
-Despertador de la aplicación.
-
-Abre la app con un navegador real. Un ping normal devuelve 200 aunque el
-proceso siga dormido, por eso hace falta un navegador.
-
-Lo lanza el flujo .github/workflows/mantener-despierta.yml, que le pasa la
-dirección en la variable de entorno URL.
-"""
-
 import os
-import sys
-
+import time
 from playwright.sync_api import sync_playwright
 
-SENALES = (
-    "input, textarea, button, "
-    "[data-testid='stAppViewContainer'], [data-testid='stMain']"
-)
+URL = os.environ.get("URL", "https://buscador-codigos-sispe.streamlit.app")
 
-
-def main():
-    url = os.environ.get("URL", "").strip()
-
-    if not url:
-        print("ERROR: no se ha recibido la variable URL.")
-        return 1
-    if "TU-APP" in url or "TU-USUARIO" in url:
-        print("ERROR: la URL sigue siendo el marcador de posicion.")
-        print("Edita mantener-despierta.yml y pon la direccion real.")
-        return 1
-
-    print(f"Abriendo {url}")
-
+def despertar():
     with sync_playwright() as p:
-        navegador = p.chromium.launch()
-        pagina = navegador.new_page()
+        browser = p.chromium.launch(headless=True)
+        context = browser.new_context(
+            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        )
+        page = context.new_page()
 
-        try:
-            # domcontentloaded: no se espera a que "termine" de cargar, porque
-            # Streamlit mantiene la conexion abierta y ese momento no llega.
-            pagina.goto(url, timeout=60000, wait_until="domcontentloaded")
-        except Exception as e:
-            print(f"No se ha podido abrir la direccion: {e}")
-            navegador.close()
-            return 1
+        print(f"--- Conectando a {URL} ---")
+        page.goto(URL, wait_until="domcontentloaded", timeout=90000)
+        time.sleep(8)
 
-        pagina.wait_for_timeout(5000)
-        texto = pagina.content().lower()
+        # Selectores del botón de reposo en Streamlit
+        selectores_boton = [
+            "button:has-text('Yes, get this app back up')",
+            "button:has-text('Get this app back up')",
+            "button:has-text('Wake up')",
+            "button:has-text('Despertar')",
+            "button[data-testid='stAppBackUpButton']"
+        ]
 
-        # Streamlit Cloud muestra un boton; Hugging Face arranca solo.
-        if "zzz" in texto or "get this app back up" in texto:
-            print("Estaba dormida. Pulsando el boton de reactivar...")
+        boton_encontrado = None
+        for selector in selectores_boton:
+            loc = page.locator(selector)
+            if loc.count() > 0 and loc.first.is_visible():
+                boton_encontrado = loc.first
+                break
+
+        if boton_encontrado:
+            print(">> Pantalla de reposo detectada. Pulsando el botón de despertar...")
+            boton_encontrado.click()
+            print(">> Botón pulsado. Esperando arranque del contenedor...")
             try:
-                pagina.get_by_role("button").first.click(timeout=15000)
-            except Exception as e:
-                print(f"No se ha podido pulsar el boton: {e}")
+                page.wait_for_selector("[data-testid='stAppViewContainer'], .stApp", timeout=90000)
+                time.sleep(10)
+                print(">> ¡Éxito! La aplicación ha despertado y está activa.")
+            except Exception:
+                print(">> Se pulsó el botón, pero el contenedor sigue iniciando.")
         else:
-            print("No aparece la pantalla de hibernacion.")
+            if page.locator("[data-testid='stAppViewContainer'], .stApp").count() > 0:
+                print(">> La aplicación ya estaba despierta y cargada correctamente.")
+            else:
+                print(">> Manteniendo conexión activa para evitar reposo...")
+                time.sleep(30)
+                print(">> Conexión finalizada.")
 
-        try:
-            pagina.wait_for_selector(SENALES, timeout=45000)
-            print("La aplicacion responde: la interfaz esta cargada.")
-            navegador.close()
-            return 0
-        except Exception:
-            pass
-
-        # No se rinde con error: la app puede estar arrancando todavia y un
-        # correo de fallo cada doce horas acabaria en la carpeta de ignorados.
-        print("AVISO: no se ha confirmado que la interfaz este cargada.")
-        print("Puede que siga arrancando. Se reintentara en el proximo turno.")
-        navegador.close()
-        return 0
-
+        browser.close()
 
 if __name__ == "__main__":
-    sys.exit(main())
+    despertar()
