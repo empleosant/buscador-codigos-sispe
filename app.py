@@ -1338,6 +1338,11 @@ def resuelve(texto, zona, usar_ia=True, contexto="", busqueda=None):
         return payload
 
     encontrados = busca(busqueda or texto, tope=N_CANDIDATOS)
+    # Lo que devuelve el buscador para lo que ESCRIBIO la persona, antes de que
+    # la IA reinterprete y sustituya `encontrados`. La decision de quien manda
+    # tiene que tomarse sobre esto, no sobre la busqueda reescrita por el
+    # modelo: ahi las puntuaciones se aplanan y la ventaja real desaparece.
+    literales = encontrados[:2]
     cli = cliente() if usar_ia else None
 
     if not encontrados and cli is None:
@@ -1482,9 +1487,9 @@ def resuelve(texto, zona, usar_ia=True, contexto="", busqueda=None):
     # exacto de la ocupacion; ahi interpretar sobra. Cuando la ventaja es corta
     # hay ambiguedad real y manda el modelo, que para eso esta.
     ya = {o["codigo"] for o in payload["ocupaciones"]}
-    if encontrados:
-        puntos, codigo_c, denom = encontrados[0]
-        segundo = encontrados[1][0] if len(encontrados) > 1 else 0.0
+    if literales:
+        puntos, codigo_c, denom = literales[0]
+        segundo = literales[1][0] if len(literales) > 1 else 0.0
         arrasa = segundo <= 0 or (puntos / segundo) > VENTAJA_CLARA
 
         if codigo_c not in ya:
