@@ -97,7 +97,7 @@ st.markdown("""
   --texto:#1A1A1A;
   --suave:#555555;
   --tenue:#8E8E93;
-  --linea:var(--linea);
+  --linea:#E2E8F0;
   --gris:#F1F5F9;
 }
 
@@ -266,34 +266,6 @@ div[data-testid="stTextInput"] input{
 
 div[data-testid="stExpander"]{ border:none; background:transparent; margin-top:.1rem; }
 div[data-testid="stExpander"] summary{ font-size:.8rem; color:var(--suave); padding:.1rem 0; }
-
-/* Pestañas: mismo lenguaje que el resto (rojo para la activa, sin adornos) */
-div[data-testid="stTabs"] button {
-  font-family:'Libre Franklin',sans-serif;
-  font-size:.82rem !important; font-weight:700 !important;
-  letter-spacing:.04em; text-transform:uppercase;
-  padding:.55rem 1.1rem !important; color:var(--suave) !important;
-  border-radius:0 !important;
-}
-div[data-testid="stTabs"] button[aria-selected="true"] {
-  color:var(--rojo) !important; border-bottom-color:var(--rojo) !important;
-}
-
-/* Aviso del carrito de puestos guardados */
-.banner-cv {
-  background:#fff; border:1px solid var(--linea); border-left:3px solid var(--rojo);
-  padding:.55rem .9rem; margin:.6rem 0 .4rem;
-  display:flex; justify-content:space-between; align-items:center;
-  font-size:.82rem;
-}
-.banner-cv .apunte{ font-size:.76rem; color:var(--suave); }
-
-/* Impresión: solo sale el currículo, en un A4 */
-@media print {
-  .st-key-cabecera, div[data-testid="stTabs"], .no-print,
-  header, footer, [data-testid="stHeader"], .stButton { display:none !important; }
-  .cv-document { box-shadow:none !important; border:0 !important; margin:0 !important; }
-}
 </style>
 """, unsafe_allow_html=True)
 
@@ -1067,7 +1039,7 @@ ESTILO_TARJETAS = """
 body{
   margin:0; padding:0; background:transparent; font-family:'Libre Franklin',system-ui,sans-serif;
   --negro:#0A0A0A; --rojo:#D1122E; --texto:#1A1A1A; --suave:#555555;
-  --linea:var(--linea); --gris:#F1F5F9;
+  --linea:#E2E8F0; --gris:#F1F5F9;
   color:var(--texto); overflow:hidden;
 }
 .rejilla{
@@ -1077,20 +1049,20 @@ body{
 @media (max-width:760px){ .rejilla{ grid-template-columns:1fr; } }
 
 .tarjeta{
-  background:#fff; border:1px solid var(--linea); border-left:4px solid #C4C4C4;
+  background:#fff; border:1px solid var(--linea); border-left:4px solid #CBD5E1;
   border-radius:4px; padding:6px 12px; display:flex; flex-direction:column;
   justify-content:space-between; transition:transform .12s ease, box-shadow .12s ease;
   box-shadow:0 1px 3px rgba(0,0,0,0.03); cursor:pointer;
 }
 .tarjeta:hover{
-  transform:translateY(-1px); box-shadow:0 3px 8px rgba(0,0,0,0.07); border-color:#C4C4C4;
+  transform:translateY(-1px); box-shadow:0 3px 8px rgba(0,0,0,0.07); border-color:#CBD5E1;
 }
 .tarjeta.top{
   border-left-color:var(--rojo); background:#FFFFFF;
   box-shadow:0 2px 6px rgba(209,18,46,0.06);
 }
 .tarjeta.relleno{
-  background:#FAFAFA; border-left-color:var(--linea); opacity:.92;
+  background:#FAFAFA; border-left-color:#E2E8F0; opacity:.92;
 }
 
 .fila{
@@ -1115,15 +1087,6 @@ body{
 }
 .copiar:hover{ background:var(--negro); color:#fff; border-color:var(--negro); }
 .copiar.hecho{ background:var(--rojo); border-color:var(--rojo); color:#fff; }
-
-.anadir-cv{
-  font-family:'Libre Franklin',sans-serif; font-size:clamp(0.68rem, 0.74vw, 0.74rem);
-  font-weight:600; color:var(--rojo); background:#fff; border:1px solid var(--rojo);
-  border-radius:3px; padding:.2rem .6rem; cursor:pointer;
-  transition:all .15s ease; white-space:nowrap; margin-left:.3rem;
-}
-.anadir-cv:hover{ background:var(--rojo); color:#fff; }
-.anadir-cv.puesto{ background:#F4F4F4; color:var(--suave); border-color:#C4C4C4; cursor:default; }
 
 .denominacion{
   font-size:clamp(0.85rem, 0.94vw, 0.92rem); font-weight:600;
@@ -1235,10 +1198,7 @@ def pinta_tarjetas(ocupaciones):
             f'        <span class="orden">{i:02d}</span>'
             f'        <span class="codigo">{o["codigo"]}</span>'
             f'      </div>'
-            f'      <span class="acciones">'
-            f'        <button class="copiar" data-cod="{o["codigo"]}">Copiar</button>'
-            f'        <button class="anadir-cv" data-cod="{o["codigo"]}">+ CV</button>'
-            f'      </span>'
+            f'      <button class="copiar" data-cod="{o["codigo"]}">Copiar</button>'
             f'    </div>'
             f'    <div class="denominacion">{o["denominacion"]}</div>'
             f'    {motivo_html}'
@@ -1524,202 +1484,6 @@ def resuelve(texto, zona, usar_ia=True, contexto="", busqueda=None):
 # INTERFAZ
 # ---------------------------------------------------------------------------
 
-
-def genera_cv_ia(cli, experiencias, formacion, otros_datos_input):
-    prompt = f"""Estructura las siguientes experiencias laborales y formación para un CV de 1 sola página:
-
-EXPERIENCIAS DEL CANDIDATO:
-"""
-    for i, exp in enumerate(experiencias, 1):
-        prompt += f"""
-Puesto {i}:
-- Puesto oficial / Ocupación: {exp.get('puesto_oficial', '')}
-- Título deseado: {exp.get('puesto_editado', '')}
-- Empresa / Lugar: {exp.get('empresa', 'Empresa en Madrid')}
-- Duración / Fechas: {exp.get('periodo', 'Años recientes')}
-- Tareas descritas por la persona: {exp.get('descripcion_usuario', '')} {exp.get('motivo', '')}
-"""
-
-    prompt += f"""
-FORMACIÓN ACADÉMICA / CURSOS:
-{formacion or 'Bachillerato / Formación básica'}
-
-OTROS DATOS (Idiomas, permisos, disponibilidad, actitud):
-{otros_datos_input or 'Carnet B, vehículo propio, incorporación inmediata.'}
-"""
-    try:
-        cfg = dict(system_instruction=PROMPT_CV_SISTEMA, max_output_tokens=2200, response_mime_type="application/json")
-        if PROVEEDOR == "gemini":
-            r = cli.models.generate_content(
-                model=modelo_actual(), contents=prompt,
-                config=types.GenerateContentConfig(**cfg),
-            )
-            bruto = (getattr(r, "text", "") or "").strip()
-        else:
-            r = cli.chat.completions.create(
-                model=modelo_actual(),
-                messages=[{"role": "system", "content": PROMPT_CV_SISTEMA}, {"role": "user", "content": prompt}],
-                max_tokens=2200, temperature=0.2, response_format={"type": "json_object"},
-            )
-            bruto = (r.choices[0].message.content or "").strip()
-
-        texto = re.sub(r"^```(?:json)?|```$", "", bruto, flags=re.MULTILINE).strip()
-        return json.loads(texto)
-    except Exception:  # noqa: BLE001
-        return None
-
-
-# ---------------------------------------------------------------------------
-# TARJETAS FLUIDAS CON BOTÓN COPIAR + BOTÓN AÑADIR CV DEBAJO
-# ---------------------------------------------------------------------------
-
-ESTILO_TARJETAS = """
-@import url('https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@400;500;600;700&family=JetBrains+Mono:wght@600;700&display=swap');
-*{ box-sizing:border-box; }
-body{
-  margin:0; padding:0; background:transparent; font-family:'Libre Franklin',system-ui,sans-serif;
-  --negro:#0A0A0A; --rojo:#D1122E; --texto:#1A1A1A; --suave:#555555;
-  --linea:#D8D8D8; --gris:#F2F2F2;
-  color:var(--texto); overflow:hidden;
-}
-.rejilla{
-  display:grid; grid-template-columns:repeat(2,1fr);
-  gap:7px; align-items:stretch;
-}
-@media (max-width:760px){ .rejilla{ grid-template-columns:1fr; } }
-
-.tarjeta{
-  background:#fff; border:1px solid var(--linea); border-left:4px solid #C9C9C9;
-  border-radius:0; padding:8px 12px; display:flex; flex-direction:column;
-  justify-content:space-between; transition:all .15s ease;
-  box-shadow:0 1px 3px rgba(0,0,0,0.02); cursor:pointer;
-}
-.tarjeta:hover{
-  box-shadow:0 3px 10px rgba(0,0,0,0.07); border-color:#0A0A0A;
-}
-.tarjeta.top{
-  border-left-color:var(--rojo); background:#FFFFFF;
-}
-.tarjeta.relleno{
-  background:#FAFAFA; border-left-color:#E4E4E4; opacity:.92;
-}
-
-.fila{
-  display:flex; align-items:flex-start; justify-content:space-between;
-  gap:8px; margin-bottom:3px;
-}
-.identificador{ display:flex; align-items:center; gap:8px; }
-.orden{
-  font-size:.72rem; font-weight:700; color:var(--suave);
-  font-family:'JetBrains Mono',monospace;
-}
-.codigo{
-  font-size:1.15rem; font-weight:700;
-  letter-spacing:.035em; color:var(--negro); font-family:'JetBrains Mono',monospace;
-}
-
-.acciones-col{
-  display:flex; flex-direction:column; align-items:flex-end; gap:4px;
-}
-
-.copiar{
-  font-family:'Libre Franklin',sans-serif; font-size:.68rem;
-  font-weight:600; color:var(--texto); background:#fff; border:1px solid var(--negro);
-  border-radius:0; padding:.18rem .55rem; cursor:pointer;
-  transition:all .15s ease; white-space:nowrap; line-height:1.2;
-}
-.copiar:hover{ background:var(--negro); color:#fff; }
-.copiar.hecho{ background:var(--rojo); border-color:var(--rojo); color:#fff; }
-
-.btn-add-cv{
-  font-family:'Libre Franklin',sans-serif; font-size:.62rem;
-  font-weight:700; color:var(--rojo); background:#fff; border:1px solid var(--rojo);
-  border-radius:0; padding:.15rem .45rem; text-decoration:none;
-  cursor:pointer; transition:all .15s ease; white-space:nowrap; line-height:1.2;
-  display:inline-block;
-}
-.btn-add-cv:hover{
-  background:var(--rojo); color:#fff;
-}
-.btn-add-cv.agregado{
-  background:#F1F5F9; color:var(--suave); border-color:#C4C4C4; cursor:default;
-}
-
-.denominacion{
-  font-size:.88rem; font-weight:600;
-  line-height:1.26; color:var(--texto); margin:0 0 2px;
-}
-.motivo{
-  font-size:.76rem; color:var(--suave);
-  line-height:1.25; margin-bottom:3px;
-}
-
-.etiquetas-fila{
-  display:flex; align-items:center; gap:5px; flex-wrap:wrap; margin-top:auto; padding-top:2px;
-}
-.etiqueta{
-  display:inline-flex; align-items:center; font-size:.62rem;
-  font-weight:700; letter-spacing:.06em; text-transform:uppercase;
-  padding:.12rem .42rem; border-radius:0; background:var(--gris); color:var(--suave);
-}
-.etiqueta.recomendada{ background:var(--rojo); color:#fff; }
-.etiqueta.mando{ background:#FFF7ED; color:#C2410C; border:1px solid #FFEDD5; }
-"""
-
-GUION_INTERACTIVO = """
-function copiarTexto(texto, boton){
-  navigator.clipboard.writeText(texto).then(() => {
-    boton.textContent = 'Copiado';
-    boton.classList.add('hecho');
-    setTimeout(() => { boton.textContent = 'Copiar'; boton.classList.remove('hecho'); }, 1400);
-  }).catch(() => {
-    const caja = document.createElement('textarea');
-    caja.value = texto;
-    document.body.appendChild(caja);
-    caja.select();
-    document.execCommand('copy');
-    document.body.removeChild(caja);
-    boton.textContent = 'Copiado';
-    boton.classList.add('hecho');
-    setTimeout(() => { boton.textContent = 'Copiar'; boton.classList.remove('hecho'); }, 1400);
-  });
-}
-
-function alto(){
-  parent.postMessage(
-    {type:'streamlit:setFrameHeight', height: document.documentElement.scrollHeight + 2},
-    '*'
-  );
-}
-
-document.querySelectorAll('.copiar').forEach(b => {
-  b.addEventListener('click', (e) => {
-    e.stopPropagation();
-    copiarTexto(b.dataset.cod, b);
-  });
-});
-
-document.querySelectorAll('.tarjeta').forEach(t => {
-  t.addEventListener('click', () => {
-    const btn = t.querySelector('.copiar');
-    if (btn) btn.click();
-  });
-});
-
-window.addEventListener('keydown', (e) => {
-  if (['1','2','3','4','5','6'].includes(e.key) && !['INPUT','TEXTAREA'].includes(document.activeElement.tagName)) {
-    const idx = parseInt(e.key) - 1;
-    const btns = document.querySelectorAll('.copiar');
-    if (btns[idx]) btns[idx].click();
-  }
-});
-
-const observador = new ResizeObserver(() => alto());
-observador.observe(document.body);
-window.addEventListener('load', alto);
-"""
-
-
 try:
     MANTENIMIENTO = st.query_params.get("mantenimiento") == "1"
 except Exception:  # noqa: BLE001
@@ -1737,16 +1501,6 @@ st.session_state.setdefault("por_guardar", [])
 st.session_state.setdefault("refuerzos_por_guardar", [])
 st.session_state.setdefault("ultima", "")
 st.session_state.setdefault("consulta", "")
-
-# Carrito de puestos para el Creador de CV
-st.session_state.setdefault("cv_paso", 1)
-st.session_state.setdefault("cv_experiencias", [])
-st.session_state.setdefault("cv_generado", None)
-st.session_state.setdefault("cv_candidato", {
-    "nombre": "", "telefono": "", "email": "",
-    "codigo_postal": "", "localidad": "",
-    "formacion": "", "otros_datos": "",
-})
 
 EJEMPLOS = [
     "Una persona que limpia habitaciones de hotel",
@@ -1882,14 +1636,10 @@ if entrada:
     st.session_state["ultima"] = entrada
 
 # ---------------------------------------------------------------------------
-# Pestañas: codificar ocupaciones y montar el currículo con lo codificado
+# Pestañas
 # ---------------------------------------------------------------------------
 
-n_cv = len(st.session_state["cv_experiencias"])
-tab_codificador, tab_cv = st.tabs([
-    "Codificador",
-    f"Creador de CV ({n_cv})" if n_cv else "Creador de CV",
-])
+tab_codificador, tab_cv = st.tabs(["Codificador", "Creador de CV"])
 
 with tab_codificador:
     # ---------------------------------------------------------------------------
@@ -1942,276 +1692,14 @@ with tab_codificador:
                     on_click=usar_ejemplo, args=(ej,),
                 )
 
-for clave, valor in st.session_state.pop("por_guardar", []):
-    guarda_termino(clave, valor)
 
-for codigo, palabras in st.session_state.pop("refuerzos_por_guardar", []):
-    guarda_refuerzo(codigo, palabras)
-
-
-# ===========================================================================
-# PESTAÑA 2: CREADOR DE CV (una sola página A4)
-# ===========================================================================
 with tab_cv:
-    paso = st.session_state["cv_paso"]
-    cand = st.session_state["cv_candidato"]
-    exps = st.session_state["cv_experiencias"]
+    st.markdown(
+        '<div class="seccion">Creador de CV</div>',
+        unsafe_allow_html=True,
+    )
+    st.write("Aquí irá el creador de currículos.")
 
-    # Barra visual superior de progreso de pasos
-    col_p1, col_p2, col_p3, col_p4 = st.columns(4)
-    with col_p1:
-        if st.button("1. Contacto", key="nav_p1", use_container_width=True):
-            st.session_state["cv_paso"] = 1
-            st.rerun()
-    with col_p2:
-        if st.button(f"2. Experiencias ({len(exps)})", key="nav_p2", use_container_width=True):
-            st.session_state["cv_paso"] = 2
-            st.rerun()
-    with col_p3:
-        if st.button("3. Formación y Otros", key="nav_p3", use_container_width=True):
-            st.session_state["cv_paso"] = 3
-            st.rerun()
-    with col_p4:
-        if st.button("4. Vista Previa (A4)", key="nav_p4", use_container_width=True):
-            st.session_state["cv_paso"] = 4
-            st.rerun()
-
-    st.markdown("<div style='height:10px;'></div>", unsafe_allow_html=True)
-
-    # -----------------------------------------------------------------------
-    # PASO 1: DATOS DE CONTACTO (Zero PII - Solo en local)
-    # -----------------------------------------------------------------------
-    if paso == 1:
-        st.markdown("### Paso 1: Datos Personales y de Contacto")
-        st.caption("🔒 Estos datos permanecen en tu navegador y nunca se envían a la IA.")
-
-        c_box1, _ = st.columns([2, 1])
-        with c_box1:
-            cand["nombre"] = st.text_input("Nombre y Apellidos", value=cand["nombre"], placeholder="Nombre Apellido1 Apellido2")
-            c_t1, c_t2 = st.columns(2)
-            with c_t1:
-                cand["telefono"] = st.text_input("Teléfono", value=cand["telefono"], placeholder="600 000 000")
-            with c_t2:
-                cand["email"] = st.text_input("Correo Electrónico", value=cand["email"], placeholder="correo@ejemplo.com")
-
-            c_c1, c_c2 = st.columns(2)
-            with c_c1:
-                cand["codigo_postal"] = st.text_input("Código Postal", value=cand["codigo_postal"], placeholder="28025")
-            with c_c2:
-                cand["localidad"] = st.text_input("Localidad", value=cand["localidad"], placeholder="Madrid")
-
-            st.markdown("<div style='height:14px;'></div>", unsafe_allow_html=True)
-            if st.button("Siguiente: Experiencias Laborales ➡️", type="primary", use_container_width=True):
-                st.session_state["cv_paso"] = 2
-                st.rerun()
-
-    # -----------------------------------------------------------------------
-    # PASO 2: EXPERIENCIAS LABORALES REORDENABLES
-    # -----------------------------------------------------------------------
-    elif paso == 2:
-        st.markdown("### Paso 2: Experiencias Laborales")
-        st.caption("💡 Ordena los puestos del más reciente al más antiguo con ⬆️ y ⬇️. Se recomiendan 2 o 3 para no desbordar 1 página A4.")
-
-        if not exps:
-            st.info("No has añadido puestos todavía. Puedes buscar ocupaciones en el **Codificador SISPE** y pulsar **+ Añadir al CV** en cada tarjeta, o crear uno debajo.")
-
-        borrar_idx = None
-        for idx, exp in enumerate(exps):
-            with st.container():
-                st.markdown(f"**Puesto {idx + 1}: {exp.get('puesto_oficial', 'Ocupación')}** `[{exp.get('codigo', '')}]`")
-                
-                exp["puesto_editado"] = st.text_input(
-                    "Título del puesto en el CV (estilo InfoJobs/LinkedIn)",
-                    value=exp.get("puesto_editado", exp.get("puesto_oficial", "").title()),
-                    key=f"puesto_nom_{exp['id']}",
-                    placeholder="Ej. Camarero/a de barra y sala",
-                )
-                
-                c_e1, c_e2 = st.columns(2)
-                with c_e1:
-                    exp["empresa"] = st.text_input("Empresa y Ciudad", value=exp.get("empresa", ""), key=f"emp_{exp['id']}", placeholder="Ej. Restaurante Alameda en Madrid capital")
-                with c_e2:
-                    exp["periodo"] = st.text_input("Duración y Años", value=exp.get("periodo", ""), key=f"per_{exp['id']}", placeholder="Ej. 3 años (2021-2024)")
-
-                exp["descripcion_usuario"] = st.text_area(
-                    "Tareas realizadas (la IA las redactará formalmente en 20-35 palabras)",
-                    value=exp.get("descripcion_usuario", ""), key=f"tar_{exp['id']}", height=60,
-                    placeholder="Qué hacía día a día...",
-                )
-
-                b_subir, b_bajar, b_quitar, _ = st.columns([1, 1, 1, 3])
-                with b_subir:
-                    if st.button("⬆️ Subir", key=f"up_{exp['id']}", disabled=(idx == 0)):
-                        exps[idx], exps[idx - 1] = exps[idx - 1], exps[idx]
-                        st.rerun()
-                with b_bajar:
-                    if st.button("⬇️ Bajar", key=f"down_{exp['id']}", disabled=(idx == len(exps) - 1)):
-                        exps[idx], exps[idx + 1] = exps[idx + 1], exps[idx]
-                        st.rerun()
-                with b_quitar:
-                    if st.button("🗑️ Quitar", key=f"del_{exp['id']}"):
-                        borrar_idx = idx
-                st.markdown("<div style='height:4px; border-bottom:1px solid var(--linea); margin-bottom:10px;'></div>", unsafe_allow_html=True)
-
-        if borrar_idx is not None:
-            exps.pop(borrar_idx)
-            st.rerun()
-
-        c_btn_exp1, c_btn_exp2 = st.columns([1, 1])
-        with c_btn_exp1:
-            if st.button("➕ Añadir otro puesto manual", use_container_width=True):
-                exps.append({
-                    "id": int(time.time() * 1000),
-                    "codigo": "00000000",
-                    "puesto_oficial": "Puesto de trabajo",
-                    "puesto_editado": "Puesto de trabajo",
-                    "descripcion_usuario": "",
-                    "motivo": "",
-                    "empresa": "",
-                    "periodo": "",
-                })
-                st.rerun()
-
-        st.markdown("---")
-        c_nav_p2_prev, c_nav_p2_next = st.columns(2)
-        with c_nav_p2_prev:
-            if st.button("⬅️ Volver a Contacto", use_container_width=True):
-                st.session_state["cv_paso"] = 1
-                st.rerun()
-        with c_nav_p2_next:
-            if st.button("Siguiente: Formación y Otros Datos ➡️", type="primary", use_container_width=True):
-                st.session_state["cv_paso"] = 3
-                st.rerun()
-
-    # -----------------------------------------------------------------------
-    # PASO 3: FORMACIÓN Y OTROS DATOS DE INTERÉS
-    # -----------------------------------------------------------------------
-    elif paso == 3:
-        st.markdown("### Paso 3: Formación y Otros Datos de Interés")
-
-        c_box3, _ = st.columns([2, 1])
-        with c_box3:
-            cand["formacion"] = st.text_area(
-                "Formación académica y cursos complementarios",
-                value=cand["formacion"],
-                placeholder="Título de bachillerato – IES Emperatriz María de Austria, 2000.\nCurso de manipulador de alimentos – Centro (20 horas), 2000.",
-                height=90,
-            )
-
-            cand["otros_datos"] = st.text_area(
-                "Otros datos de interés (Idiomas, carnet, disponibilidad, actitud)",
-                value=cand["otros_datos"],
-                placeholder="Idiomas: Inglés (nivel medio).\nCarnet de conducir B y vehículo propio.\nIncorporación inmediata, con preferencia por jornada completa.\nPersona seria, responsable, ordenada y cumplidora.",
-                height=95,
-            )
-
-            st.markdown("---")
-            c_nav_p3_prev, c_nav_p3_next = st.columns(2)
-            with c_nav_p3_prev:
-                if st.button("⬅️ Volver a Experiencias", use_container_width=True):
-                    st.session_state["cv_paso"] = 2
-                    st.rerun()
-            with c_nav_p3_next:
-                if st.button("✨ Generar CV a 1 Página con IA ➡️", type="primary", use_container_width=True, disabled=(len(exps) == 0)):
-                    cli = cliente()
-                    if cli is None:
-                        st.error("Falta configurar la clave de IA en Secrets.")
-                    else:
-                        with st.spinner("Redactando funciones de 20-35 palabras y títulos comerciales..."):
-                            cv_data = genera_cv_ia(cli, exps, cand["formacion"], cand["otros_datos"])
-                            if cv_data:
-                                st.session_state["cv_generado"] = cv_data
-                                st.session_state["cv_paso"] = 4
-                                st.rerun()
-                            else:
-                                st.error("No se ha podido estructurar el CV. Inténtalo de nuevo.")
-
-    # -----------------------------------------------------------------------
-    # PASO 4: VISTA PREVIA Y DESCARGA (1 Página A4)
-    # -----------------------------------------------------------------------
-    elif paso == 4:
-        cv = st.session_state.get("cv_generado")
-
-        if not cv:
-            st.info("Aún no se ha generado la redacción del CV.")
-            if st.button("⬅️ Ir a redactar con IA"):
-                st.session_state["cv_paso"] = 3
-                st.rerun()
-        else:
-            b_exp1, b_exp2, b_exp3, b_exp4 = st.columns([1.5, 1.5, 1.3, 1])
-
-            nombre_p = cand.get('nombre') or 'NOMBRE APELLIDOS'
-            tel_p = f"Tlf.: {cand.get('telefono')}" if cand.get('telefono') else ""
-            email_p = f"Email: {cand.get('email')}" if cand.get('email') else ""
-            cp_loc_p = f"{cand.get('codigo_postal', '')} ({cand.get('localidad', '')})".strip()
-
-            cabecera_txt = f"{nombre_p}\n{tel_p}\n{email_p}\n{cp_loc_p}\n\nEXPERIENCIA LABORAL\n"
-            exp_txt = ""
-            for exp in cv.get("experiencias", []):
-                sec = f"{exp.get('sector', '').upper()}\n" if exp.get('sector') else ""
-                exp_txt += f"{sec}{exp.get('puesto', '')} ({exp.get('periodo', '')})\nEmpresa: {exp.get('empresa_lugar', '')}\nFunciones: {exp.get('funciones', '')}\n\n"
-
-            form_txt = "FORMACIÓN ACADÉMICA / COMPLEMENTARIA\n" + "\n".join(cv.get("formacion", [])) + "\n\n"
-            otros_txt = "OTROS DATOS DE INTERÉS\n" + "\n".join(cv.get("otros_datos", []))
-            cv_texto_completo = cabecera_txt + exp_txt + form_txt + otros_txt
-
-            with b_exp1:
-                with st.popover("📋 Copiar en texto"):
-                    st.text_area("Copia para Word o Portales de empleo:", value=cv_texto_completo, height=280)
-
-            with b_exp2:
-                if st.button("🖨️ Imprimir / Guardar PDF", use_container_width=True):
-                    components.html("<script>window.parent.print();</script>", height=0)
-
-            with b_exp3:
-                if st.button("✏️ Modificar datos", use_container_width=True):
-                    st.session_state["cv_paso"] = 2
-                    st.rerun()
-
-            with b_exp4:
-                if st.button("🗑️ Nuevo", use_container_width=True):
-                    st.session_state["cv_generado"] = None
-                    st.session_state["cv_paso"] = 1
-                    st.rerun()
-
-            st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
-
-            nombre_doc = cand.get("nombre") or "NOMBRE APELLIDO1 APELLIDO2"
-            tlf_doc = f"Tlf.: {cand.get('telefono')}" if cand.get('telefono') else "Tlf.: XXX XXX XXX"
-            email_doc = f"Email: {cand.get('email')}" if cand.get('email') else "Email: correo@ejemplo.com"
-            cp_val = cand.get('codigo_postal') or '280XX'
-            loc_val = cand.get('localidad') or 'Madrid'
-            ubicacion_doc = f"{cp_val} ({loc_val})"
-
-            contacto_html = f"&bull; {tlf_doc}<br>&bull; {email_doc}<br>&bull; {ubicacion_doc}"
-
-            exp_html_bloques = ""
-            for exp in cv.get("experiencias", []):
-                sec = f'<div class="cv-sector-title">{exp.get("sector", "").upper()}</div>' if exp.get("sector") else ""
-                puesto = f'<div class="cv-job-title">{exp.get("puesto", "")} ({exp.get("periodo", "")})</div>'
-                empresa = f'<div class="cv-empresa-line">Empresa: {exp.get("empresa_lugar", "")}.</div>'
-                funciones = f'<div class="cv-funciones-line"><b>Funciones:</b> {exp.get("funciones", "")}</div>'
-                exp_html_bloques += f'<div style="margin-bottom:6px;">{sec}{puesto}{empresa}{funciones}</div>'
-
-            form_items = "".join([f"<li>{f}</li>" for f in cv.get("formacion", [])])
-            otros_items = "".join([f"<li>{o}</li>" for o in cv.get("otros_datos", [])])
-
-            cv_doc_html = f"""<div class="cv-document" id="cv-print-area">
-<div class="cv-header">
-<div class="cv-name">{nombre_doc}</div>
-<div class="cv-contact">{contacto_html}</div>
-</div>
-<div class="cv-section-title">EXPERIENCIA LABORAL</div>
-{exp_html_bloques}
-<div class="cv-section-title">FORMACIÓN ACADÉMICA / COMPLEMENTARIA</div>
-<ul class="cv-list">{form_items}</ul>
-<div class="cv-section-title">OTROS DATOS DE INTERÉS</div>
-<ul class="cv-list">{otros_items}</ul>
-</div>"""
-            st.markdown(cv_doc_html, unsafe_allow_html=True)
-
-
-# Sincronización final de términos y refuerzos aprendidos
 for clave, valor in st.session_state.pop("por_guardar", []):
     guarda_termino(clave, valor)
 
