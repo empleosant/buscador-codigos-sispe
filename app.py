@@ -346,6 +346,8 @@ def _peticion(url, token, datos=None, metodo="GET"):
 
 @st.cache_data(ttl=300, show_spinner=False)
 def _lee_gist(archivo):
+    # Sale a GitHub. Se relee cada 5 minutos, asi que de vez en cuando una
+    # busqueda paga este viaje sin que se note de donde viene.
     gist, token = _credenciales()
     if not gist:
         return {}
@@ -1800,8 +1802,17 @@ else:
                 on_click=usar_ejemplo, args=(ej,),
             )
 
-for clave, valor in st.session_state.pop("por_guardar", []):
-    guarda_termino(clave, valor)
+# Estas dos escrituras van a la API de GitHub y ocurren AL TERMINAR la
+# busqueda, cuando el usuario ya cree que ha acabado. No se veian en el panel
+# porque solo se cronometraba a Gemini; aqui pueden irse varios segundos.
+_pendientes = st.session_state.pop("por_guardar", [])
+if _pendientes:
+    with cronometra("4. Guardar términos aprendidos (GitHub)"):
+        for clave, valor in _pendientes:
+            guarda_termino(clave, valor)
 
-for codigo, palabras in st.session_state.pop("refuerzos_por_guardar", []):
-    guarda_refuerzo(codigo, palabras)
+_refuerzos = st.session_state.pop("refuerzos_por_guardar", [])
+if _refuerzos:
+    with cronometra("5. Guardar correcciones de orden (GitHub)"):
+        for codigo, palabras in _refuerzos:
+            guarda_refuerzo(codigo, palabras)
