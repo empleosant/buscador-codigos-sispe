@@ -37,7 +37,7 @@ N_CANDIDATOS = 16
 VENTAJA_CLARA = 3.0   # cuántas veces debe superar el 1º del buscador al 2º
                       # para que mande él en lugar del modelo (sube para que
                       # mande menos, baja para que mande más)
-ESPERA_MAXIMA = 45
+ESPERA_MAXIMA = 12   # segundos por intento; a 45 una llamada atascada te dejaba mirando la pantalla
 
 # ---------------------------------------------------------------------------
 # PROVEEDOR DE IA
@@ -1362,6 +1362,33 @@ def resuelve(texto, zona, usar_ia=True, contexto="", busqueda=None):
         "ocupaciones": _basica(encontrados),
         "otras": [(c, d) for _, c, d in encontrados[5:12]],
     }
+
+    # ATAJO SIN IA.
+    # Si el buscador saca al segundo mas de VENTAJA_CLARA veces, la persona ha
+    # escrito practicamente el nombre de la ocupacion y no hay nada que
+    # interpretar. Llamar al modelo ahi solo anade tres viajes a Google, entre
+    # diez y treinta segundos de espera y consumo de cuota, para acabar en el
+    # mismo sitio (o peor: para "montador de placa de pladur" proponia
+    # escayolistas). Se contesta al instante con lo que dice el catalogo.
+    # El resto de resultados sigue disponible en "Ver otras ocupaciones".
+    if literales and not contexto:
+        segundo_l = literales[1][0] if len(literales) > 1 else 0.0
+        if segundo_l <= 0 or (literales[0][0] / segundo_l) > VENTAJA_CLARA:
+            _, cod_a, den_a = literales[0]
+            atajo = {
+                "ocupaciones": [{
+                    "codigo": cod_a,
+                    "denominacion": den_a,
+                    "nivel": "00",
+                    "nivel_texto": NIVELES["00"],
+                    "motivo": "Coincidencia directa con lo que escribiste.",
+                }],
+                "otras": [(c, d) for _, c, d in encontrados[1:9]],
+            }
+            with zona.container():
+                pinta_resultado(atajo)
+            memoria[clave] = atajo
+            return atajo
 
     if cli is None:
         with zona.container():
