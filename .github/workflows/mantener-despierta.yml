@@ -1,58 +1,27 @@
-import os
-import time
-from playwright.sync_api import sync_playwright
+name: Mantener la app despierta
 
-URL = os.environ.get("URL", "https://buscador-codigos-sispe.streamlit.app")
+on:
+  schedule:
+    - cron: '0 */4 * * *'
+  workflow_dispatch:
 
-def despertar():
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
-        context = browser.new_context(
-            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-        )
-        page = context.new_page()
+jobs:
+  despertar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
 
-        print(f"--- Conectando a {URL} ---")
-        page.goto(URL, wait_until="domcontentloaded", timeout=90000)
-        time.sleep(8)
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
 
-        # 1. Lista de posibles textos y selectores del botón de despertar en Streamlit
-        selectores_boton = [
-            "button:has-text('Yes, get this app back up')",
-            "button:has-text('Get this app back up')",
-            "button:has-text('Wake up')",
-            "button:has-text('Despertar')",
-            "button[data-testid='stAppBackUpButton']"
-        ]
+      - name: Instalar navegador
+        run: |
+          pip install --quiet playwright
+          playwright install chromium --with-deps
 
-        boton_encontrado = None
-        for selector in selectores_boton:
-            loc = page.locator(selector)
-            if loc.count() > 0 and loc.first.is_visible():
-                boton_encontrado = loc.first
-                break
-
-        if boton_encontrado:
-            print(">> Pantalla de reposo detectada. Pulsando el botón de despertar...")
-            boton_encontrado.click()
-            print(">> Botón pulsado. Esperando arranque del contenedor (hasta 90s)...")
-            try:
-                # Espera a que aparezca la estructura real de la app de Streamlit
-                page.wait_for_selector("[data-testid='stAppViewContainer'], .stApp", timeout=90000)
-                time.sleep(10)
-                print(">> ¡Éxito! La aplicación ha despertado y está activa.")
-            except Exception:
-                print(">> Se pulsó el botón, pero el contenedor aún está terminando de arrancar.")
-        else:
-            # 2. Comprobar si la aplicación ya estaba abierta y funcional
-            if page.locator("[data-testid='stAppViewContainer'], .stApp").count() > 0:
-                print(">> La aplicación ya estaba despierta y cargada correctamente.")
-            else:
-                print(">> La app estaba en proceso de carga. Manteniendo la conexión activa 30s...")
-                time.sleep(30)
-                print(">> Conexión mantenida.")
-
-        browser.close()
-
-if __name__ == "__main__":
-    despertar()
+      - name: Abrir la aplicación
+        env:
+          URL: https://buscador-codigos-sispe.streamlit.app
+        run: python scripts/despertar.py
