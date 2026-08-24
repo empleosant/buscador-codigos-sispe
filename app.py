@@ -37,7 +37,9 @@ N_CANDIDATOS = 16
 VENTAJA_CLARA = 3.0   # cuántas veces debe superar el 1º del buscador al 2º
                       # para que mande él en lugar del modelo (sube para que
                       # mande menos, baja para que mande más)
-ESPERA_MAXIMA = 12   # segundos por intento; a 45 una llamada atascada te dejaba mirando la pantalla
+ESPERA_MAXIMA = 30   # segundos por intento. A 45 una llamada atascada te dejaba
+                     # mirando la pantalla; a 12 se cortaban llamadas que iban a
+                     # terminar bien y caias al catalogo sin afinar.
 
 # ---------------------------------------------------------------------------
 # PROVEEDOR DE IA
@@ -1172,7 +1174,7 @@ def pinta_tarjetas(ocupaciones):
 
     trozos = []
     for i, o in enumerate(ocupaciones, 1):
-        es_primera = (i == 1 and not o.get("relleno"))
+        es_primera = (i == 1 and not o.get("provisional"))
         es_mando = o.get("nivel") in ("10", "20", "30")
 
         clases = ["tarjeta"]
@@ -1320,9 +1322,13 @@ def pinta_resultado(payload, estado=None, avance=0.06, interactivo=False, consul
 # ---------------------------------------------------------------------------
 
 def _basica(encontrados, motivo=""):
+    # "provisional" marca lo que sale del catalogo sin que el modelo lo haya
+    # revisado: ni durante la espera, ni cuando el modelo falla. Esas tarjetas
+    # no llevan la marca de recomendada, porque nadie las ha recomendado.
     return [{
         "codigo": c, "denominacion": d, "nivel": "00",
         "nivel_texto": NIVELES["00"], "motivo": motivo,
+        "provisional": True,
     } for _, c, d in encontrados[:5]]
 
 
