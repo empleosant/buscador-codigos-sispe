@@ -1461,11 +1461,26 @@ def resuelve(texto, zona, usar_ia=True, contexto="", busqueda=None):
     if not payload["ocupaciones"]:
         payload["ocupaciones"] = provisional["ocupaciones"]
 
-    # Se muestran solo las ocupaciones que el modelo considera pertinentes,
-    # cada una con su explicacion. Antes se completaban seis tarjetas siempre,
-    # llenando los huecos con lo siguiente del catalogo aunque no tuviera
-    # ninguna relacion con lo buscado, y eso restaba confianza en las que si
-    # eran buenas. Lo descartado sigue a un clic, en "Ver otras ocupaciones".
+    # Se muestran las ocupaciones que el modelo considera pertinentes. Antes se
+    # completaban seis tarjetas siempre, llenando los huecos con lo siguiente
+    # del catalogo aunque no tuviera relacion: eso restaba confianza en las que
+    # si eran buenas. Lo descartado sigue a un clic, en "Ver otras ocupaciones".
+    #
+    # RED DE SEGURIDAD: el mejor resultado del buscador entra siempre, lo haya
+    # elegido el modelo o no. El modelo reinterpreta la consulta y a veces se
+    # aleja; el buscador, en cambio, responde a lo que se escribio. Es UNA sola
+    # tarjeta añadida como mucho, no relleno hasta seis.
+    ya = {o["codigo"] for o in payload["ocupaciones"]}
+    if encontrados and encontrados[0][1] not in ya:
+        _, codigo_c, denom = encontrados[0]
+        payload["ocupaciones"].append({
+            "codigo": codigo_c,
+            "denominacion": denom,
+            "nivel": "00",
+            "nivel_texto": NIVELES["00"],
+            "motivo": "Mejor coincidencia del catálogo con lo que escribiste.",
+        })
+
     elegidos = {o["codigo"] for o in payload["ocupaciones"]}
     payload["otras"] = [(c, d) for _, c, d in encontrados if c not in elegidos][:8]
 
