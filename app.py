@@ -1321,6 +1321,26 @@ def pinta_resultado(payload, estado=None, avance=0.06, interactivo=False, consul
 # LOGICA DE CONSULTA
 # ---------------------------------------------------------------------------
 
+class cronometra:
+    """Mide lo que tarda cada llamada al modelo y lo guarda para el panel.
+
+    Solo observa: no cambia ni un resultado. Sirve para dejar de decidir a ojo
+    dónde se va el tiempo. Se ve en el panel de ajustes con ?mantenimiento=1.
+    """
+
+    def __init__(self, etiqueta):
+        self.etiqueta = etiqueta
+
+    def __enter__(self):
+        self.t0 = time.perf_counter()
+        return self
+
+    def __exit__(self, *_):
+        segundos = time.perf_counter() - self.t0
+        st.session_state.setdefault("tiempos", []).append((self.etiqueta, segundos))
+        return False
+
+
 def _basica(encontrados, motivo=""):
     # "provisional" marca lo que sale del catalogo sin que el modelo lo haya
     # revisado: ni durante la espera, ni cuando el modelo falla. Esas tarjetas
@@ -1355,6 +1375,7 @@ def resuelve(texto, zona, usar_ia=True, contexto="", busqueda=None):
     # tiene que tomarse sobre esto, no sobre la busqueda reescrita por el
     # modelo: ahi las puntuaciones se aplanan y la ventaja real desaparece.
     literales = encontrados[:2]
+    st.session_state["tiempos"] = []
     cli = cliente() if usar_ia else None
 
     if not encontrados and cli is None:
@@ -1413,7 +1434,8 @@ def resuelve(texto, zona, usar_ia=True, contexto="", busqueda=None):
     interpretado, aviso = None, ""
     with zona.container():
         pinta_resultado({}, estado="Interpretando el oficio", avance=0.12)
-    lecturas = interpreta_consulta(cli, texto)
+    with cronometra("1. Interpretar el oficio"):
+        lecturas = interpreta_consulta(cli, texto)
     if lecturas:
         fundido, vistos = [], {}
         for orden, (terminos, grupos) in enumerate(lecturas):
@@ -1468,7 +1490,8 @@ def resuelve(texto, zona, usar_ia=True, contexto="", busqueda=None):
 
     try:
         lista = "\n".join(f"{c}:{d}" for _, c, d in encontrados)
-        payload = consulta_al_modelo(lista, "Afinando el resultado")
+        with cronometra("2. Afinar el resultado"):
+            payload = consulta_al_modelo(lista, "Afinando el resultado")
 
         if payload.get("mas_terminos"):
             with zona.container():
@@ -1478,10 +1501,11 @@ def resuelve(texto, zona, usar_ia=True, contexto="", busqueda=None):
             if ampliados:
                 encontrados = ampliados
                 interpretado = ("la descripción", payload["mas_terminos"])
-                segunda = consulta_al_modelo(
-                    "\n".join(f"{c}:{d}" for _, c, d in ampliados),
-                    "Afinando el resultado",
-                )
+                with cronometra("3. Ampliar la búsqueda"):
+                    segunda = consulta_al_modelo(
+                        "\n".join(f"{c}:{d}" for _, c, d in ampliados),
+                        "Afinando el resultado",
+                    )
                 if segunda["ocupaciones"]:
                     payload = segunda
     except Exception as e:  # noqa: BLE001
@@ -1624,6 +1648,13 @@ def panel_ajustes():
                 "Describe solo el puesto: sin datos identificativos."
             )
             return
+
+        tiempos = st.session_state.get("tiempos", [])
+        if tiempos:
+            st.caption("Última consulta, segundo a segundo:")
+            for etiqueta, seg in tiempos:
+                st.caption(f"· {etiqueta}: **{seg:.1f} s**")
+            st.caption(f"· Total esperando al modelo: **{sum(t for _, t in tiempos):.1f} s**")
 
         if st.button("Probar la conexión con la IA", use_container_width=True):
             prueba = cliente()
