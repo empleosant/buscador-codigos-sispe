@@ -1,21 +1,13 @@
-# Despertador de la aplicación.
-#
-# Ubicación en el repositorio:  .github/workflows/mantener-despierta.yml
-# Necesita también:             scripts/despertar.py
-#
-# LO ÚNICO QUE HAY QUE EDITAR AQUÍ ES LA LÍNEA DE LA URL, más abajo.
-#   Streamlit:     https://tu-app.streamlit.app
-#   Hugging Face:  https://tuusuario-tuspace.hf.space   (la directa, no la de
-#                  huggingface.co/spaces/..., que la muestra dentro de un marco)
+# Despertador de la aplicación Streamlit
+# Ubicación en el repositorio: .github/workflows/mantener-despierta.yml
+# Requiere: scripts/despertar.py
 
 name: Mantener la app despierta
 
 on:
   schedule:
-    # GitHub programa en UTC. En horario de verano (CEST, UTC+2) esto son
-    # las 06:00 y las 18:00 en la Península. En invierno (CET, UTC+1) caerá
-    # una hora antes. Si te importa, cambia a '0 5,17' en octubre.
-    - cron: '0 4,16 * * *'
+    # Se ejecuta cada 4 horas automáticamente
+    - cron: '0 */4 * * *'
   workflow_dispatch:
 
 jobs:
