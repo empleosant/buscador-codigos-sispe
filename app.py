@@ -34,7 +34,6 @@ except ImportError:                     # noqa: S110
 CATALOGO = "ocupaciones_sispe_ultraligero.txt"
 AMPLIADO = "terminos_ampliados.txt"
 N_CANDIDATOS = 16
-UMBRAL_RELLENO = 0.35   # sube para menos tarjetas, baja para mas
 ESPERA_MAXIMA = 45
 
 # ---------------------------------------------------------------------------
@@ -1462,30 +1461,11 @@ def resuelve(texto, zona, usar_ia=True, contexto="", busqueda=None):
     if not payload["ocupaciones"]:
         payload["ocupaciones"] = provisional["ocupaciones"]
 
-    ya = {o["codigo"] for o in payload["ocupaciones"]}
-    # Se muestran entre 1 y 6 tarjetas segun lo claro que este el resultado.
-    # Antes se completaban seis siempre, aunque el hueco hubiera que llenarlo
-    # con ocupaciones sin ninguna relacion con lo buscado. Ahora solo se
-    # rellena con lo que puntue al menos una cuarta parte que el primero.
-    # La lista desplegable de "otras ocupaciones" no se toca: sigue igual de
-    # completa, y de hecho recoge lo que antes se colaba como tarjeta.
-    minimo = encontrados[0][0] * UMBRAL_RELLENO if encontrados else 0
-    for puntos, codigo_c, denom in encontrados:
-        if len(payload["ocupaciones"]) >= 6:
-            break
-        if puntos < minimo:
-            break
-        if codigo_c in ya:
-            continue
-        payload["ocupaciones"].append({
-            "codigo": codigo_c,
-            "denominacion": denom,
-            "nivel": "00",
-            "nivel_texto": NIVELES["00"],
-            "motivo": "",
-            "relleno": True,
-        })
-        ya.add(codigo_c)
+    # Se muestran solo las ocupaciones que el modelo considera pertinentes,
+    # cada una con su explicacion. Antes se completaban seis tarjetas siempre,
+    # llenando los huecos con lo siguiente del catalogo aunque no tuviera
+    # ninguna relacion con lo buscado, y eso restaba confianza en las que si
+    # eran buenas. Lo descartado sigue a un clic, en "Ver otras ocupaciones".
     elegidos = {o["codigo"] for o in payload["ocupaciones"]}
     payload["otras"] = [(c, d) for _, c, d in encontrados if c not in elegidos][:8]
 
