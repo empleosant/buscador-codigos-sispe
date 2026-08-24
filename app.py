@@ -1627,6 +1627,7 @@ st.session_state.setdefault("refuerzos_por_guardar", [])
 st.session_state.setdefault("ultima", "")
 st.session_state.setdefault("consulta", "")
 st.session_state.setdefault("cv_experiencias", [])
+st.session_state.setdefault("cv_auto_orden", True)
 
 EJEMPLOS = [
     "Una persona que limpia habitaciones de hotel",
@@ -1737,6 +1738,68 @@ def a_oracion(denom):
     return " ".join(piezas).capitalize()
 
 
+FUNCIONES_IA = """Eres orientador laboral. Describe en 20-30 palabras las funciones
+habituales de la ocupación que se te indica, en una redacción corrida, sin viñetas.
+
+REGLAS INNEGOCIABLES:
+- Describe SOLO tareas propias del oficio, en general.
+- NO inventes datos de ninguna persona: ni empresas, ni años, ni cifras, ni logros,
+  ni herramientas de marca concreta, ni responsabilidades de mando.
+- No escribas en primera persona ni des por hecho que quien lo lea hizo todo esto.
+- Empieza directamente por la tarea principal, sin "se encarga de" ni preámbulos.
+
+Devuelve únicamente el texto, sin comillas ni explicaciones."""
+
+
+def sugiere_funciones(denominacion, motivo=""):
+    """Propone funciones tipicas del puesto. NO son las de la persona.
+
+    Es un punto de partida para que quien no sabe redactar tenga vocabulario,
+    no una descripcion de lo que hizo nadie. Va a un campo editable a proposito:
+    la persona tiene que quitar lo que no hizo antes de que entre en su CV.
+    """
+    cli = cliente()
+    if cli is None:
+        return ""
+    peticion = denominacion + (f". Contexto: {motivo}" if motivo else "")
+    try:
+        cfg = dict(system_instruction=FUNCIONES_IA, max_output_tokens=300)
+        if PROVEEDOR == "gemini":
+            try:
+                cfg["thinking_config"] = types.ThinkingConfig(thinking_level="minimal")
+            except Exception:  # noqa: BLE001
+                pass
+            r = cli.models.generate_content(
+                model=modelo_actual(), contents=peticion,
+                config=types.GenerateContentConfig(**cfg),
+            )
+            return (getattr(r, "text", "") or "").strip().strip('"')
+        r = cli.chat.completions.create(
+            model=modelo_actual(),
+            messages=[{"role": "system", "content": FUNCIONES_IA},
+                      {"role": "user", "content": peticion}],
+            max_tokens=300,
+        )
+        return (r.choices[0].message.content or "").strip().strip('"')
+    except Exception:  # noqa: BLE001
+        return ""
+
+
+def pon_funciones(codigo):
+    for e in st.session_state["cv_experiencias"]:
+        if e["codigo"] == codigo:
+            texto = sugiere_funciones(e["denominacion"], e.get("motivo", ""))
+            if texto:
+                e["funciones"] = texto
+                st.session_state.pop(f"fun_{codigo}", None)
+            else:
+                st.session_state["cv_aviso"] = (
+                    "No he podido proponer funciones ahora mismo. "
+                    "Puedes escribirlas a mano."
+                )
+            return
+
+
 def en_carrito(codigo):
     return any(e["codigo"] == codigo for e in st.session_state["cv_experiencias"])
 
@@ -1774,9 +1837,17 @@ def _anio(texto):
 
 
 def ordena_por_fechas():
-    """Mas reciente primero, que es como se lee un curriculo."""
+    """Mas reciente primero, que es como se lee un curriculo.
+
+    Los que no tienen ningun ano se quedan al final y conservan el orden en que
+    se anadieron, para poder colocarlos a mano con las flechas.
+    """
     st.session_state["cv_experiencias"].sort(
-        key=lambda e: (_anio(e["hasta"]), _anio(e["desde"])), reverse=True,
+        key=lambda e: (
+            0 if (_anio(e["hasta"]) or _anio(e["desde"])) else 1,
+            -(_anio(e["hasta"]) or _anio(e["desde"])),
+            -_anio(e["desde"]),
+        ),
     )
 
 
@@ -1789,14 +1860,27 @@ def botones_carrito(ocupaciones):
     if not ocupaciones:
         return
     st.markdown('<div class="seccion">Añadir al currículo</div>', unsafe_allow_html=True)
-    cols = st.columns(min(len(ocupaciones), 3), gap="small")
-    for i, o in enumerate(ocupaciones):
-        puesto = en_carrito(o["codigo"])
-        cols[i % len(cols)].button(
-            ("Añadido · " if puesto else "+ CV · ") + o["codigo"],
-            key=f"addcv_{o['codigo']}", use_container_width=True, disabled=puesto,
+    for o in ocupaciones:
+        ya = en_carrito(o["codigo"])
+        boton, texto = st.columns([1.5, 8.5], gap="small")
+        boton.button(
+            "Añadido" if ya else "+ CV",
+            key=f"addcv_{o['codigo']}", use_container_width=True, disabled=ya,
+            type="secondary" if ya else "primary",
             on_click=anade_al_carrito,
             args=(o["codigo"], o["denominacion"], o.get("motivo", "")),
+        )
+        # El nombre oficial manda, pero entre parentesis va como se llamaria el
+        # puesto en un curriculo. De momento sale de convertir la denominacion;
+        # el nombre de mercado de verdad ("montador de placa de pladur") lo
+        # tiene que proponer el modelo, y eso va en el paso siguiente.
+        sugerencia = a_oracion(o["denominacion"])
+        texto.markdown(
+            f'<div style="padding-top:.35rem;line-height:1.3">'
+            f'<span style="font-size:.82rem;font-weight:600">{o["denominacion"]}</span><br>'
+            f'<span style="font-size:.78rem;color:var(--suave)">'
+            f'En el currículo: <b>{sugerencia}</b> · {o["codigo"]}</span></div>',
+            unsafe_allow_html=True,
         )
 
 
@@ -1943,13 +2027,20 @@ with tab_cv:
             "minúscula para el currículo. Cámbialo si no encaja: manda lo que "
             "escribas aquí, no lo que diga el catálogo."
         )
+        st.session_state["cv_auto_orden"] = st.toggle(
+            "Ordenar solo por fechas", value=st.session_state["cv_auto_orden"],
+            help="En cuanto escribas los años, el más reciente sube al primer "
+                 "puesto. Apágalo si quieres colocarlos tú con las flechas.",
+        )
+        if st.session_state.pop("cv_aviso", ""):
+            st.warning("No he podido proponer funciones ahora mismo. Escríbelas a mano.")
 
         for i, e in enumerate(exps):
             with st.container(border=True):
                 arriba, abajo, titulo, fuera = st.columns([0.8, 0.8, 7, 1.2], gap="small")
-                arriba.button("↑", key=f"sube_{i}", disabled=(i == 0),
+                arriba.button("↑", key=f"sube_{e['codigo']}", disabled=(i == 0),
                               use_container_width=True, on_click=mueve, args=(i, -1))
-                abajo.button("↓", key=f"baja_{i}", disabled=(i == len(exps) - 1),
+                abajo.button("↓", key=f"baja_{e['codigo']}", disabled=(i == len(exps) - 1),
                              use_container_width=True, on_click=mueve, args=(i, 1))
                 titulo.markdown(
                     f"**{e['puesto'] or a_oracion(e['denominacion'])}** &nbsp;&nbsp;"
@@ -1957,47 +2048,70 @@ with tab_cv:
                     f"{e['denominacion'][:40]}</span>",
                     unsafe_allow_html=True,
                 )
-                fuera.button("Quitar", key=f"quita_{i}", use_container_width=True,
+                fuera.button("Quitar", key=f"quita_{e['codigo']}", use_container_width=True,
                              on_click=quita_del_carrito, args=(i,))
 
                 c1, c2 = st.columns(2, gap="medium")
                 e["sector"] = c1.text_input(
-                    "Sector", value=e["sector"], key=f"sec_{i}",
+                    "Sector", value=e["sector"], key=f"sec_{e['codigo']}",
                     placeholder="Construcción, Hostelería, Conducción profesional…",
                     help="Agrupa los puestos del mismo ramo en el currículo. "
                          "No sale del catálogo: lo pones tú.",
                 )
                 e["puesto"] = c2.text_input(
-                    "Puesto, tal como quieres que salga", value=e["puesto"], key=f"pue_{i}",
+                    "Puesto, tal como quieres que salga", value=e["puesto"], key=f"pue_{e['codigo']}",
                 )
 
                 c3, c4 = st.columns(2, gap="medium")
-                e["desde"] = c3.text_input("Desde", value=e["desde"], key=f"des_{i}",
+                e["desde"] = c3.text_input("Desde", value=e["desde"], key=f"des_{e['codigo']}",
                                            placeholder="2016")
-                e["hasta"] = c4.text_input("Hasta", value=e["hasta"], key=f"has_{i}",
+                e["hasta"] = c4.text_input("Hasta", value=e["hasta"], key=f"has_{e['codigo']}",
                                            placeholder="2022, o «actualmente»")
 
                 e["contexto"] = st.text_input(
-                    "Dónde", value=e["contexto"], key=f"ctx_{i}",
+                    "Dónde", value=e["contexto"], key=f"ctx_{e['codigo']}",
                     placeholder="Empresas de construcción y obras públicas en Madrid capital.",
                     help="Puedes nombrar las empresas o describir el tipo de "
                          "empresa, que es útil cuando han sido muchas o no se "
                          "recuerdan los nombres.",
                 )
+                etiqueta, varita = st.columns([6, 2], gap="small")
+                etiqueta.markdown(
+                    '<div style="font-size:.8rem;padding-top:.4rem">Funciones</div>',
+                    unsafe_allow_html=True,
+                )
+                varita.button(
+                    "🪄 Sugerir funciones", key=f"ia_{e['codigo']}",
+                    use_container_width=True,
+                    on_click=pon_funciones, args=(e["codigo"],),
+                    help="La IA propone las funciones HABITUALES de este oficio, "
+                         "no las de esta persona. Quita lo que no hiciera antes "
+                         "de darlo por bueno.",
+                )
                 e["funciones"] = st.text_area(
-                    "Funciones", value=e["funciones"], key=f"fun_{i}", height=90,
+                    "Funciones", value=e["funciones"], key=f"fun_{e['codigo']}",
+                    height=90, label_visibility="collapsed",
                     placeholder="Qué hacía en ese puesto, en dos o tres líneas.",
-                    help="De momento se escribe a mano. El botón para que la IA "
-                         "proponga funciones típicas llegará en el paso siguiente.",
                 )
 
         izq, der = st.columns([1, 1], gap="small")
-        izq.button("Ordenar por fechas", use_container_width=True,
-                   on_click=ordena_por_fechas,
-                   help="Coloca el más reciente arriba, que es como se lee un currículo.")
+        if not st.session_state["cv_auto_orden"]:
+            izq.button("Ordenar por fechas", use_container_width=True,
+                       on_click=ordena_por_fechas,
+                       help="Coloca el más reciente arriba.")
+        else:
+            izq.caption("Se ordenan solos por fecha, del más reciente al más antiguo.")
         if der.button("Vaciar la lista", use_container_width=True):
             st.session_state["cv_experiencias"] = []
             st.rerun()
+
+        # Se ordena DESPUES de leer los campos: asi, en cuanto escribes un ano,
+        # la ficha sube o baja sola en el siguiente refresco.
+        if st.session_state["cv_auto_orden"]:
+            antes = [x["codigo"] for x in exps]
+            ordena_por_fechas()
+            if [x["codigo"] for x in exps] != antes:
+                st.rerun()
 
         # ------------------------------------------------------------------
         # Vista previa
