@@ -1233,7 +1233,13 @@ def pinta_tarjetas(ocupaciones):
 def pinta_resultado(payload, estado=None, avance=0.06, interactivo=False, consulta=""):
     if estado:
         st.progress(min(avance, 0.95), text=estado)
-        return
+        # Antes se volvia aqui, asi que durante la espera solo se veia la barra.
+        # Pero el catalogo ya ha respondido en el primer milisegundo y esos
+        # resultados estaban calculados y guardados sin llegar a mostrarse. Si
+        # los hay, se pintan bajo la barra y se sustituyen cuando el modelo
+        # termina: la espera es la misma, pero deja de ser una pantalla vacia.
+        if not payload.get("ocupaciones"):
+            return
     if payload.get("aviso"):
         st.info(payload["aviso"])
         return
@@ -1359,7 +1365,7 @@ def resuelve(texto, zona, usar_ia=True, contexto="", busqueda=None):
         return memoria[clave]
 
     provisional = {
-        "ocupaciones": _basica(encontrados),
+        "ocupaciones": _basica(encontrados, "Resultado del catálogo, sin afinar todavía."),
         "otras": [(c, d) for _, c, d in encontrados[5:12]],
     }
 
@@ -1427,7 +1433,7 @@ def resuelve(texto, zona, usar_ia=True, contexto="", busqueda=None):
                 " · ".join(t.split()[0] for t, _ in lecturas),
             )
             provisional = {
-                "ocupaciones": _basica(encontrados),
+                "ocupaciones": _basica(encontrados, "Resultado del catálogo, sin afinar todavía."),
                 "otras": [(c, d) for _, c, d in encontrados[5:12]],
             }
 
