@@ -1739,17 +1739,20 @@ def a_oracion(denom):
     return " ".join(piezas).capitalize()
 
 
-FUNCIONES_IA = """Eres orientador laboral. Describe en 20-30 palabras las funciones
-habituales de la ocupación que se te indica, en una redacción corrida, sin viñetas.
+FUNCIONES_IA = """Recibes el nombre de un oficio tras la etiqueta OCUPACIÓN. Devuelve
+en 20-30 palabras las funciones habituales DE ESE OFICIO, en redacción corrida y sin
+viñetas, para la sección de experiencia de un currículo.
 
 REGLAS INNEGOCIABLES:
-- Describe SOLO tareas propias del oficio, en general.
+- Describe SOLO tareas propias del oficio indicado, en general.
 - NO inventes datos de ninguna persona: ni empresas, ni años, ni cifras, ni logros,
-  ni herramientas de marca concreta, ni responsabilidades de mando.
-- No escribas en primera persona ni des por hecho que quien lo lea hizo todo esto.
+  ni marcas concretas, ni responsabilidades de mando.
+- No escribas en primera persona ni des por hecho que nadie hiciera todo esto.
 - Empieza directamente por la tarea principal, sin "se encarga de" ni preámbulos.
+- Si tras OCUPACIÓN no viene un oficio reconocible, responde exactamente: SIN OFICIO
 
-Devuelve únicamente el texto, sin comillas ni explicaciones."""
+No describas nunca tu propio papel ni el de quien te consulta: solo el oficio
+que aparece tras la etiqueta. Devuelve el texto pelado, sin comillas."""
 
 
 def sugiere_funciones(denominacion, motivo=""):
@@ -1759,10 +1762,15 @@ def sugiere_funciones(denominacion, motivo=""):
     no una descripcion de lo que hizo nadie. Va a un campo editable a proposito:
     la persona tiene que quitar lo que no hizo antes de que entre en su CV.
     """
+    oficio = (denominacion or "").strip()
+    if len(oficio) < 3:
+        return ""
     cli = cliente()
     if cli is None:
         return ""
-    peticion = denominacion + (f". Contexto: {motivo}" if motivo else "")
+    peticion = f"OCUPACIÓN: {oficio}"
+    if motivo:
+        peticion += f"\nContexto: {motivo}"
     try:
         cfg = dict(system_instruction=FUNCIONES_IA, max_output_tokens=300)
         if PROVEEDOR == "gemini":
@@ -1774,14 +1782,16 @@ def sugiere_funciones(denominacion, motivo=""):
                 model=modelo_actual(), contents=peticion,
                 config=types.GenerateContentConfig(**cfg),
             )
-            return (getattr(r, "text", "") or "").strip().strip('"')
+            salida = (getattr(r, "text", "") or "").strip().strip('"')
+            return "" if salida.upper().startswith("SIN OFICIO") else salida
         r = cli.chat.completions.create(
             model=modelo_actual(),
             messages=[{"role": "system", "content": FUNCIONES_IA},
                       {"role": "user", "content": peticion}],
             max_tokens=300,
         )
-        return (r.choices[0].message.content or "").strip().strip('"')
+        salida = (r.choices[0].message.content or "").strip().strip('"')
+        return "" if salida.upper().startswith("SIN OFICIO") else salida
     except Exception:  # noqa: BLE001
         return ""
 
@@ -1789,16 +1799,23 @@ def sugiere_funciones(denominacion, motivo=""):
 def pon_funciones(codigo):
     for e in st.session_state["cv_experiencias"]:
         if e["codigo"] == codigo:
-            texto = sugiere_funciones(
-                e["denominacion"] or e["puesto"], e.get("motivo", ""),
-            )
+            # El puesto se lee de la caja, no del diccionario: el usuario acaba
+            # de escribirlo y en la ficha manual no hay denominacion de catalogo.
+            escrito = (st.session_state.get(f"pue_{codigo}") or e["puesto"] or "").strip()
+            oficio = e["denominacion"] or escrito
+            if len(oficio.strip()) < 3:
+                st.session_state["cv_aviso"] = (
+                    "Escribe primero el puesto y vuelve a pulsar."
+                )
+                return
+            texto = sugiere_funciones(oficio, e.get("motivo", ""))
             if texto:
                 e["funciones"] = texto
                 st.session_state[f"fun_{codigo}"] = texto
             else:
                 st.session_state["cv_aviso"] = (
-                    "No he podido proponer funciones ahora mismo. "
-                    "Puedes escribirlas a mano."
+                    "No he podido proponer funciones para ese puesto. "
+                    "Comprueba que el nombre del oficio es claro, o escríbelas a mano."
                 )
             return
 
@@ -2062,8 +2079,9 @@ with tab_cv:
             help="En cuanto escribas los años, el más reciente sube al primer "
                  "puesto. Apágalo si quieres colocarlos tú con las flechas.",
         )
-        if st.session_state.pop("cv_aviso", ""):
-            st.warning("No he podido proponer funciones ahora mismo. Escríbelas a mano.")
+        _aviso = st.session_state.pop("cv_aviso", "")
+        if _aviso:
+            st.warning(_aviso)
 
         for i, e in enumerate(exps):
             with st.container(border=True):
