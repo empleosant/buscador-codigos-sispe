@@ -11,9 +11,14 @@ USO
     python evaluar.py --informe       vuelca lo que devuelve el motor a un CSV aparte
 
 ARCHIVOS
-    casos.csv         consulta ; codigo_esperado ; denominacion ; tope
+    casos.csv         consulta ; codigo_esperado ; denominacion ; tope ; resuelto_ia
                 "tope" es la posición máxima admitida: 1 exige que salga
                 primero, 3 se conforma con que esté entre los tres primeros.
+                "resuelto_ia" con un "si" marca los casos que la búsqueda
+                local falla pero que Gemini resuelve en la app, comprobados
+                a mano. Se siguen probando y se siguen viendo, pero no
+                tumban las comprobaciones automáticas: así el rojo sigue
+                significando "algo que funcionaba se ha roto".
                 Este script NUNCA escribe en casos.csv: es la referencia.
     informe_evaluacion.csv   salida de --informe, regenerable, no versionar
     motor_pruebas.py  carga app.py sin la interfaz (compartido con estres.py)
@@ -67,7 +72,7 @@ def main():
     with open(CASOS, encoding="utf-8-sig") as f:
         casos = list(csv.DictReader(f, delimiter=";"))
 
-    aciertos, fallos, filas = 0, [], []
+    aciertos, fallos, pendientes, filas = 0, [], [], []
     for caso in casos:
         consulta = caso["consulta"]
         esperado = caso["codigo_esperado"].strip()
@@ -77,14 +82,19 @@ def main():
         codigos = [c for _, c, _ in resultados]
         posicion = codigos.index(esperado) + 1 if esperado in codigos else 0
 
+        resuelto_ia = (caso.get("resuelto_ia") or "").strip().lower() in ("si", "sí")
+
         if posicion and posicion <= tope:
             aciertos += 1
             marca = "  ok "
+        elif resuelto_ia:
+            pendientes.append((consulta, esperado, codigos[:3]))
+            marca = "pend"
         else:
             fallos.append((consulta, esperado, codigos[:3]))
             marca = "FALLA"
 
-        if detalle or marca == "FALLA":
+        if detalle or marca != "  ok ":
             print(f"{marca}  {consulta[:52]:54} esperado {esperado}")
             for i, (_, c, d) in enumerate(resultados[:3], 1):
                 print(f"          {i}. {c}  {d[:56]}")
@@ -95,7 +105,7 @@ def main():
                 "tope": tope,
                 "codigo_esperado": esperado,
                 "denominacion_esperada": caso.get("denominacion", ""),
-                "estado": "ok" if marca == "  ok " else "FALLA",
+                "estado": {"  ok ": "ok", "pend": "pendiente"}.get(marca, "FALLA"),
                 "posicion": posicion or "",
                 "obtenido_1": codigos[0] if len(codigos) > 0 else "",
                 "denominacion_1": resultados[0][2][:44] if resultados else "",
@@ -105,6 +115,12 @@ def main():
 
     total = len(casos)
     print(f"\n{aciertos} de {total} ({100 * aciertos // max(total, 1)} %)")
+
+    if pendientes:
+        print(f"\n{len(pendientes)} pendientes (los resuelve la IA en la app, comprobado):")
+        for consulta, esperado, salieron in pendientes:
+            salio = salieron[0] if salieron else "nada"
+            print(f"  {consulta[:56]:58} esperado {esperado}, salió {salio}")
 
     if fallos:
         print("\nFallan:")
