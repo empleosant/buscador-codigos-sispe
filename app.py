@@ -962,8 +962,20 @@ def limpia_opcion(texto):
             r"^(?:la|el|los|las|un|una|unos|unas|en|a|al|del|de|para|con|por|su|sus)\s+",
             "", t, flags=re.IGNORECASE,
         ).strip()
-    if len(t) > 36:
-        t = t[:36].rsplit(" ", 1)[0]
+    if len(t) > 44:
+        t = t[:44].rsplit(" ", 1)[0]
+        # Cortar por una palabra entera no basta: si el corte cae justo detras
+        # de un conector queda "Gestion de contabilidad y", que no significa
+        # nada. Se retrocede hasta que la ultima palabra tenga contenido.
+        colgantes = {
+            "y", "o", "u", "e", "de", "del", "al", "a", "en", "con", "por",
+            "para", "sin", "sobre", "the", "la", "el", "los", "las", "un",
+            "una", "mas", "más", "que", "su", "sus",
+        }
+        piezas = t.split()
+        while len(piezas) > 1 and piezas[-1].lower().strip(",;") in colgantes:
+            piezas.pop()
+        t = " ".join(piezas) + "…"
     return t.capitalize()
 
 
@@ -1267,8 +1279,11 @@ def pinta_resultado(payload, estado=None, avance=0.06, interactivo=False, consul
             )
             if interactivo:
                 opciones = extraer_opciones(payload.get("pregunta", ""), payload.get("opciones"))
-                pesos = [max(1.0, len(opc) * 0.09) for opc in opciones]
-                spacer = max(0.4, (8.0 - sum(pesos)) / 2.0)
+                # El ancho se reparte segun lo que ocupa cada texto. Con el
+                # limite en 44 caracteres hace falta algo mas de holgura que
+                # antes, o el boton vuelve a cortar la frase por su cuenta.
+                pesos = [max(1.2, len(opc) * 0.105) for opc in opciones]
+                spacer = max(0.2, (9.0 - sum(pesos)) / 2.0)
                 col_weights = [spacer] + pesos + [spacer]
                 cols = st.columns(col_weights, gap="small")
                 for idx, opc in enumerate(opciones):
