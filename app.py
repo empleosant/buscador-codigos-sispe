@@ -34,6 +34,9 @@ except ImportError:                     # noqa: S110
 CATALOGO = "ocupaciones_sispe_ultraligero.txt"
 AMPLIADO = "terminos_ampliados.txt"
 N_CANDIDATOS = 16
+VENTAJA_CLARA = 3.0   # cuántas veces debe superar el 1º del buscador al 2º
+                      # para que mande él en lugar del modelo (sube para que
+                      # mande menos, baja para que mande más)
 ESPERA_MAXIMA = 45
 
 # ---------------------------------------------------------------------------
@@ -1461,25 +1464,47 @@ def resuelve(texto, zona, usar_ia=True, contexto="", busqueda=None):
     if not payload["ocupaciones"]:
         payload["ocupaciones"] = provisional["ocupaciones"]
 
-    # Se muestran las ocupaciones que el modelo considera pertinentes. Antes se
-    # completaban seis tarjetas siempre, llenando los huecos con lo siguiente
-    # del catalogo aunque no tuviera relacion: eso restaba confianza en las que
-    # si eran buenas. Lo descartado sigue a un clic, en "Ver otras ocupaciones".
+    # Se muestran las ocupaciones que el modelo considera pertinentes. Ya no se
+    # completan seis tarjetas siempre: rellenar el hueco con lo siguiente del
+    # catalogo, sin relacion con lo buscado, restaba confianza en las buenas.
+    # Lo descartado sigue a un clic, en "Ver otras ocupaciones del catalogo".
     #
-    # RED DE SEGURIDAD: el mejor resultado del buscador entra siempre, lo haya
-    # elegido el modelo o no. El modelo reinterpreta la consulta y a veces se
-    # aleja; el buscador, en cambio, responde a lo que se escribio. Es UNA sola
-    # tarjeta añadida como mucho, no relleno hasta seis.
+    # Pero el buscador no puede quedar mudo. El modelo reinterpreta la consulta
+    # y a veces se aleja de lo que se escribio: para "montador de placa de
+    # pladur" ha llegado a proponer escayolistas y albañiles, que no estan ni
+    # entre los seis mejores del catalogo. Por eso:
+    #
+    #   1) el mejor resultado del buscador entra SIEMPRE como tarjeta,
+    #   2) y si ademas arrasa (VENTAJA_CLARA veces mas puntos que el segundo),
+    #      se pone el primero y es el que lleva la marca de recomendada.
+    #
+    # Una ventaja aplastante significa que la persona escribio casi el nombre
+    # exacto de la ocupacion; ahi interpretar sobra. Cuando la ventaja es corta
+    # hay ambiguedad real y manda el modelo, que para eso esta.
     ya = {o["codigo"] for o in payload["ocupaciones"]}
-    if encontrados and encontrados[0][1] not in ya:
-        _, codigo_c, denom = encontrados[0]
-        payload["ocupaciones"].append({
-            "codigo": codigo_c,
-            "denominacion": denom,
-            "nivel": "00",
-            "nivel_texto": NIVELES["00"],
-            "motivo": "Mejor coincidencia del catálogo con lo que escribiste.",
-        })
+    if encontrados:
+        puntos, codigo_c, denom = encontrados[0]
+        segundo = encontrados[1][0] if len(encontrados) > 1 else 0.0
+        arrasa = segundo <= 0 or (puntos / segundo) > VENTAJA_CLARA
+
+        if codigo_c not in ya:
+            tarjeta = {
+                "codigo": codigo_c,
+                "denominacion": denom,
+                "nivel": "00",
+                "nivel_texto": NIVELES["00"],
+                "motivo": "Mejor coincidencia del catálogo con lo que escribiste.",
+            }
+            if arrasa:
+                payload["ocupaciones"].insert(0, tarjeta)
+            else:
+                payload["ocupaciones"].append(tarjeta)
+        elif arrasa and payload["ocupaciones"][0]["codigo"] != codigo_c:
+            i_mejor = next(
+                i for i, o in enumerate(payload["ocupaciones"])
+                if o["codigo"] == codigo_c
+            )
+            payload["ocupaciones"].insert(0, payload["ocupaciones"].pop(i_mejor))
 
     elegidos = {o["codigo"] for o in payload["ocupaciones"]}
     payload["otras"] = [(c, d) for _, c, d in encontrados if c not in elegidos][:8]
