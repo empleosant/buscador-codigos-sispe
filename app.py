@@ -1501,6 +1501,7 @@ st.session_state.setdefault("por_guardar", [])
 st.session_state.setdefault("refuerzos_por_guardar", [])
 st.session_state.setdefault("ultima", "")
 st.session_state.setdefault("consulta", "")
+st.session_state.setdefault("cv_experiencias", [])
 
 EJEMPLOS = [
     "Una persona que limpia habitaciones de hotel",
@@ -1573,6 +1574,50 @@ def usar_ejemplo(texto_ejemplo):
     st.session_state["ultima"] = ""
 
 
+def en_carrito(codigo):
+    return any(e["codigo"] == codigo for e in st.session_state["cv_experiencias"])
+
+
+def anade_al_carrito(codigo, denominacion, motivo):
+    """Guarda un puesto en el carrito. No toca el catálogo ni el buscador."""
+    if en_carrito(codigo):
+        return
+    st.session_state["cv_experiencias"].append({
+        "codigo": codigo,
+        "denominacion": denominacion,   # tal cual el catálogo, en mayúsculas
+        "motivo": motivo,               # la frase que propuso la IA al buscar
+        "sector": "",
+        "puesto": "",                   # se rellena en la pestaña del CV
+        "contexto": "",
+        "funciones": "",
+        "desde": "",
+        "hasta": "",
+    })
+
+
+def botones_carrito(ocupaciones):
+    """Una fila de botones reales bajo las tarjetas.
+
+    No se pueden poner dentro de las tarjetas: se dibujan con components.html,
+    en un marco aislado, y un botón de ahí dentro no puede avisar a la app.
+    """
+    if not ocupaciones:
+        return
+    st.markdown('<div class="seccion">Añadir al currículo</div>', unsafe_allow_html=True)
+    cols = st.columns(min(len(ocupaciones), 3), gap="small")
+    for i, o in enumerate(ocupaciones):
+        col = cols[i % len(cols)]
+        puesto = en_carrito(o["codigo"])
+        col.button(
+            ("Añadido · " if puesto else "+ CV · ") + o["codigo"],
+            key=f"addcv_{o['codigo']}",
+            use_container_width=True,
+            disabled=puesto,
+            on_click=anade_al_carrito,
+            args=(o["codigo"], o["denominacion"], o.get("motivo", "")),
+        )
+
+
 def empezar_de_nuevo():
     st.session_state["actual"] = None
     st.session_state["consulta"] = ""
@@ -1639,7 +1684,11 @@ if entrada:
 # Pestañas
 # ---------------------------------------------------------------------------
 
-tab_codificador, tab_cv = st.tabs(["Codificador", "Creador de CV"])
+n_cv = len(st.session_state["cv_experiencias"])
+tab_codificador, tab_cv = st.tabs([
+    "Codificador",
+    f"Creador de CV ({n_cv})" if n_cv else "Creador de CV",
+])
 
 with tab_codificador:
     # ---------------------------------------------------------------------------
@@ -1671,6 +1720,7 @@ with tab_codificador:
             unsafe_allow_html=True,
         )
         pinta_resultado(payload, interactivo=True, consulta=consulta)
+        botones_carrito(payload.get("ocupaciones", []))
 
         st.markdown('<div class="separa"></div>', unsafe_allow_html=True)
         st.button("↺", key="reinicio", help="Nueva búsqueda", on_click=empezar_de_nuevo)
@@ -1698,7 +1748,22 @@ with tab_cv:
         '<div class="seccion">Creador de CV</div>',
         unsafe_allow_html=True,
     )
-    st.write("Aquí irá el creador de currículos.")
+    exps = st.session_state["cv_experiencias"]
+    if not exps:
+        st.info(
+            "Todavía no has añadido ningún puesto. Busca una ocupación en el "
+            "Codificador y pulsa el botón de añadir que aparece bajo las tarjetas."
+        )
+    else:
+        for i, e in enumerate(exps, 1):
+            st.markdown(
+                f'**{i}. {e["denominacion"].capitalize()}** &nbsp; `{e["codigo"]}`',
+            )
+            if e["motivo"]:
+                st.caption(e["motivo"])
+        if st.button("Vaciar la lista", key="cv_vaciar"):
+            st.session_state["cv_experiencias"] = []
+            st.rerun()
 
 for clave, valor in st.session_state.pop("por_guardar", []):
     guarda_termino(clave, valor)
