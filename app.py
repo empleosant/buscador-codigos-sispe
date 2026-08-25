@@ -35,6 +35,8 @@ except ImportError:                     # noqa: S110
 CATALOGO = "ocupaciones_sispe_ultraligero.txt"
 AMPLIADO = "terminos_ampliados.txt"
 N_CANDIDATOS = 16
+ENCAJE_MINIMO = 0.40  # cuánto del nombre de la ocupación debe explicar la
+                      # consulta para fiarse de ella sin preguntar a la IA
 VENTAJA_CLARA = 3.0   # cuántas veces debe superar el 1º del buscador al 2º
                       # para que mande él en lugar del modelo (sube para que
                       # mande menos, baja para que mande más)
@@ -1464,6 +1466,14 @@ def _basica(encontrados, motivo=""):
     } for _, c, d in encontrados[:5]]
 
 
+def raices_de(texto):
+    """Raices con contenido de un texto, con el mismo criterio que el indice."""
+    return {
+        raiz(p) for p in re.findall(r"[a-zñáéíóúü]+", normaliza(texto))
+        if len(p) > 2 and p not in VACIAS
+    }
+
+
 def resuelve(texto, zona, usar_ia=True, contexto="", busqueda=None):
     codigo = texto.strip()
     if re.fullmatch(r"\d{8}", codigo):
@@ -1487,6 +1497,7 @@ def resuelve(texto, zona, usar_ia=True, contexto="", busqueda=None):
     # tiene que tomarse sobre esto, no sobre la busqueda reescrita por el
     # modelo: ahi las puntuaciones se aplanan y la ventaja real desaparece.
     literales = encontrados[:2]
+    _raices_consulta = raices_de(busqueda or texto)
     st.session_state["tiempos"] = []
     cli = cliente() if usar_ia else None
 
@@ -1518,7 +1529,30 @@ def resuelve(texto, zona, usar_ia=True, contexto="", busqueda=None):
     # El resto de resultados sigue disponible en "Ver otras ocupaciones".
     if literales and not contexto:
         segundo_l = literales[1][0] if len(literales) > 1 else 0.0
-        if segundo_l <= 0 or (literales[0][0] / segundo_l) > VENTAJA_CLARA:
+        holgado = segundo_l <= 0 or (literales[0][0] / segundo_l) > VENTAJA_CLARA
+        # Puntuar mucho NO es acertar. "limpiadora de casas" sacaba 14 veces al
+        # segundo y devolvia OPERADORES DE MAQUINA LIMPIADORA DE METALES: el
+        # catalogo veia la palabra "limpiadora" dentro del nombre de una
+        # maquina. Por eso ahora se exige ademas que el candidato explique
+        # TODAS las palabras de la consulta. Si sobra alguna sin explicar, hay
+        # algo que interpretar y tiene que verlo el modelo.
+        # Doble condicion, y las dos hacen falta:
+        #   a) el candidato explica TODAS las palabras con contenido de la
+        #      consulta, y
+        #   b) la consulta cubre al menos el 40 % del candidato.
+        # Sin (b), "limpiadora de casas" se colaba: "casas" es palabra vacia,
+        # asi que la consulta se reducia a "limpiador" y encajaba con
+        # OPERADORES DE MAQUINA LIMPIADORA DE METALES, del que solo explicaba
+        # una palabra de cinco. Medido sobre 60 consultas reales: quedan seis
+        # atajos, todos correctos, y desaparecen los dos disparates.
+        propias = raices_de(literales[0][2])
+        encaje_l = len(_raices_consulta & propias) / len(propias) if propias else 0
+        explica = (
+            bool(_raices_consulta)
+            and _raices_consulta.issubset(propias)
+            and encaje_l >= ENCAJE_MINIMO
+        )
+        if holgado and explica:
             _, cod_a, den_a = literales[0]
             atajo = {
                 "ocupaciones": [{
@@ -1541,7 +1575,12 @@ def resuelve(texto, zona, usar_ia=True, contexto="", busqueda=None):
         return provisional
 
     with zona.container():
-        pinta_resultado(provisional, estado="Afinando el resultado")
+        # Antes se enseñaban aqui las tarjetas del catalogo mientras el modelo
+        # trabajaba. Medido sobre 60 consultas reales, ese primer resultado es
+        # disparatado a menudo ("ayudante de albañil" -> ayudantes de
+        # hosteleria), y verlo dos segundos destruye la confianza en el que
+        # sale despues. Como afinar tarda unos dos segundos, no compensa.
+        pinta_resultado({}, estado="Afinando el resultado")
 
     interpretado, aviso = None, ""
     with zona.container():
@@ -1667,7 +1706,18 @@ def resuelve(texto, zona, usar_ia=True, contexto="", busqueda=None):
         segundo = literales[1][0] if len(literales) > 1 else 0.0
         arrasa = segundo <= 0 or (puntos / segundo) > VENTAJA_CLARA
 
-        if codigo_c not in ya:
+        # Solo se cuela si el catalogo explica lo que se escribio. Si no, se
+        # estaria metiendo una ocupacion sin relacion entre las recomendadas,
+        # que es justo lo que resta fiabilidad.
+        propias_rs = raices_de(denom)
+        encaje_rs = (len(_raices_consulta & propias_rs) / len(propias_rs)
+                     if propias_rs else 0)
+        merece = (
+            bool(_raices_consulta)
+            and _raices_consulta.issubset(propias_rs)
+            and encaje_rs >= ENCAJE_MINIMO
+        )
+        if codigo_c not in ya and merece:
             tarjeta = {
                 "codigo": codigo_c,
                 "denominacion": denom,
