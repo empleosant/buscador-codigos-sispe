@@ -1729,7 +1729,16 @@ def resuelve(texto, zona, usar_ia=True, contexto="", busqueda=None):
                 payload["ocupaciones"].insert(0, tarjeta)
             else:
                 payload["ocupaciones"].append(tarjeta)
-        elif arrasa and payload["ocupaciones"][0]["codigo"] != codigo_c:
+        elif (
+            arrasa
+            and codigo_c in ya
+            and payload["ocupaciones"]
+            and payload["ocupaciones"][0]["codigo"] != codigo_c
+        ):
+            # Solo se sube al primer puesto si la ocupacion ESTA entre las
+            # tarjetas. Faltaba comprobarlo: cuando la red de seguridad no la
+            # anadia por no explicar la consulta, este bloque la buscaba
+            # igualmente y reventaba la consulta entera (StopIteration).
             i_mejor = next(
                 i for i, o in enumerate(payload["ocupaciones"])
                 if o["codigo"] == codigo_c
