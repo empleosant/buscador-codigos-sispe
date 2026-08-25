@@ -10,6 +10,7 @@ import time
 import io
 import json
 import math
+import random
 import unicodedata
 from collections import defaultdict
 from difflib import SequenceMatcher
@@ -271,6 +272,35 @@ div[data-testid="stTextInput"] input{
 
 div[data-testid="stExpander"]{ border:none; background:transparent; margin-top:.1rem; }
 div[data-testid="stExpander"] summary{ font-size:.8rem; color:var(--suave); padding:.1rem 0; }
+
+/* ---------- Pantallas estrechas (móvil) ----------
+   La herramienta se usa también desde el teléfono. Aquí no se rediseña nada:
+   se le quita apretura al espacio, se deja que las columnas de la cabecera se
+   apilen y se impide que un código de ocho cifras o una denominación larga
+   desborden a lo ancho, que es lo que rompe la lectura en vertical. */
+@media (max-width:760px){
+  .block-container{ padding:0 .6rem .4rem !important; }
+
+  .st-key-cabecera{ padding:.7rem .8rem; }
+  .st-key-cabecera [data-testid="stHorizontalBlock"]{
+    flex-wrap:wrap; gap:.4rem;
+  }
+  .st-key-cabecera [data-testid="stColumn"]{
+    min-width:0;
+  }
+
+  .consulta-box{ padding:.5rem .6rem; }
+  .consulta-texto{ font-size:.9rem; line-height:1.3; }
+
+  /* Las otras ocupaciones: el código arriba y el nombre debajo, en vez de
+     obligar a leer una línea larguísima con desplazamiento lateral. */
+  .fila-otra{ flex-wrap:wrap; row-gap:2px; }
+  .fila-otra .cod-otra{ flex:0 0 auto; }
+  .fila-otra .den-otra{ flex:1 1 100%; white-space:normal; }
+
+  /* Nada puede desbordar a lo ancho. */
+  .stApp, .block-container{ overflow-x:hidden; }
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -1129,6 +1159,25 @@ body{
 """
 
 GUION_INTERACTIVO = """
+// El alto del marco se calcula en el servidor suponiendo dos tarjetas por fila
+// y 48 caracteres por linea. En el movil hay UNA columna y caben la mitad de
+// letras, asi que el contenido crece y el marco lo recortaba. Aqui dentro si se
+// conoce el ancho real: se mide lo dibujado y se corrige el alto del iframe.
+function ajustaAlto(){
+  try {
+    var alto = document.documentElement.scrollHeight;
+    var marco = window.frameElement;
+    if (marco && alto > 0) {
+      marco.style.height = (alto + 8) + 'px';
+      marco.setAttribute('height', alto + 8);
+    }
+  } catch (e) { /* si el navegador no deja tocar el marco, se queda como estaba */ }
+}
+window.addEventListener('load', ajustaAlto);
+window.addEventListener('resize', ajustaAlto);
+setTimeout(ajustaAlto, 60);
+setTimeout(ajustaAlto, 400);
+
 function copiarTexto(texto, boton){
   navigator.clipboard.writeText(texto).then(() => {
     boton.textContent = 'Copiado';
@@ -1238,6 +1287,12 @@ def pinta_tarjetas(ocupaciones):
     filas = [alturas[i:i + 2] for i in range(0, len(alturas), 2)]
     estimada = sum(max(f) for f in filas) + 6 * max(0, len(filas) - 1) + 4
 
+    # Permitir que el marco crezca: el guion lo ajusta al alto real una vez
+    # dibujado, pero si el navegador no lo permite, mas vale que sobre sitio a
+    # que se corte una tarjeta. Un hueco en blanco se perdona; un codigo
+    # cortado por la mitad, no.
+    estimada = int(estimada * 1.15) + 12
+
     components.html(
         f"<style>{ESTILO_TARJETAS}</style>"
         f"<div class=\"rejilla\">{''.join(trozos)}</div>"
@@ -1311,10 +1366,11 @@ def pinta_resultado(payload, estado=None, avance=0.06, interactivo=False, consul
             arranque = len(payload.get("ocupaciones", [])) + 1
             for orden, (cod, den) in enumerate(otras, arranque):
                 st.markdown(
-                    f'<div style="padding:.15rem 0;border-bottom:1px solid var(--linea)">'
-                    f'<span style="font-family:JetBrains Mono,monospace;font-weight:700;'
-                    f'font-size:.82rem;letter-spacing:.04em">{cod}</span> &nbsp; '
-                    f'<span style="font-size:.82rem">{den}</span></div>',
+                    f'<div class="fila-otra" style="padding:.15rem 0;'
+                    f'border-bottom:1px solid var(--linea);display:flex;gap:.5rem">'
+                    f'<span class="cod-otra" style="font-family:JetBrains Mono,monospace;'
+                    f'font-weight:700;font-size:.82rem;letter-spacing:.04em">{cod}</span>'
+                    f'<span class="den-otra" style="font-size:.82rem">{den}</span></div>',
                     unsafe_allow_html=True,
                 )
 
@@ -1734,17 +1790,48 @@ def pantalla_masiva():
     except Exception:  # noqa: BLE001
         pass
 
-    texto = st.text_area(
-        "Consultas, una por línea",
-        value=st.session_state.get("masiva_texto", por_defecto),
-        height=200, key="masiva_texto",
-        help="Vienen cargados los casos de casos.csv. Borra y pega las tuyas "
-             "si quieres probar otras.",
+    origen = st.radio(
+        "De dónde salen las consultas",
+        ["Escritas a mano", "Ocupaciones del catálogo, al azar"],
+        horizontal=True, key="masiva_origen",
     )
-    consultas = [x.strip() for x in texto.splitlines() if x.strip()]
+
+    if origen == "Escritas a mano":
+        texto = st.text_area(
+            "Consultas, una por línea",
+            value=st.session_state.get("masiva_texto", por_defecto),
+            height=200, key="masiva_texto",
+            help="Vienen cargados los casos de casos.csv. Borra y pega las "
+                 "tuyas: el tope es cuántas líneas escribas aquí.",
+        )
+        consultas = [x.strip() for x in texto.splitlines() if x.strip()]
+    else:
+        # Buscar cada ocupacion por su propio nombre oficial. Es la version con
+        # IA de la prueba de convergencia que estres.py hace en local: si el
+        # circuito completo no encuentra una ocupacion escribiendo su nombre
+        # exacto, el problema es gordo y no es del vocabulario.
+        cuantas = st.number_input(
+            "Cuántas ocupaciones coger", 5, 300, 50, 5,
+            help=f"El catálogo tiene {len(IDX['registros'])}. Se cogen al azar, "
+                 "sin repetir, y se buscan por su denominación oficial.",
+        )
+        semilla = st.number_input(
+            "Semilla", 0, 9999, 1, 1,
+            help="Con la misma semilla salen las mismas ocupaciones, para poder "
+                 "repetir la prueba después de un cambio y comparar.",
+        )
+        muestra = list(IDX["registros"])
+        random.Random(int(semilla)).shuffle(muestra)
+        consultas = [r["denom"] for r in muestra[: int(cuantas)]]
+        st.caption(f"{len(consultas)} ocupaciones elegidas. Ejemplo: {consultas[0][:60]}")
 
     c1, c2, c3 = st.columns(3, gap="small")
-    tope = c1.number_input("Cuántas lanzar", 1, 500, min(len(consultas) or 1, 40))
+    tope = c1.number_input(
+        "Cuántas lanzar", 1, max(len(consultas), 1),
+        min(len(consultas) or 1, 40),
+        help="No puede pasar del número de consultas disponibles: no se repite "
+             "ninguna.",
+    )
     pausa = c2.number_input("Pausa entre consultas (s)", 0.0, 10.0, 1.0, 0.5,
                             help="Da aire al modelo. Ayer sospechamos de un "
                                  "límite por minuto cuando se encadenan muchas.")
@@ -1767,9 +1854,10 @@ def pantalla_masiva():
         filas, barra, aviso = [], st.progress(0.0), st.empty()
         oculto = st.empty()
 
-        for i, consulta in enumerate(consultas[:int(tope)], 1):
-            aviso.caption(f"{i} de {int(tope)} · {consulta[:60]}")
-            barra.progress(i / int(tope))
+        lote = consultas[: int(tope)]
+        for i, consulta in enumerate(lote, 1):
+            aviso.caption(f"{i} de {len(lote)} · {consulta[:60]}")
+            barra.progress(i / len(lote))
 
             locales = busca(consulta, tope=3)
             arranque = time.perf_counter()
@@ -1810,6 +1898,10 @@ def pantalla_masiva():
                 "coincide_con_local": "si" if codigos[:1] == [top_local] else "no",
                 "pregunta": payload.get("pregunta", ""),
                 "sin_afinar": "si" if payload.get("fallo") else "no",
+                # El motivo del fallo es EL dato para saber si es cuota, límite
+                # por minuto o modelo caído. Sin él solo sabemos que falló.
+                "motivo_fallo": str(payload.get("fallo", ""))[:200],
+                "modelo": modelo_actual(),
                 "error": error,
                 "segundos": round(tardanza, 1),
                 "detalle_tiempos": " | ".join(f"{n}:{t:.1f}" for n, t in tiempos),
