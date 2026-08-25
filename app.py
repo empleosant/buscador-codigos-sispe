@@ -1339,6 +1339,22 @@ def pinta_tarjetas(ocupaciones):
     )
 
 
+def pinta_otras(otras, arranque=1, titulo="Ver otras ocupaciones del catálogo"):
+    """Lista plegada con lo que ha devuelto el catálogo y no es tarjeta."""
+    if not otras:
+        return
+    with st.expander(titulo):
+        for orden, (cod, den) in enumerate(otras, arranque):
+            st.markdown(
+                f'<div class="fila-otra" style="padding:.15rem 0;'
+                f'border-bottom:1px solid var(--linea);display:flex;gap:.5rem">'
+                f'<span class="cod-otra" style="font-family:JetBrains Mono,monospace;'
+                f'font-weight:700;font-size:.82rem;letter-spacing:.04em">{cod}</span>'
+                f'<span class="den-otra" style="font-size:.82rem">{den}</span></div>',
+                unsafe_allow_html=True,
+            )
+
+
 def pinta_resultado(payload, estado=None, avance=0.06, interactivo=False, consulta=""):
     # Interruptor para la prueba masiva. resuelve() dibuja el resultado en
     # nueve puntos distintos; en una tanda de sesenta consultas eso llena la
@@ -1359,6 +1375,23 @@ def pinta_resultado(payload, estado=None, avance=0.06, interactivo=False, consul
             return
     if payload.get("aviso"):
         st.info(payload["aviso"])
+        return
+
+    # LA IA SE HA CAÍDO A MITAD.
+    # Antes se pintaban aquí las tarjetas del catálogo en crudo con la
+    # coletilla "sin afinar todavía". Es exactamente lo que se quitó de la
+    # pantalla de espera, y por el mismo motivo: el primer resultado del
+    # catálogo se equivoca a menudo con el lenguaje de la calle ("trabaja en
+    # mcdonalds" devolvía personal de limpieza), y enseñarlo con forma de
+    # respuesta hace que alguien copie un código equivocado. Se dice lo que ha
+    # pasado, y el catálogo queda a un clic sin aspecto de recomendación.
+    if payload.get("corte"):
+        st.warning(payload["corte"])
+        pinta_otras(payload.get("otras", []),
+                    titulo="Ver lo que dice el catálogo, sin afinar")
+        if MANTENIMIENTO and payload.get("fallo"):
+            with st.expander("Ver el motivo"):
+                st.code(payload["fallo"], language=None)
         return
 
     ocupaciones = payload.get("ocupaciones", [])
@@ -1413,17 +1446,7 @@ def pinta_resultado(payload, estado=None, avance=0.06, interactivo=False, consul
 
     otras = payload.get("otras", [])
     if otras:
-        with st.expander("Ver otras ocupaciones del catálogo"):
-            arranque = len(payload.get("ocupaciones", [])) + 1
-            for orden, (cod, den) in enumerate(otras, arranque):
-                st.markdown(
-                    f'<div class="fila-otra" style="padding:.15rem 0;'
-                    f'border-bottom:1px solid var(--linea);display:flex;gap:.5rem">'
-                    f'<span class="cod-otra" style="font-family:JetBrains Mono,monospace;'
-                    f'font-weight:700;font-size:.82rem;letter-spacing:.04em">{cod}</span>'
-                    f'<span class="den-otra" style="font-size:.82rem">{den}</span></div>',
-                    unsafe_allow_html=True,
-                )
+        pinta_otras(otras, arranque=len(payload.get("ocupaciones", [])) + 1)
 
     if payload.get("fallo"):
         st.markdown('<div class="nota">Resultados del catálogo, sin afinar.</div>', unsafe_allow_html=True)
@@ -1685,9 +1708,30 @@ def resuelve(texto, zona, usar_ia=True, contexto="", busqueda=None):
                     payload = segunda
     except Exception as e:  # noqa: BLE001
         zona.empty()
-        provisional["fallo"] = f"{type(e).__name__}: {e}"
-        pinta_resultado(provisional)
-        return provisional
+        # El mensaje se ajusta a la causa: el tope por minuto se pasa solo en
+        # un rato y merece la pena decirlo, porque es lo que pasa de verdad
+        # cuando se encadenan búsquedas. Lo demás no se sabe.
+        if por_minuto(e):
+            explicacion = (
+                "He tenido que parar: el plan gratuito admite unas cinco "
+                "búsquedas por minuto y se ha agotado el cupo. Espera un "
+                "momento y vuelve a buscar."
+            )
+        else:
+            explicacion = (
+                "No he podido terminar de afinar el resultado. Vuelve a "
+                "buscar dentro de un momento."
+            )
+        corte = {
+            "ocupaciones": [],
+            "otras": [(c, d) for _, c, d in encontrados[:10]],
+            "fallo": f"{type(e).__name__}: {e}",
+            "corte": explicacion + " Debajo tienes lo que dice el catálogo "
+                     "sin afinar, que se equivoca a menudo con el lenguaje "
+                     "de la calle: úsalo como pista, no como respuesta.",
+        }
+        pinta_resultado(corte)
+        return corte
 
     if payload["ocupaciones"] and encontrados:
         elegido = payload["ocupaciones"][0]["codigo"]
