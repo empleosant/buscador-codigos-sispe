@@ -5,6 +5,16 @@ Comprueba que los cambios en el vocabulario, en el lematizador o en la
 puntuación no rompen lo que ya funcionaba. Prueba SOLO la búsqueda local: no
 llama a la IA, no gasta cuota y tarda un par de segundos.
 
+Mide dos cosas distintas:
+
+  ACIERTOS    el código correcto sale entre los primeros (columna "tope").
+  COBERTURA   el código correcto entra en la lista de N_CANDIDATOS que se le
+              manda al modelo. Es más flojo que un acierto, pero es la
+              condición mínima: lo que no llega a esa lista, el modelo no lo
+              puede elegir por muy bien que razone. Antes no se medía, y por
+              eso un recorte de la lista de candidatos podía dejar la batería
+              entera en verde mientras la herramienta empeoraba.
+
 USO
     python evaluar.py                 pasa todos los casos
     python evaluar.py --detalle       enseña además los tres primeros de cada uno
@@ -48,6 +58,13 @@ from motor_pruebas import cabecera, carga_motor
 CASOS = "casos.csv"
 INFORME = "informe_evaluacion.csv"
 
+# Porcentaje mínimo de casos en los que el código correcto tiene que entrar en
+# la lista de candidatos que se le manda al modelo. El 25/08/2026 estaba en el
+# 95 % con N_CANDIDATOS = 24, así que 90 deja margen sin dejar pasar una
+# regresión de verdad. Bajarlo para que pase una batería en rojo es engañarse:
+# lo que no llega a la lista, el modelo no lo puede elegir.
+COBERTURA_MINIMA = 90
+
 
 def main():
     if "--actualizar" in sys.argv:
@@ -73,14 +90,32 @@ def main():
         casos = list(csv.DictReader(f, delimiter=";"))
 
     aciertos, fallos, pendientes, filas = 0, [], [], []
+    sin_cobertura = []
     for caso in casos:
         consulta = caso["consulta"]
         esperado = caso["codigo_esperado"].strip()
         tope = int(caso.get("tope") or 1)
 
-        resultados = motor.busca(consulta, tope=max(tope, 3))
+        # Se pide la lista larga de una vez: el orden es el mismo, así que los
+        # tres primeros valen para la comprobación de siempre y la lista
+        # entera vale para la cobertura. Una búsqueda cuesta 1,5 ms.
+        largo = max(tope, 3, motor.N_CANDIDATOS)
+        resultados = motor.busca(consulta, tope=largo)
         codigos = [c for _, c, _ in resultados]
         posicion = codigos.index(esperado) + 1 if esperado in codigos else 0
+
+        # COBERTURA: ¿llega el código correcto a manos del modelo?
+        # Es lo que la batería de aciertos no ve. Que el buscador deje la
+        # ocupación buena en el puesto 19 no es un acierto, pero tampoco es lo
+        # mismo que dejarla fuera: en el primer caso el modelo aún puede
+        # rescatarla, en el segundo no la ha visto nunca y no hay nada que
+        # hacer. Medido el 25/08/2026: 38 de 40.
+        if not posicion or posicion > motor.N_CANDIDATOS:
+            sin_cobertura.append((consulta, esperado, posicion))
+
+        resultados = resultados[:max(tope, 3)]
+        codigos = codigos[:max(tope, 3)]
+        posicion = posicion if posicion and posicion <= max(tope, 3) else 0
 
         resuelto_ia = (caso.get("resuelto_ia") or "").strip().lower() in ("si", "sí")
 
@@ -128,6 +163,24 @@ def main():
             salio = salieron[0] if salieron else "nada"
             print(f"  {consulta[:56]:58} esperado {esperado}, salió {salio}")
 
+    cubiertos = total - len(sin_cobertura)
+    cobertura = 100 * cubiertos / max(total, 1)
+    marca = " OK " if cobertura >= COBERTURA_MINIMA else "MAL"
+    print(f"\n[{marca}] cobertura: el código correcto llega al modelo en "
+          f"{cubiertos} de {total} ({cobertura:.0f} %, mínimo {COBERTURA_MINIMA} %)")
+    print(f"        (entra en la lista de {motor.N_CANDIDATOS} candidatos "
+          f"que se le manda a la IA)")
+    for consulta, esperado, posicion in sin_cobertura:
+        if not posicion:
+            # Se mira mucho más abajo solo para estos, que son pocos: saber si
+            # la ocupación está en el puesto 19 o en el 65 cambia por completo
+            # qué hay que arreglar. En el 19 basta con alargar la lista; en el
+            # 65 el problema es la puntuación del buscador.
+            hondo = [c for _, c, _ in motor.busca(consulta, tope=300)]
+            posicion = hondo.index(esperado) + 1 if esperado in hondo else 0
+        donde = f"puesto {posicion}" if posicion else "no la encuentra"
+        print(f"  {consulta[:56]:58} esperado {esperado}, {donde}")
+
     if informe and filas:
         with open(INFORME, "w", encoding="utf-8-sig", newline="") as f:
             w = csv.DictWriter(f, fieldnames=list(filas[0]), delimiter=";")
@@ -135,7 +188,7 @@ def main():
             w.writerows(filas)
         print(f"\n{INFORME} escrito. {CASOS} no se ha tocado.")
 
-    return 1 if fallos else 0
+    return 1 if (fallos or cobertura < COBERTURA_MINIMA) else 0
 
 
 if __name__ == "__main__":

@@ -34,7 +34,17 @@ except ImportError:                     # noqa: S110
 
 CATALOGO = "ocupaciones_sispe_ultraligero.txt"
 AMPLIADO = "terminos_ampliados.txt"
-N_CANDIDATOS = 16
+N_CANDIDATOS = 24    # cuántas ocupaciones ve el modelo. Medido el 25/08/2026
+                     # sobre los 40 casos: el código correcto está dentro de
+                     # los 16 primeros en 37 casos, dentro de los 20 en 38 y
+                     # dentro de los 30 en 39. La avería del buscador no es que
+                     # no encuentre la ocupación buena, es que la ordena mal
+                     # ("electricista de obra" la deja en el puesto 19), y
+                     # recortar a 16 la tiraba de la lista antes de que el
+                     # modelo pudiera verla. Veinticuatro líneas de catálogo son
+                     # unos 500 tokens: irrelevante frente al tope de 250.000
+                     # por minuto. Si al medir con la prueba masiva empeora,
+                     # vuelve a 16.
 ENCAJE_MINIMO = 0.40  # cuánto del nombre de la ocupación debe explicar la
                       # consulta para fiarse de ella sin preguntar a la IA
 VENTAJA_CLARA = 3.0   # cuántas veces debe superar el 1º del buscador al 2º
