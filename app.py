@@ -289,10 +289,6 @@ div[data-testid="stTextInput"] input{
 div[data-testid="stExpander"]{ border:none; background:transparent; margin-top:.1rem; }
 div[data-testid="stExpander"] summary{ font-size:.8rem; color:var(--suave); padding:.1rem 0; }
 
-/* Lo que pinta cada consulta durante la prueba masiva: se calcula pero no se
-   enseña, para que la página no crezca cuarenta veces mientras corre. */
-.st-key-masiva_oculto{ display:none !important; }
-
 /* ---------- Pantallas estrechas (móvil) ----------
    La herramienta se usa también desde el teléfono. Aquí no se rediseña nada:
    se le quita apretura al espacio, se deja que las columnas de la cabecera se
@@ -1977,11 +1973,12 @@ def pantalla_masiva():
         aviso = st.empty()
         barra = st.progress(0.0)
         # resuelve() pinta el resultado completo de cada consulta: tarjetas,
-        # marco y desplegable. En una tanda de 40 eso estira la pagina y da
-        # saltos. Se pinta igual, porque necesitamos que el circuito sea el
-        # mismo que usa una persona, pero dentro de un cajon que el estilo
-        # esconde.
-        with st.container(key="masiva_oculto"):
+        # marco y desplegable. En una tanda de 60 eso estira la pagina sin
+        # parar. Se pinta igual, porque el circuito tiene que ser el mismo que
+        # usa una persona, pero dentro de un desplegable CERRADO: asi no ocupa
+        # sitio y, si alguna vez interesa mirar como va resolviendo, se abre.
+        # (Un display:none por CSS no funcionaba: la clase no llegaba al cajon.)
+        with st.expander("Detalle en vivo · no hace falta mirarlo", expanded=False):
             oculto = st.empty()
         filas = []
 
@@ -2038,10 +2035,15 @@ def pantalla_masiva():
                 "detalle_tiempos": " | ".join(f"{n}:{t:.1f}" for n, t in tiempos),
             })
 
-            if pausa:
+            # Solo hay que dar aire si la consulta ha gastado peticiones. Las
+            # que resuelve el atajo no tocan el modelo, asi que esperar
+            # despues de ellas es tiempo tirado: con el atajo resolviendo
+            # cerca de la mitad, esto casi parte por dos lo que tarda la tanda.
+            if pausa and tiempos:
                 time.sleep(float(pausa))
 
         st.session_state["masiva_filas"] = filas
+        oculto.empty()
         aviso.empty()
         barra.empty()
 
