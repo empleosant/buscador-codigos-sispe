@@ -1622,6 +1622,7 @@ st.session_state.setdefault("cache", {})
 st.session_state.setdefault("lexico", {})
 st.session_state.setdefault("modelo_ok", 0)
 st.session_state.setdefault("respuesta", None)
+st.session_state.setdefault("masiva_abierta", False)
 st.session_state.setdefault("por_guardar", [])
 st.session_state.setdefault("refuerzos_por_guardar", [])
 st.session_state.setdefault("ultima", "")
@@ -1697,6 +1698,160 @@ def panel_ajustes():
                 correcto, detalle = prueba_gist()
                 (st.success if correcto else st.error)(detalle)
 
+            st.markdown("**Prueba masiva**")
+            st.caption(
+                "Lanza muchas consultas seguidas por el circuito completo, con "
+                "IA incluida, y deja un registro descargable. Gasta cuota: cada "
+                "consulta son dos o tres llamadas al modelo."
+            )
+            if st.button("Preparar la prueba", use_container_width=True):
+                st.session_state["masiva_abierta"] = True
+                st.rerun()
+
+
+def pantalla_masiva():
+    """Prueba de estrés con IA de verdad, para el modo mantenimiento.
+
+    Lanza consultas por el MISMO camino que usa una persona: llama a resuelve(),
+    no a una copia. Si se replicara el circuito, mediríamos algo que no es lo que
+    ve el usuario, que es justo el error que queremos evitar.
+
+    Deja un registro con lo pedido y lo devuelto, para poder ver si el fallo está
+    en interpretar la consulta o en elegir entre los candidatos.
+    """
+    st.markdown('<div class="seccion">Prueba masiva del buscador</div>',
+                unsafe_allow_html=True)
+    st.caption(
+        "Cada consulta gasta dos o tres llamadas al modelo. Con 100 consultas "
+        "se van entre 200 y 300, así que vigila la cuota del día."
+    )
+
+    por_defecto = ""
+    try:
+        with open("casos.csv", encoding="utf-8-sig") as f:
+            filas = list(csv.DictReader(f, delimiter=";"))
+        por_defecto = "\n".join(x["consulta"] for x in filas)
+    except Exception:  # noqa: BLE001
+        pass
+
+    texto = st.text_area(
+        "Consultas, una por línea",
+        value=st.session_state.get("masiva_texto", por_defecto),
+        height=200, key="masiva_texto",
+        help="Vienen cargados los casos de casos.csv. Borra y pega las tuyas "
+             "si quieres probar otras.",
+    )
+    consultas = [x.strip() for x in texto.splitlines() if x.strip()]
+
+    c1, c2, c3 = st.columns(3, gap="small")
+    tope = c1.number_input("Cuántas lanzar", 1, 500, min(len(consultas) or 1, 40))
+    pausa = c2.number_input("Pausa entre consultas (s)", 0.0, 10.0, 1.0, 0.5,
+                            help="Da aire al modelo. Ayer sospechamos de un "
+                                 "límite por minuto cuando se encadenan muchas.")
+    limpiar = c3.checkbox("Ignorar lo ya guardado", value=True,
+                          help="Vacía la memoria de la sesión para que ninguna "
+                               "consulta se responda con un resultado antiguo.")
+
+    lanzar, volver = st.columns(2, gap="small")
+    arranca = lanzar.button("Lanzar", type="primary", use_container_width=True,
+                            disabled=not consultas)
+    if volver.button("Volver al buscador", use_container_width=True):
+        st.session_state["masiva_abierta"] = False
+        st.rerun()
+
+    if arranca:
+        if limpiar:
+            st.session_state["cache"] = {}
+            st.session_state["interpretaciones"] = {}
+
+        filas, barra, aviso = [], st.progress(0.0), st.empty()
+        oculto = st.empty()
+
+        for i, consulta in enumerate(consultas[:int(tope)], 1):
+            aviso.caption(f"{i} de {int(tope)} · {consulta[:60]}")
+            barra.progress(i / int(tope))
+
+            locales = busca(consulta, tope=3)
+            arranque = time.perf_counter()
+            try:
+                payload = resuelve(consulta, oculto, usar_ia=True) or {}
+                error = ""
+            except Exception as e:  # noqa: BLE001
+                payload, error = {}, f"{type(e).__name__}: {e}"[:160]
+            tardanza = time.perf_counter() - arranque
+
+            # Las escrituras al diccionario compartido se descartan: una prueba
+            # de cientos de consultas no debe ensuciar lo que aprenden todos.
+            st.session_state["por_guardar"] = []
+            st.session_state["refuerzos_por_guardar"] = []
+
+            elegidas = payload.get("ocupaciones", []) or []
+            codigos = [o["codigo"] for o in elegidas]
+            top_local = locales[0][1] if locales else ""
+            interpretado = payload.get("interpretado") or ("", "")
+            tiempos = st.session_state.get("tiempos", [])
+
+            filas.append({
+                "consulta": consulta,
+                "top_local": top_local,
+                "denom_local": locales[0][2] if locales else "",
+                "ventaja_local": (
+                    round(locales[0][0] / locales[1][0], 2)
+                    if len(locales) > 1 and locales[1][0] else ""
+                ),
+                "interpretado_como": interpretado[1] if len(interpretado) > 1 else "",
+                "elegido_1": codigos[0] if codigos else "",
+                "denom_1": elegidas[0]["denominacion"] if elegidas else "",
+                "elegido_2": codigos[1] if len(codigos) > 1 else "",
+                "elegido_3": codigos[2] if len(codigos) > 2 else "",
+                "n_tarjetas": len(elegidas),
+                "local_en_puesto": (codigos.index(top_local) + 1)
+                                   if top_local in codigos else 0,
+                "coincide_con_local": "si" if codigos[:1] == [top_local] else "no",
+                "pregunta": payload.get("pregunta", ""),
+                "sin_afinar": "si" if payload.get("fallo") else "no",
+                "error": error,
+                "segundos": round(tardanza, 1),
+                "detalle_tiempos": " | ".join(f"{n}:{t:.1f}" for n, t in tiempos),
+            })
+
+            if pausa:
+                time.sleep(float(pausa))
+
+        st.session_state["masiva_filas"] = filas
+        aviso.empty()
+
+    filas = st.session_state.get("masiva_filas", [])
+    if filas:
+        salida = io.StringIO()
+        w = csv.DictWriter(salida, fieldnames=list(filas[0]), delimiter=";")
+        w.writeheader()
+        w.writerows(filas)
+
+        distintos = sum(1 for f in filas if f["coincide_con_local"] == "no")
+        fallidos = sum(1 for f in filas if f["sin_afinar"] == "si" or f["error"])
+        preguntas = sum(1 for f in filas if f["pregunta"])
+        medio = sum(f["segundos"] for f in filas) / len(filas)
+
+        st.success(f"{len(filas)} consultas lanzadas.")
+        a, b, c, d = st.columns(4)
+        a.metric("El modelo cambia el 1º", f"{distintos}")
+        b.metric("Sin afinar o con error", f"{fallidos}")
+        c.metric("Piden aclaración", f"{preguntas}")
+        d.metric("Media", f"{medio:.1f} s")
+        st.caption(
+            "«El modelo cambia el 1º» cuenta las veces que la recomendada no es "
+            "la que el catálogo ponía primero. No significa que esté mal: "
+            "significa que ahí decidió el modelo, y son las que hay que mirar."
+        )
+
+        st.download_button(
+            "Descargar el registro", salida.getvalue().encode("utf-8-sig"),
+            file_name="prueba_masiva.csv", mime="text/csv",
+            use_container_width=True,
+        )
+        st.dataframe(filas, use_container_width=True, height=300)
+
 
 def usar_ejemplo(texto_ejemplo):
     st.session_state["pendiente"] = texto_ejemplo
@@ -1771,7 +1926,12 @@ if entrada:
 # Cuerpo
 # ---------------------------------------------------------------------------
 
-if entrada:
+# La prueba masiva ocupa la pantalla entera mientras esta abierta. Solo se llega
+# con ?mantenimiento=1, asi que quien usa la herramienta a diario no la ve.
+if MANTENIMIENTO and st.session_state["masiva_abierta"]:
+    pantalla_masiva()
+
+elif entrada:
     st.markdown(
         f'<div class="consulta-box"><div class="consulta-texto">{rotulo or entrada}</div></div>',
         unsafe_allow_html=True,
