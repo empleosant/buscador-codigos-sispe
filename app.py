@@ -81,6 +81,22 @@ def sin_cuota(e):
     t = str(e)
     return "429" in t or "RESOURCE_EXHAUSTED" in t or "quota" in t.lower()
 
+
+def por_minuto(e):
+    """Distingue el tope POR MINUTO del cupo diario agotado.
+
+    Los dos llegan como 429 y con el mismo texto de "exceeded your quota", pero
+    no son lo mismo: el de por minuto se pasa solo en unos segundos y lo unico
+    sensato es esperar y reintentar. Tratarlo como cupo agotado degradaba el
+    modelo para el resto de la sesion por un tropiezo de un minuto.
+    """
+    t = str(e).lower()
+    if not sin_cuota(e):
+        return False
+    if "per day" in t or "requests per day" in t or "perday" in t:
+        return False
+    return True
+
 st.set_page_config(
     page_title="Codificador de ocupaciones",
     page_icon="◉",
@@ -272,6 +288,10 @@ div[data-testid="stTextInput"] input{
 
 div[data-testid="stExpander"]{ border:none; background:transparent; margin-top:.1rem; }
 div[data-testid="stExpander"] summary{ font-size:.8rem; color:var(--suave); padding:.1rem 0; }
+
+/* Lo que pinta cada consulta durante la prueba masiva: se calcula pero no se
+   enseña, para que la página no crezca cuarenta veces mientras corre. */
+.st-key-masiva_oculto{ display:none !important; }
 
 /* ---------- Pantallas estrechas (móvil) ----------
    La herramienta se usa también desde el teléfono. Aquí no se rediseña nada:
@@ -797,9 +817,13 @@ def _configuraciones():
     return opciones
 
 
+PAUSAS_429 = (4, 10, 20)   # segundos de espera ante un tope por minuto
+
+
 def _flujo_gemini(cli, prompt):
     opciones = _configuraciones()
     ultimo = None
+    espera = 0
     for m in range(st.session_state.get("modelo_ok", 0), len(MODELOS)):
         for i in range(st.session_state.get("cfg", 0), len(opciones)):
             emitido = False
@@ -820,6 +844,12 @@ def _flujo_gemini(cli, prompt):
                 if emitido:
                     raise
                 ultimo = e
+                if por_minuto(e) and espera < len(PAUSAS_429):
+                    # Tope por minuto: se espera y se vuelve a intentar con el
+                    # MISMO modelo. No hay que cambiar de modelo por esto.
+                    time.sleep(PAUSAS_429[espera])
+                    espera += 1
+                    continue
                 if sin_cuota(e):
                     break
     raise ultimo
@@ -1765,6 +1795,61 @@ def panel_ajustes():
                 st.rerun()
 
 
+PUESTOS_HABITUALES = """Eres orientador laboral en una oficina de empleo de Madrid.
+
+Escribe una lista de puestos de trabajo tal y como los diría una persona que viene a
+buscar empleo, NO como los nombra un catálogo oficial. Es decir: "chico de almacén",
+"ayudante de cocina", "reponedor de supermercado", "chapista", "teleoperadora",
+"limpieza de portales" — lenguaje de la calle, no terminología administrativa.
+
+REGLAS:
+- Uno por línea, sin numerar, sin guiones, sin comillas, sin explicaciones.
+- Reparte entre sectores distintos: hostelería, comercio, construcción, limpieza,
+  cuidados, logística, administración, industria, transporte, atención al cliente.
+- Mezcla formas de decirlo: unas con el nombre del oficio a secas, otras como una
+  frase corta describiendo lo que hacía la persona.
+- Sin tildes, como escribe la gente con prisa.
+- Puestos reales del mercado de la Comunidad de Madrid, ni raros ni de laboratorio.
+
+Devuelve solo la lista."""
+
+
+def pide_puestos_habituales(cuantos):
+    """Genera consultas parecidas a las que teclea la gente de verdad.
+
+    Las denominaciones del catalogo sirven para comprobar convergencia, pero no
+    se parecen a lo que escribe un demandante. Esto acerca la prueba al uso real.
+    """
+    cli = cliente()
+    if cli is None:
+        return []
+    peticion = f"Dame {int(cuantos)} puestos distintos."
+    try:
+        cfg = dict(system_instruction=PUESTOS_HABITUALES, max_output_tokens=1600)
+        if PROVEEDOR == "gemini":
+            r = cli.models.generate_content(
+                model=modelo_actual(), contents=peticion,
+                config=types.GenerateContentConfig(**cfg),
+            )
+            bruto = (getattr(r, "text", "") or "")
+        else:
+            r = cli.chat.completions.create(
+                model=modelo_actual(),
+                messages=[{"role": "system", "content": PUESTOS_HABITUALES},
+                          {"role": "user", "content": peticion}],
+                max_tokens=1600,
+            )
+            bruto = r.choices[0].message.content or ""
+    except Exception:  # noqa: BLE001
+        return []
+    limpias = []
+    for linea in bruto.splitlines():
+        t = re.sub(r"^[\s\-\*\d\.\)]+", "", linea).strip().strip('"').strip()
+        if 3 < len(t) < 70:
+            limpias.append(t)
+    return limpias
+
+
 def pantalla_masiva():
     """Prueba de estrés con IA de verdad, para el modo mantenimiento.
 
@@ -1790,54 +1875,92 @@ def pantalla_masiva():
     except Exception:  # noqa: BLE001
         pass
 
-    origen = st.radio(
-        "De dónde salen las consultas",
-        ["Escritas a mano", "Ocupaciones del catálogo, al azar"],
-        horizontal=True, key="masiva_origen",
-    )
+    hay_resultados = bool(st.session_state.get("masiva_filas"))
+    ajustes = st.expander("Ajustes de la prueba", expanded=not hay_resultados)
 
-    if origen == "Escritas a mano":
-        texto = st.text_area(
-            "Consultas, una por línea",
-            value=st.session_state.get("masiva_texto", por_defecto),
-            height=200, key="masiva_texto",
-            help="Vienen cargados los casos de casos.csv. Borra y pega las "
-                 "tuyas: el tope es cuántas líneas escribas aquí.",
+    with ajustes:
+        origen = st.radio(
+            "De dónde salen las consultas",
+            ["Escritas a mano", "Puestos habituales, propuestos por la IA",
+             "Ocupaciones del catálogo, al azar"],
+            horizontal=True, key="masiva_origen",
         )
-        consultas = [x.strip() for x in texto.splitlines() if x.strip()]
-    else:
-        # Buscar cada ocupacion por su propio nombre oficial. Es la version con
-        # IA de la prueba de convergencia que estres.py hace en local: si el
-        # circuito completo no encuentra una ocupacion escribiendo su nombre
-        # exacto, el problema es gordo y no es del vocabulario.
-        cuantas = st.number_input(
-            "Cuántas ocupaciones coger", 5, 300, 50, 5,
-            help=f"El catálogo tiene {len(IDX['registros'])}. Se cogen al azar, "
-                 "sin repetir, y se buscan por su denominación oficial.",
-        )
-        semilla = st.number_input(
-            "Semilla", 0, 9999, 1, 1,
-            help="Con la misma semilla salen las mismas ocupaciones, para poder "
-                 "repetir la prueba después de un cambio y comparar.",
-        )
-        muestra = list(IDX["registros"])
-        random.Random(int(semilla)).shuffle(muestra)
-        consultas = [r["denom"] for r in muestra[: int(cuantas)]]
-        st.caption(f"{len(consultas)} ocupaciones elegidas. Ejemplo: {consultas[0][:60]}")
 
-    c1, c2, c3 = st.columns(3, gap="small")
-    tope = c1.number_input(
-        "Cuántas lanzar", 1, max(len(consultas), 1),
-        min(len(consultas) or 1, 40),
-        help="No puede pasar del número de consultas disponibles: no se repite "
-             "ninguna.",
-    )
-    pausa = c2.number_input("Pausa entre consultas (s)", 0.0, 10.0, 1.0, 0.5,
-                            help="Da aire al modelo. Ayer sospechamos de un "
-                                 "límite por minuto cuando se encadenan muchas.")
-    limpiar = c3.checkbox("Ignorar lo ya guardado", value=True,
-                          help="Vacía la memoria de la sesión para que ninguna "
-                               "consulta se responda con un resultado antiguo.")
+        if origen == "Escritas a mano":
+            st.session_state.setdefault("masiva_texto", por_defecto)
+            texto = st.text_area(
+                "Consultas, una por línea", height=200, key="masiva_texto",
+                help="Vienen cargados los casos de casos.csv. Borra y pega las "
+                     "tuyas: el tope es cuántas líneas escribas aquí.",
+            )
+            consultas = [x.strip() for x in texto.splitlines() if x.strip()]
+        elif origen == "Puestos habituales, propuestos por la IA":
+            cuantos = st.number_input("Cuántos puestos pedir", 10, 200, 60, 10)
+            if st.button("Pedir la lista", use_container_width=True):
+                with st.spinner("Pidiendo la lista…"):
+                    lista = pide_puestos_habituales(cuantos)
+                if lista:
+                    st.session_state["masiva_ia"] = lista
+                    st.session_state["masiva_ia_texto"] = "\n".join(lista)
+                else:
+                    st.error("No he podido pedir la lista. Comprueba la conexión con la IA.")
+            lista = st.session_state.get("masiva_ia", [])
+            if lista:
+                st.session_state.setdefault("masiva_ia_texto", "\n".join(lista))
+                texto = st.text_area(
+                    "Lista propuesta, editable", height=220, key="masiva_ia_texto",
+                    help="Repásala antes de lanzar: quita lo que no se parezca a lo "
+                         "que oyes en el mostrador y añade lo que eches de menos.",
+                )
+                consultas = [x.strip() for x in texto.splitlines() if x.strip()]
+                st.caption(f"{len(consultas)} consultas listas.")
+            else:
+                consultas = []
+                st.caption("Pide la lista para empezar. Es una sola llamada al modelo.")
+
+        else:
+            # Buscar cada ocupacion por su propio nombre oficial. Es la version con
+            # IA de la prueba de convergencia que estres.py hace en local: si el
+            # circuito completo no encuentra una ocupacion escribiendo su nombre
+            # exacto, el problema es gordo y no es del vocabulario.
+            cuantas = st.number_input(
+                "Cuántas ocupaciones coger", 5, 300, 50, 5,
+                help=f"El catálogo tiene {len(IDX['registros'])}. Se cogen al azar, "
+                     "sin repetir, y se buscan por su denominación oficial.",
+            )
+            semilla = st.number_input(
+                "Semilla", 0, 9999, 1, 1,
+                help="Con la misma semilla salen las mismas ocupaciones, para poder "
+                     "repetir la prueba después de un cambio y comparar.",
+            )
+            muestra = list(IDX["registros"])
+            random.Random(int(semilla)).shuffle(muestra)
+            consultas = [r["denom"] for r in muestra[: int(cuantas)]]
+            st.caption(f"{len(consultas)} ocupaciones elegidas. Ejemplo: {consultas[0][:60]}")
+
+        if st.session_state.get("masiva_n_previo") != len(consultas):
+            st.session_state["masiva_n_previo"] = len(consultas)
+            st.session_state.pop("masiva_tope", None)
+
+        c1, c2, c3 = st.columns(3, gap="small")
+        # Por defecto se lanzan TODAS. Antes venia puesto en 40 y, como ademas se
+        # reiniciaba al cambiar la lista, cortaba las tandas grandes sin avisar.
+        tope = c1.number_input(
+            "Cuántas lanzar", 1, max(len(consultas), 1), max(len(consultas), 1),
+            key="masiva_tope",
+            help="Por defecto, todas las disponibles. Bájalo para hacer una cata "
+                 "antes de gastar cuota en la tanda entera.",
+        )
+        pausa = c2.number_input(
+            "Pausa entre consultas (s)", 0.0, 60.0, 12.0, 1.0,
+            help="El plan gratuito admite 15 peticiones por minuto y cada consulta "
+                 "gasta dos o tres. Con 12 segundos caben unas cinco por minuto, "
+                 "que es el ritmo máximo sostenible. Bajarlo hace que la prueba se "
+                 "caiga y midas resultados sin afinar.",
+        )
+        limpiar = c3.checkbox("Ignorar lo ya guardado", value=True,
+                              help="Vacía la memoria de la sesión para que ninguna "
+                                   "consulta se responda con un resultado antiguo.")
 
     lanzar, volver = st.columns(2, gap="small")
     arranca = lanzar.button("Lanzar", type="primary", use_container_width=True,
@@ -1851,13 +1974,21 @@ def pantalla_masiva():
             st.session_state["cache"] = {}
             st.session_state["interpretaciones"] = {}
 
-        filas, barra, aviso = [], st.progress(0.0), st.empty()
-        oculto = st.empty()
+        aviso = st.empty()
+        barra = st.progress(0.0)
+        # resuelve() pinta el resultado completo de cada consulta: tarjetas,
+        # marco y desplegable. En una tanda de 40 eso estira la pagina y da
+        # saltos. Se pinta igual, porque necesitamos que el circuito sea el
+        # mismo que usa una persona, pero dentro de un cajon que el estilo
+        # esconde.
+        with st.container(key="masiva_oculto"):
+            oculto = st.empty()
+        filas = []
 
         lote = consultas[: int(tope)]
         for i, consulta in enumerate(lote, 1):
-            aviso.caption(f"{i} de {len(lote)} · {consulta[:60]}")
-            barra.progress(i / len(lote))
+            aviso.caption(f"**{i} de {len(lote)}** · {consulta[:70]}")
+            barra.progress(i / len(lote), text="")
 
             locales = busca(consulta, tope=3)
             arranque = time.perf_counter()
@@ -1912,6 +2043,7 @@ def pantalla_masiva():
 
         st.session_state["masiva_filas"] = filas
         aviso.empty()
+        barra.empty()
 
     filas = st.session_state.get("masiva_filas", [])
     if filas:
@@ -1940,9 +2072,10 @@ def pantalla_masiva():
         st.download_button(
             "Descargar el registro", salida.getvalue().encode("utf-8-sig"),
             file_name="prueba_masiva.csv", mime="text/csv",
-            use_container_width=True,
+            use_container_width=True, type="primary",
         )
-        st.dataframe(filas, use_container_width=True, height=300)
+        with st.expander(f"Ver las {len(filas)} filas"):
+            st.dataframe(filas, use_container_width=True, height=320)
 
 
 def usar_ejemplo(texto_ejemplo):
