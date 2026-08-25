@@ -1328,6 +1328,14 @@ def pinta_tarjetas(ocupaciones):
 
 
 def pinta_resultado(payload, estado=None, avance=0.06, interactivo=False, consulta=""):
+    # Interruptor para la prueba masiva. resuelve() dibuja el resultado en
+    # nueve puntos distintos; en una tanda de sesenta consultas eso llena la
+    # pagina de tarjetas que nadie va a mirar. Cortando aqui se cortan los
+    # nueve de una vez, y el circuito sigue siendo exactamente el mismo: se
+    # calcula todo igual, solo que no se pinta.
+    if st.session_state.get("silencio_pintado"):
+        return
+
     if estado:
         st.progress(min(avance, 0.95), text=estado)
         # Antes se volvia aqui, asi que durante la espera solo se veia la barra.
@@ -1369,7 +1377,12 @@ def pinta_resultado(payload, estado=None, avance=0.06, interactivo=False, consul
                 cols = st.columns(col_weights, gap="small")
                 for idx, opc in enumerate(opciones):
                     with cols[idx + 1]:
-                        if st.button(opc, key=f"resp_opt_{idx}", use_container_width=True):
+                        # El identificador incluye la consulta: con uno fijo,
+                        # dos busquedas dibujadas en la misma pantalla chocan y
+                        # Streamlit aborta. No pasa buscando de una en una,
+                        # pero si en la prueba masiva, donde tumbaba 18 de 40.
+                        marca_op = f"resp_opt_{idx}_{abs(hash(consulta)) % 999983}"
+                        if st.button(opc, key=marca_op, use_container_width=True):
                             st.session_state["respuesta"] = (consulta, payload["pregunta"], opc)
                             st.rerun()
 
@@ -1705,6 +1718,9 @@ st.session_state.setdefault("lexico", {})
 st.session_state.setdefault("modelo_ok", 0)
 st.session_state.setdefault("respuesta", None)
 st.session_state.setdefault("masiva_abierta", False)
+# Nunca debe quedarse echado entre recargas: si la prueba se corta a medias,
+# la herramienta se quedaria muda para el usuario normal.
+st.session_state["silencio_pintado"] = False
 st.session_state.setdefault("por_guardar", [])
 st.session_state.setdefault("refuerzos_por_guardar", [])
 st.session_state.setdefault("ultima", "")
@@ -1978,9 +1994,9 @@ def pantalla_masiva():
         # usa una persona, pero dentro de un desplegable CERRADO: asi no ocupa
         # sitio y, si alguna vez interesa mirar como va resolviendo, se abre.
         # (Un display:none por CSS no funcionaba: la clase no llegaba al cajon.)
-        with st.expander("Detalle en vivo · no hace falta mirarlo", expanded=False):
-            oculto = st.empty()
+        oculto = st.empty()
         filas = []
+        st.session_state["silencio_pintado"] = True
 
         lote = consultas[: int(tope)]
         for i, consulta in enumerate(lote, 1):
@@ -1992,8 +2008,12 @@ def pantalla_masiva():
             try:
                 payload = resuelve(consulta, oculto, usar_ia=True) or {}
                 error = ""
+                # Si algo dentro creo un elemento de pantalla pese al silencio,
+                # se descarta aqui para que no arrastre a la consulta siguiente.
+                st.session_state.pop("respuesta", None)
             except Exception as e:  # noqa: BLE001
                 payload, error = {}, f"{type(e).__name__}: {e}"[:160]
+                st.session_state["silencio_pintado"] = True
             tardanza = time.perf_counter() - arranque
 
             # Las escrituras al diccionario compartido se descartan: una prueba
@@ -2042,6 +2062,7 @@ def pantalla_masiva():
             if pausa and tiempos:
                 time.sleep(float(pausa))
 
+        st.session_state["silencio_pintado"] = False
         st.session_state["masiva_filas"] = filas
         oculto.empty()
         aviso.empty()
