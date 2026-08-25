@@ -1484,6 +1484,19 @@ def raices_de(texto):
     }
 
 
+def n_candidatos():
+    """Cuántas ocupaciones se le mandan al modelo en esta consulta.
+
+    Normalmente es N_CANDIDATOS. El panel de mantenimiento puede cambiarlo
+    para la sesión, y así comparar dos valores en la misma tanda: sin subir
+    un archivo, sin esperar el reinicio de la aplicación y sin que los
+    compañeros vean nada distinto. Fuera de mantenimiento nadie escribe esa
+    casilla, así que siempre vale N_CANDIDATOS.
+    """
+    valor = st.session_state.get("n_candidatos")
+    return int(valor) if valor else N_CANDIDATOS
+
+
 def resuelve(texto, zona, usar_ia=True, contexto="", busqueda=None):
     codigo = texto.strip()
     if re.fullmatch(r"\d{8}", codigo):
@@ -1501,7 +1514,8 @@ def resuelve(texto, zona, usar_ia=True, contexto="", busqueda=None):
             pinta_resultado(payload)
         return payload
 
-    encontrados = busca(busqueda or texto, tope=N_CANDIDATOS)
+    tope_ia = n_candidatos()
+    encontrados = busca(busqueda or texto, tope=tope_ia)
     # Lo que devuelve el buscador para lo que ESCRIBIO la persona, antes de que
     # la IA reinterprete y sustituya `encontrados`. La decision de quien manda
     # tiene que tomarse sobre esto, no sobre la busqueda reescrita por el
@@ -1608,12 +1622,12 @@ def resuelve(texto, zona, usar_ia=True, contexto="", busqueda=None):
 
         mejores = sorted(
             {c: (p, c, d) for p, c, d in sorted(fundido)}.values(), reverse=True
-        )[:N_CANDIDATOS + 4]
+        )[:tope_ia + 4]
 
         if len(mejores) < 3:
             mejores = busca(
                 f"{busqueda or texto} {lecturas[0][0]}",
-                tope=N_CANDIDATOS + 4, grupos=lecturas[0][1],
+                tope=tope_ia + 4, grupos=lecturas[0][1],
             )
         if mejores:
             encontrados = mejores
@@ -1658,7 +1672,7 @@ def resuelve(texto, zona, usar_ia=True, contexto="", busqueda=None):
             with zona.container():
                 pinta_resultado({}, estado="Ampliando la búsqueda", avance=0.45)
             ampliados = busca(f"{busqueda or texto} {payload['mas_terminos']}",
-                              tope=N_CANDIDATOS + 6)
+                              tope=tope_ia + 6)
             if ampliados:
                 encontrados = ampliados
                 interpretado = ("la descripción", payload["mas_terminos"])
@@ -2043,6 +2057,22 @@ def pantalla_masiva():
                               help="Vacía la memoria de la sesión para que ninguna "
                                    "consulta se responda con un resultado antiguo.")
 
+        # Cuántas ocupaciones ve el modelo, solo para esta sesión. Permite
+        # lanzar la misma tanda con dos valores distintos sin subir un archivo
+        # ni esperar el reinicio, que era la única forma de comparar y obligaba
+        # a medir el "antes" antes de tocar nada. Al salir de esta pantalla el
+        # valor sigue puesto: si has estado probando, déjalo otra vez en el que
+        # trae de fábrica antes de volver al buscador.
+        st.number_input(
+            f"Candidatos que ve la IA (de fábrica, {N_CANDIDATOS})",
+            5, 60, N_CANDIDATOS, 1, key="n_candidatos",
+            help="Cuántas ocupaciones del catálogo se le mandan al modelo para "
+                 "que elija. Lo que no entra en esta lista, el modelo no lo "
+                 "puede proponer por bien que razone. Lanza la tanda con un "
+                 "valor, apúntalo, cámbialo y vuelve a lanzarla con la misma "
+                 "semilla para comparar.",
+        )
+
     lanzar, volver = st.columns(2, gap="small")
     arranca = lanzar.button("Lanzar", type="primary", use_container_width=True,
                             disabled=not consultas)
@@ -2098,6 +2128,10 @@ def pantalla_masiva():
 
             filas.append({
                 "consulta": consulta,
+                # Queda escrito en cada fila para que dos CSV de tandas
+                # distintas se puedan comparar meses después sin fiarse de la
+                # memoria ni del nombre del archivo.
+                "candidatos": n_candidatos(),
                 "top_local": top_local,
                 "denom_local": locales[0][2] if locales else "",
                 "ventaja_local": (
