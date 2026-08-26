@@ -57,7 +57,8 @@ ESPERA_MAXIMA = 30   # segundos por intento. A 45 una llamada atascada te dejaba
 # ---------------------------------------------------------------------------
 # PROVEEDOR DE IA
 # ---------------------------------------------------------------------------
-PROVEEDOR = "gemini"
+PROVEEDOR = "gemini"   # el de fábrica. El panel de mantenimiento puede cambiarlo
+                       # solo para esa sesión; al recargar vuelve a este.
 
 PROVEEDORES = {
     "gemini": {
@@ -75,18 +76,51 @@ PROVEEDORES = {
         "url": "https://api.groq.com/openai/v1",
     },
     "mistral": {
+        # Los topes del plan gratuito son POR MODELO, no por cuenta, y se
+        # diferencian mucho entre si. Medido en el panel de Mistral el
+        # 26/08/2026: ministral-3b 1.300.000 tokens/min y 12,5 peticiones/s;
+        # ministral-8b 625.000 y 3,13; mistral-small 50.000 y 0,83. Con unos
+        # 2.300 tokens por consulta, small se atasca a las 21 consultas por
+        # minuto y 3b aguanta mas de quinientas. Por eso 3b va primero.
         "clave": "MISTRAL_API_KEY",
-        "modelos": ["mistral-small-latest"],
+        "modelos": [
+            "ministral-3b-2512",
+            "ministral-8b-2512",
+            "mistral-small-2603",
+        ],
         "url": "https://api.mistral.ai/v1",
     },
 }
 
-AJUSTES = PROVEEDORES[PROVEEDOR]
-MODELOS = AJUSTES["modelos"]
+# El proveedor no puede ser una constante de modulo: el panel de mantenimiento
+# tiene que poder cambiarlo en caliente para comparar dos proveedores con la
+# misma tanda. Todo lo que dependa de el pasa por estas funciones.
+
+
+def proveedor_actual():
+    p = st.session_state.get("proveedor", PROVEEDOR)
+    return p if p in PROVEEDORES else PROVEEDOR
+
+
+def ajustes_actual():
+    return PROVEEDORES[proveedor_actual()]
+
+
+def modelos_actual():
+    """Modelos a recorrer en la cadena de relevo.
+
+    Si en mantenimiento se ha fijado uno a mano, la cadena se queda en ese y
+    solo en ese: si el relevo siguiera funcionando, una prueba podria acabar
+    respondida por un modelo distinto del que creemos estar midiendo.
+    """
+    todos = ajustes_actual()["modelos"]
+    fijo = st.session_state.get("modelo_fijo")
+    return [fijo] if fijo in todos else todos
 
 
 def modelo_actual():
-    return MODELOS[min(st.session_state.get("modelo_ok", 0), len(MODELOS) - 1)]
+    m = modelos_actual()
+    return m[min(st.session_state.get("modelo_ok", 0), len(m) - 1)]
 
 
 def sin_cuota(e):
@@ -763,12 +797,19 @@ def busca(consulta, tope=20, grupos=None):
 # ---------------------------------------------------------------------------
 
 @st.cache_resource(show_spinner=False)
-def cliente():
-    nombre = AJUSTES["clave"]
+def _cliente(proveedor):
+    """El proveedor es argumento para que forme parte de la clave de cache.
+
+    Sin el, Streamlit guardaba UN solo cliente: cambiabas de proveedor en el
+    panel y te seguia respondiendo el anterior, con lo que la comparacion
+    medía dos veces lo mismo sin avisar.
+    """
+    ajustes = PROVEEDORES[proveedor]
+    nombre = ajustes["clave"]
     clave = st.secrets.get(nombre) or os.environ.get(nombre)
     if not clave:
         return None
-    if PROVEEDOR == "gemini":
+    if proveedor == "gemini":
         if not genai:
             return None
         try:
@@ -780,7 +821,11 @@ def cliente():
             return genai.Client(api_key=clave)
     if not OpenAI:
         return None
-    return OpenAI(api_key=clave, base_url=AJUSTES["url"], timeout=ESPERA_MAXIMA)
+    return OpenAI(api_key=clave, base_url=ajustes["url"], timeout=ESPERA_MAXIMA)
+
+
+def cliente():
+    return _cliente(proveedor_actual())
 
 
 INSTRUCCIONES = """Eres un técnico de codificación de ocupaciones para SilcoiWeb (SEPE).
@@ -830,14 +875,15 @@ PAUSAS_429 = (4, 10, 20)   # segundos de espera ante un tope por minuto
 
 def _flujo_gemini(cli, prompt):
     opciones = _configuraciones()
+    modelos = modelos_actual()
     ultimo = None
     espera = 0
-    for m in range(st.session_state.get("modelo_ok", 0), len(MODELOS)):
+    for m in range(st.session_state.get("modelo_ok", 0), len(modelos)):
         for i in range(st.session_state.get("cfg", 0), len(opciones)):
             emitido = False
             try:
                 flujo = cli.models.generate_content_stream(
-                    model=MODELOS[m], contents=prompt,
+                    model=modelos[m], contents=prompt,
                     config=types.GenerateContentConfig(**opciones[i]),
                 )
                 for trozo in flujo:
@@ -864,23 +910,52 @@ def _flujo_gemini(cli, prompt):
 
 
 def _flujo_openai(cli, prompt):
-    flujo = cli.chat.completions.create(
-        model=modelo_actual(),
-        messages=[
-            {"role": "system", "content": INSTRUCCIONES},
-            {"role": "user", "content": prompt},
-        ],
-        max_tokens=2048,
-        temperature=0,
-        response_format={"type": "json_object"},
-        stream=True,
-    )
-    for trozo in flujo:
-        if not trozo.choices:
-            continue
-        texto = trozo.choices[0].delta.content
-        if texto:
-            yield texto
+    """Mismo trato que el camino de Gemini: relevo de modelo y espera ante 429.
+
+    Sin esto, un tope por minuto de Mistral se contaba como fallo del modelo y
+    la consulta caia al catalogo sin afinar, que es justo lo que la prueba
+    comparativa no debe confundir con "responde peor".
+    """
+    modelos = modelos_actual()
+    ultimo = None
+    m = st.session_state.get("modelo_ok", 0)
+    espera = 0
+    while m < len(modelos):
+        emitido = False
+        try:
+            flujo = cli.chat.completions.create(
+                model=modelos[m],
+                messages=[
+                    {"role": "system", "content": INSTRUCCIONES},
+                    {"role": "user", "content": prompt},
+                ],
+                max_tokens=2048,
+                temperature=0,
+                response_format={"type": "json_object"},
+                stream=True,
+            )
+            for trozo in flujo:
+                if not trozo.choices:
+                    continue
+                texto = trozo.choices[0].delta.content
+                if texto:
+                    if not emitido:
+                        st.session_state["modelo_ok"] = m
+                        emitido = True
+                    yield texto
+            return
+        except Exception as e:  # noqa: BLE001
+            if emitido:
+                raise
+            ultimo = e
+            if por_minuto(e) and espera < len(PAUSAS_429):
+                # Tope por minuto: se espera y se reintenta con el MISMO modelo.
+                time.sleep(PAUSAS_429[espera])
+                espera += 1
+                continue
+            m += 1
+    if ultimo:
+        raise ultimo
 
 
 INTERPRETE = """Eres experto en el catálogo de ocupaciones del SEPE (CNO).
@@ -909,7 +984,7 @@ def interpreta_consulta(cli, texto):
         return memoria[clave]
     try:
         cfg = dict(system_instruction=INTERPRETE, max_output_tokens=2048)
-        if PROVEEDOR == "gemini":
+        if proveedor_actual() == "gemini":
             try:
                 cfg["thinking_config"] = types.ThinkingConfig(thinking_level="minimal")
             except Exception:  # noqa: BLE001
@@ -960,7 +1035,7 @@ def interpreta_consulta(cli, texto):
 
 def flujo_modelo(cli, texto, candidatos):
     prompt = f"CANDIDATOS (única fuente válida):\n{candidatos}\n\nDESCRIPCIÓN: {texto}"
-    if PROVEEDOR == "gemini":
+    if proveedor_actual() == "gemini":
         yield from _flujo_gemini(cli, prompt)
     else:
         yield from _flujo_openai(cli, prompt)
@@ -1852,6 +1927,37 @@ st.session_state.setdefault("por_guardar", [])
 st.session_state.setdefault("refuerzos_por_guardar", [])
 st.session_state.setdefault("ultima", "")
 st.session_state.setdefault("consulta", "")
+st.session_state.setdefault("proveedor", PROVEEDOR)
+
+AUTOMATICO = "Automático (cadena de relevo)"
+st.session_state.setdefault("modelo_elegido", AUTOMATICO)
+st.session_state.setdefault("modelo_fijo", None)
+
+
+def _limpia_memoria_ia():
+    """Todo lo que un proveedor o modelo anterior haya dejado escrito.
+
+    modelo_ok y cfg son indices sobre una lista de modelos que acaba de
+    cambiar: si no se reinician, apuntan a un modelo que ya no existe. La
+    cache y las interpretaciones son respuestas del modelo viejo, y dejarlas
+    haria que la comparacion midiese en parte al proveedor anterior.
+    """
+    st.session_state["modelo_ok"] = 0
+    st.session_state["cfg"] = 0
+    st.session_state["cache"] = {}
+    st.session_state["interpretaciones"] = {}
+
+
+def _cambia_proveedor():
+    st.session_state["modelo_elegido"] = AUTOMATICO
+    st.session_state["modelo_fijo"] = None
+    _limpia_memoria_ia()
+
+
+def _cambia_modelo():
+    elegido = st.session_state.get("modelo_elegido")
+    st.session_state["modelo_fijo"] = None if elegido == AUTOMATICO else elegido
+    _limpia_memoria_ia()
 
 EJEMPLOS = [
     "Una persona que limpia habitaciones de hotel",
@@ -1899,18 +2005,51 @@ def panel_ajustes():
                 st.caption(f"· {etiqueta}: **{seg:.1f} s**")
             st.caption(f"· Total esperando al modelo: **{sum(t for _, t in tiempos):.1f} s**")
 
+        st.markdown("**Proveedor de IA**")
+        st.selectbox(
+            "Proveedor", list(PROVEEDORES), key="proveedor",
+            on_change=_cambia_proveedor, label_visibility="collapsed",
+            help=f"De fábrica es {PROVEEDOR}. Cambiarlo vale solo para esta "
+                 "sesión: al recargar la página vuelve al de fábrica. Al "
+                 "cambiar se vacía la memoria de la sesión, para que ninguna "
+                 "consulta se responda con un resultado del proveedor anterior.",
+        )
+
+        opciones_modelo = [AUTOMATICO] + ajustes_actual()["modelos"]
+        if st.session_state.get("modelo_elegido") not in opciones_modelo:
+            st.session_state["modelo_elegido"] = AUTOMATICO
+        st.selectbox(
+            "Modelo", opciones_modelo, key="modelo_elegido",
+            on_change=_cambia_modelo,
+            help="Automático usa la cadena de relevo: si el primero falla, pasa "
+                 "al siguiente. Para comparar hay que fijar uno, o no sabrás "
+                 "cuál te ha respondido.",
+        )
+
         if st.button("Probar la conexión con la IA", use_container_width=True):
             prueba = cliente()
             if prueba is None:
-                st.error(f"No hay clave {AJUSTES['clave']} en los Secrets.")
+                st.error(f"No hay clave {ajustes_actual()['clave']} en los Secrets.")
             else:
                 try:
-                    cfg = dict(system_instruction="Responde únicamente con la palabra ok.", max_output_tokens=2048)
-                    r = prueba.models.generate_content(
-                        model=modelo_actual(), contents="ok",
-                        config=types.GenerateContentConfig(**cfg),
-                    )
-                    st.success(f"{modelo_actual()}: {(getattr(r, 'text', '') or '').strip()[:60]}")
+                    if proveedor_actual() == "gemini":
+                        cfg = dict(system_instruction="Responde únicamente con la palabra ok.", max_output_tokens=2048)
+                        r = prueba.models.generate_content(
+                            model=modelo_actual(), contents="ok",
+                            config=types.GenerateContentConfig(**cfg),
+                        )
+                        salida = (getattr(r, "text", "") or "").strip()
+                    else:
+                        r = prueba.chat.completions.create(
+                            model=modelo_actual(),
+                            messages=[
+                                {"role": "system", "content": "Responde únicamente con la palabra ok."},
+                                {"role": "user", "content": "ok"},
+                            ],
+                            max_tokens=32, temperature=0,
+                        )
+                        salida = (r.choices[0].message.content or "").strip()
+                    st.success(f"{proveedor_actual()} · {modelo_actual()}: {salida[:60]}")
                 except Exception as e:  # noqa: BLE001
                     st.error(f"{type(e).__name__}: {e}")
 
@@ -1965,7 +2104,7 @@ def pide_puestos_habituales(cuantos):
     peticion = f"Dame {int(cuantos)} puestos distintos."
     try:
         cfg = dict(system_instruction=PUESTOS_HABITUALES, max_output_tokens=1600)
-        if PROVEEDOR == "gemini":
+        if proveedor_actual() == "gemini":
             r = cli.models.generate_content(
                 model=modelo_actual(), contents=peticion,
                 config=types.GenerateContentConfig(**cfg),
@@ -2196,6 +2335,7 @@ def pantalla_masiva():
                 # El motivo del fallo es EL dato para saber si es cuota, límite
                 # por minuto o modelo caído. Sin él solo sabemos que falló.
                 "motivo_fallo": str(payload.get("fallo", ""))[:200],
+                "proveedor": proveedor_actual(),
                 "modelo": modelo_actual(),
                 "error": error,
                 "segundos": round(tardanza, 1),
