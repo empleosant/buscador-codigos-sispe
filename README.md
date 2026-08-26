@@ -1,6 +1,6 @@
 # Codificador de ocupaciones
 
-Herramienta de apoyo para localizar códigos del catálogo oficial de
+Herramienta de apoyo para localizar códigos del catálogo de
 ocupaciones antes de grabarlos.
 
 ## Archivos
