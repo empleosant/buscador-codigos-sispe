@@ -37,9 +37,23 @@ De más estable a más viva. Ninguna se toca desde `app.py`.
 
 ```toml
 GEMINI_API_KEY = "..."
+MISTRAL_API_KEY = "..."     # opcional: segundo escalón de la cascada
+OPENROUTER_API_KEY = "..."  # opcional: tercer escalón (sin probar aún)
 GIST_ID = "..."        # opcional: activa el aprendizaje compartido
 GITHUB_TOKEN = "..."   # token classic, solo con permiso "gist"
 ```
+
+## Cascada de proveedores de IA
+
+La constante `ORDEN` de `app.py` fija el orden: `gemini → mistral →
+openrouter`. Se recorre de izquierda a derecha, se salta el que no tenga
+clave en los Secrets, y si ninguno responde se enseña la búsqueda local sin
+afinar. Un proveedor solo se aparta durante la sesión si el error dice
+expresamente que su cupo del DÍA está agotado; un tope por minuto no aparta
+ni degrada nada: esa consulta pasa al siguiente y la próxima vuelve a
+intentarlo. Orden decidido con la tanda del 26/08/2026: con los 40 casos,
+Gemini acierta el 84 % en primera posición y Mistral (ministral-3b) el 65 %,
+pero Mistral respondió las 40 sin un fallo y con máximo de 4,6 s.
 
 ## Modo mantenimiento
 
@@ -50,7 +64,7 @@ limpia.
 ## Dónde se toca cada cosa
 
 - **Modelo de IA**: bloque `PROVEEDORES`. Es una lista con relevo automático.
-- **Proveedor**: constante `PROVEEDOR` (`gemini`, `groq`, `mistral`).
+- **Orden de la cascada**: constante `ORDEN` (`gemini`, `mistral`, `openrouter`).
 - **Vocabulario**: `vocabulario.json`. Si falta, la app arranca en modo mínimo.
 
 ## Las dos baterías de pruebas

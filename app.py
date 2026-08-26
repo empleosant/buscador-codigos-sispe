@@ -70,11 +70,6 @@ PROVEEDORES = {
             "gemini-3.6-flash",
         ],
     },
-    "groq": {
-        "clave": "GROQ_API_KEY",
-        "modelos": ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"],
-        "url": "https://api.groq.com/openai/v1",
-    },
     "mistral": {
         # Los topes del plan gratuito son POR MODELO, no por cuenta, y se
         # diferencian mucho entre si. Medido en el panel de Mistral el
@@ -163,10 +158,6 @@ def modelos_de(prov):
     todos = PROVEEDORES[prov]["modelos"]
     fijo = st.session_state.get("modelo_fijo")
     return [fijo] if fijo in todos else todos
-
-
-def modelos_actual():
-    return modelos_de(proveedor_actual())
 
 
 def _idx_modelo(prov):
@@ -415,6 +406,16 @@ div[data-testid="stTextInput"] input{
 .pie-nueva{
   text-align:center; font-size:.74rem; font-weight:600; color:var(--suave); margin:.2rem 0 0;
 }
+/* Firma de autoria. Va al final de todo y en el gris suave: tiene que leerse
+   como una firma, no como un aviso. La herramienta se usa con un ciudadano
+   delante y el foco debe seguir estando en el resultado. */
+.pie-firma{
+  text-align:center; font-size:.72rem; color:var(--suave);
+  margin:2.2rem 0 .6rem; padding-top:.9rem;
+  border-top:1px solid rgba(0,0,0,.07);
+}
+.pie-firma a{ color:var(--suave); text-decoration:underline; text-underline-offset:2px; }
+.pie-firma a:hover{ color:var(--rojo); }
 
 div[data-testid="stExpander"]{ border:none; background:transparent; margin-top:.1rem; }
 div[data-testid="stExpander"] summary{ font-size:.8rem; color:var(--suave); padding:.1rem 0; }
@@ -983,13 +984,25 @@ def _flujo_gemini(cli, prompt, prov="gemini"):
                 if emitido:
                     raise
                 ultimo = e
-                if por_minuto(e) and espera < len(PAUSAS_429):
-                    # Tope por minuto: se espera y se vuelve a intentar con el
-                    # MISMO modelo. No hay que cambiar de modelo por esto.
-                    time.sleep(PAUSAS_429[espera])
-                    espera += 1
-                    continue
+                if por_minuto(e):
+                    if espera < len(PAUSAS_429):
+                        # Tope por minuto: se espera y se vuelve a intentar con
+                        # el MISMO modelo. No hay que cambiar de modelo por esto.
+                        time.sleep(PAUSAS_429[espera])
+                        espera += 1
+                        continue
+                    # Agotados los reintentos, el tope por minuto NO degrada el
+                    # modelo: es un atasco de sesenta segundos, no una cuota
+                    # agotada. Se levanta y la cascada pasa la consulta al
+                    # siguiente proveedor; la proxima volvera a intentar aqui
+                    # con el mismo modelo. Antes esto degradaba en permanente y
+                    # un minuto malo dejaba a toda la oficina en un modelo peor
+                    # el resto del dia (visto en la tanda del 26/08/2026: acabo
+                    # respondiendo gemini-3.6-flash, el de 20 al dia).
+                    raise
                 if sin_cuota(e):
+                    # Cuota del dia agotada o modelo retirado: aqui SI se pasa
+                    # al siguiente modelo de la cadena.
                     break
     raise ultimo
 
@@ -1034,11 +1047,15 @@ def _flujo_openai(cli, prompt, prov):
             if emitido:
                 raise
             ultimo = e
-            if por_minuto(e) and espera < len(PAUSAS_429):
-                # Tope por minuto: se espera y se reintenta con el MISMO modelo.
-                time.sleep(PAUSAS_429[espera])
-                espera += 1
-                continue
+            if por_minuto(e):
+                if espera < len(PAUSAS_429):
+                    # Tope por minuto: se espera y se reintenta con el MISMO modelo.
+                    time.sleep(PAUSAS_429[espera])
+                    espera += 1
+                    continue
+                # Misma regla que en Gemini: un atasco por minuto no degrada
+                # el modelo. Se levanta y decide la cascada.
+                raise
             m += 1
     if ultimo:
         raise ultimo
@@ -1093,7 +1110,7 @@ def _interpreta_una(prov, texto):
     return bruto
 
 
-def interpreta_consulta(cli, texto):
+def interpreta_consulta(texto):
     clave = normaliza(texto)
     memoria = st.session_state.setdefault("interpretaciones", {})
     if clave in memoria:
@@ -1143,7 +1160,7 @@ def interpreta_consulta(cli, texto):
     return lecturas
 
 
-def flujo_modelo(cli, texto, candidatos):
+def flujo_modelo(texto, candidatos):
     """Recorre la cascada de proveedores hasta que uno empiece a responder.
 
     Solo se puede relevar ANTES de haber emitido nada. Si un proveedor se corta
@@ -1762,16 +1779,20 @@ def resuelve(texto, zona, usar_ia=True, contexto="", busqueda=None):
     literales = encontrados[:2]
     _raices_consulta = raices_de(busqueda or texto)
     st.session_state["tiempos"] = []
-    cli = cliente() if usar_ia else None
+    # Hay IA si esta pedida y algun proveedor de la cascada tiene clave
+    hay_ia = bool(usar_ia and orden_proveedores() and cliente())
 
-    if not encontrados and cli is None:
+    if not encontrados and not hay_ia:
         payload = {"ocupaciones": []}
         with zona.container():
             pinta_resultado(payload)
         return payload
 
     memoria = st.session_state["cache"]
-    clave = normaliza(texto + contexto)
+    # El numero de candidatos y el proveedor forman parte de la clave: sin
+    # ellos, dos corridas con ajustes distintos en la misma sesion se
+    # devolvian resultados la una a la otra (visto en la prueba 24 vs 32).
+    clave = f"{normaliza(texto + contexto)}|{tope_ia}|{proveedor_actual()}"
     if clave in memoria:
         with zona.container():
             pinta_resultado(memoria[clave])
@@ -1832,7 +1853,7 @@ def resuelve(texto, zona, usar_ia=True, contexto="", busqueda=None):
             memoria[clave] = atajo
             return atajo
 
-    if cli is None:
+    if not hay_ia:
         with zona.container():
             pinta_resultado(provisional)
         return provisional
@@ -1849,7 +1870,7 @@ def resuelve(texto, zona, usar_ia=True, contexto="", busqueda=None):
     with zona.container():
         pinta_resultado({}, estado="Interpretando el oficio", avance=0.12)
     with cronometra("1. Interpretar el oficio"):
-        lecturas = interpreta_consulta(cli, texto)
+        lecturas = interpreta_consulta(texto)
     if lecturas:
         fundido, vistos = [], {}
         for orden, (terminos, grupos) in enumerate(lecturas):
@@ -1872,7 +1893,7 @@ def resuelve(texto, zona, usar_ia=True, contexto="", busqueda=None):
             encontrados = mejores
             interpretado = (
                 "la consulta",
-                " · ".join(t.split()[0] for t, _ in lecturas),
+                " · ".join(dict.fromkeys(t.split()[0] for t, _ in lecturas)),
             )
             provisional = {
                 "ocupaciones": _basica(encontrados, "Resultado del catálogo, sin afinar todavía."),
@@ -1888,7 +1909,7 @@ def resuelve(texto, zona, usar_ia=True, contexto="", busqueda=None):
     def consulta_al_modelo(candidatos, etiqueta):
         bruto, avance = "", 0.10
         arranque = time.perf_counter()
-        for trozo in flujo_modelo(cli, texto + contexto, candidatos):
+        for trozo in flujo_modelo(texto + contexto, candidatos):
             bruto += trozo
             transcurrido = time.perf_counter() - arranque
             if transcurrido > ESPERA_MAXIMA:
@@ -2686,3 +2707,18 @@ if _refuerzos:
     with cronometra("5. Guardar correcciones de orden (GitHub)"):
         for codigo, palabras in _refuerzos:
             guarda_refuerzo(codigo, palabras)
+
+# ---------------------------------------------------------------------------
+# FIRMA
+# ---------------------------------------------------------------------------
+# Ultimo elemento de la pagina, en todas las pantallas. Aqui esta la autoria
+# visible: el repositorio puede ser privado, pero quien use el enlace tiene que
+# poder saber quien ha hecho esto. `target="_blank"` para no sacar a nadie de
+# una busqueda a medias, y `rel="noopener"` porque abrir enlaces externos sin
+# el deja a la pagina de destino con acceso a la de origen.
+st.markdown(
+    '<div class="pie-firma">Creado por '
+    '<a href="https://www.linkedin.com/in/alvarosant/" target="_blank" '
+    'rel="noopener noreferrer">Álvaro Santamaría</a></div>',
+    unsafe_allow_html=True,
+)
