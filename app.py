@@ -406,17 +406,6 @@ div[data-testid="stTextInput"] input{
 .pie-nueva{
   text-align:center; font-size:.74rem; font-weight:600; color:var(--suave); margin:.2rem 0 0;
 }
-/* Firma de autoria. Va al final de todo y en el gris suave: tiene que leerse
-   como una firma, no como un aviso. La herramienta se usa con un ciudadano
-   delante y el foco debe seguir estando en el resultado. */
-.pie-firma{
-  text-align:center; font-size:.72rem; color:var(--suave);
-  margin:2.2rem 0 .6rem; padding-top:.9rem;
-  border-top:1px solid rgba(0,0,0,.07);
-}
-.pie-firma a{ color:var(--suave); text-decoration:underline; text-underline-offset:2px; }
-.pie-firma a:hover{ color:var(--rojo); }
-
 div[data-testid="stExpander"]{ border:none; background:transparent; margin-top:.1rem; }
 div[data-testid="stExpander"] summary{ font-size:.8rem; color:var(--suave); padding:.1rem 0; }
 
@@ -2093,6 +2082,23 @@ st.session_state.setdefault("proveedor", CASCADA)
 st.session_state.setdefault("agotados", set())
 st.session_state.setdefault("uso_proveedor", {})
 
+# Clave del popover de ajustes. Con `on_change="rerun"` el popover lleva su
+# estado en session_state, y escribir False ahi lo cierra desde codigo.
+AJUSTES_ABIERTO = "ajustes_abierto"
+st.session_state.setdefault(AJUSTES_ABIERTO, False)
+
+
+def _cierra_ajustes():
+    """Cierra el panel tras elegir algo.
+
+    Solo se llama desde lo que YA da su respuesta al cerrarse (un interruptor,
+    un desplegable). Los botones que escriben un resultado dentro del panel
+    -probar la conexion, comprobar el gist- no lo cierran: cerrarlos seria
+    esconder justo lo que la persona acaba de pedir ver.
+    """
+    st.session_state[AJUSTES_ABIERTO] = False
+
+
 AUTOMATICO = "Automático (cadena de relevo)"
 OPCIONES_PROVEEDOR = [CASCADA] + ORDEN
 st.session_state.setdefault("modelo_elegido", AUTOMATICO)
@@ -2118,12 +2124,14 @@ def _cambia_proveedor():
     st.session_state["modelo_elegido"] = AUTOMATICO
     st.session_state["modelo_fijo"] = None
     _limpia_memoria_ia()
+    _cierra_ajustes()
 
 
 def _cambia_modelo():
     elegido = st.session_state.get("modelo_elegido")
     st.session_state["modelo_fijo"] = None if elegido == AUTOMATICO else elegido
     _limpia_memoria_ia()
+    _cierra_ajustes()
 
 EJEMPLOS = [
     "Una persona que limpia habitaciones de hotel",
@@ -2140,9 +2148,10 @@ EJEMPLOS = [
 
 
 def panel_ajustes():
-    with st.popover(":material/tune:", use_container_width=True):
-        st.session_state["usar_ia"] = st.toggle(
-            "Afinar con IA", value=st.session_state["usar_ia"],
+    with st.popover(":material/tune:", use_container_width=True,
+                key=AJUSTES_ABIERTO, on_change="rerun"):
+        st.toggle(
+            "Afinar con IA", key="usar_ia", on_change=_cierra_ajustes,
             help="Desactivado, muestra las coincidencias del catálogo al instante.",
         )
         if st.session_state["registro"]:
@@ -2707,18 +2716,3 @@ if _refuerzos:
     with cronometra("5. Guardar correcciones de orden (GitHub)"):
         for codigo, palabras in _refuerzos:
             guarda_refuerzo(codigo, palabras)
-
-# ---------------------------------------------------------------------------
-# FIRMA
-# ---------------------------------------------------------------------------
-# Ultimo elemento de la pagina, en todas las pantallas. Aqui esta la autoria
-# visible: el repositorio puede ser privado, pero quien use el enlace tiene que
-# poder saber quien ha hecho esto. `target="_blank"` para no sacar a nadie de
-# una busqueda a medias, y `rel="noopener"` porque abrir enlaces externos sin
-# el deja a la pagina de destino con acceso a la de origen.
-st.markdown(
-    '<div class="pie-firma">Creado por '
-    '<a href="https://www.linkedin.com/in/alvarosant/" target="_blank" '
-    'rel="noopener noreferrer">Álvaro Santamaría</a></div>',
-    unsafe_allow_html=True,
-)
