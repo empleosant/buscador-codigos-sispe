@@ -90,37 +90,121 @@ PROVEEDORES = {
         ],
         "url": "https://api.mistral.ai/v1",
     },
+    "openrouter": {
+        # Tercer escalon, sin clave todavia. Mientras no haya OPENROUTER_API_KEY
+        # en los Secrets, la cascada lo salta sin ruido. "openrouter/free" es su
+        # enrutador automatico: elige el modelo gratuito que este disponible en
+        # ese momento, que es lo que interesa aqui porque el catalogo gratuito
+        # rota y fijar un modelo concreto es garantizar que un dia desaparezca.
+        # Sin comprar creditos son 50 peticiones al dia: da para tapar un hueco,
+        # no para sostener una jornada.
+        "clave": "OPENROUTER_API_KEY",
+        "modelos": ["openrouter/free"],
+        "url": "https://openrouter.ai/api/v1",
+    },
 }
 
-# El proveedor no puede ser una constante de modulo: el panel de mantenimiento
-# tiene que poder cambiarlo en caliente para comparar dos proveedores con la
-# misma tanda. Todo lo que dependa de el pasa por estas funciones.
+# ORDEN de la cascada. Se recorre de izquierda a derecha y se salta lo que no
+# tenga clave puesta. Si al medir con la prueba masiva resulta que Mistral
+# responde mejor, se cambia el orden AQUI y no hay que tocar nada mas.
+ORDEN = ["gemini", "mistral", "openrouter"]
+
+CASCADA = "cascada"   # el selector de mantenimiento usa este valor para decir
+                      # "recorre el orden"; cualquier otro fija un proveedor.
+
+# El proveedor no puede ser una constante de modulo: la cascada cambia de uno a
+# otro en caliente y el panel de mantenimiento tiene que poder fijar uno para
+# poder medir. Todo lo que dependa de el pasa por estas funciones.
+
+
+def tiene_clave(prov):
+    nombre = PROVEEDORES[prov]["clave"]
+    try:
+        if st.secrets.get(nombre):
+            return True
+    except Exception:  # noqa: BLE001
+        pass                       # sin archivo de secrets, st.secrets revienta
+    return bool(os.environ.get(nombre))
+
+
+def orden_proveedores():
+    """Proveedores a intentar, en orden, para esta consulta.
+
+    Un proveedor fijado a mano en mantenimiento apaga la cascada: si el relevo
+    siguiera activo, una prueba comparativa podria acabar respondida por otro
+    proveedor y estariamos midiendo algo distinto de lo que creemos.
+    """
+    elegido = st.session_state.get("proveedor", CASCADA)
+    if elegido in PROVEEDORES:
+        return [elegido]
+    vivos = [p for p in ORDEN if tiene_clave(p)]
+    quemados = st.session_state.get("agotados", set())
+    # Si estan todos quemados se vuelve a intentar con todos: mas vale una
+    # llamada perdida que dejar de afinar el resto de la sesion por un error
+    # mal leido.
+    return [p for p in vivos if p not in quemados] or vivos
 
 
 def proveedor_actual():
-    p = st.session_state.get("proveedor", PROVEEDOR)
-    return p if p in PROVEEDORES else PROVEEDOR
+    orden = orden_proveedores()
+    return orden[0] if orden else PROVEEDOR
 
 
 def ajustes_actual():
     return PROVEEDORES[proveedor_actual()]
 
 
-def modelos_actual():
-    """Modelos a recorrer en la cadena de relevo.
+def modelos_de(prov):
+    """Modelos a recorrer en la cadena de relevo de ESE proveedor.
 
     Si en mantenimiento se ha fijado uno a mano, la cadena se queda en ese y
-    solo en ese: si el relevo siguiera funcionando, una prueba podria acabar
-    respondida por un modelo distinto del que creemos estar midiendo.
+    solo en ese, por el mismo motivo que la cascada se apaga al fijar proveedor.
     """
-    todos = ajustes_actual()["modelos"]
+    todos = PROVEEDORES[prov]["modelos"]
     fijo = st.session_state.get("modelo_fijo")
     return [fijo] if fijo in todos else todos
 
 
+def modelos_actual():
+    return modelos_de(proveedor_actual())
+
+
+def _idx_modelo(prov):
+    """El indice de la cadena de relevo es POR proveedor.
+
+    Compartir un solo numero entre todos hacia que, tras degradar en Gemini,
+    la cascada entrase en Mistral apuntando a un modelo que quiza ni existe en
+    su lista.
+    """
+    return st.session_state.setdefault("modelo_ok", {}).get(prov, 0)
+
+
+def _fija_modelo(prov, i):
+    st.session_state.setdefault("modelo_ok", {})[prov] = i
+
+
+def _apunta_uso(prov, modelo):
+    """Quien ha respondido de verdad. Sin esto el relevo es invisible: Gemini
+    podria llevar una semana caido y la herramienta pareceria ir bien."""
+    st.session_state["ultimo_proveedor"] = prov
+    st.session_state["ultimo_modelo"] = modelo
+    conteo = st.session_state.setdefault("uso_proveedor", {})
+    conteo[prov] = conteo.get(prov, 0) + 1
+
+
+def _quema(prov, e):
+    """Aparta un proveedor del resto de la sesion, solo si el error dice
+    expresamente que es el cupo del DIA. Ante la duda no se quema: confundir un
+    tope por minuto con el cupo agotado nos dejaria sin el mejor proveedor
+    durante horas por un tropiezo de sesenta segundos."""
+    if sin_cuota(e) and not por_minuto(e):
+        st.session_state.setdefault("agotados", set()).add(prov)
+
+
 def modelo_actual():
-    m = modelos_actual()
-    return m[min(st.session_state.get("modelo_ok", 0), len(m) - 1)]
+    prov = proveedor_actual()
+    m = modelos_de(prov)
+    return m[min(_idx_modelo(prov), len(m) - 1)]
 
 
 def sin_cuota(e):
@@ -873,12 +957,12 @@ def _configuraciones():
 PAUSAS_429 = (4, 10, 20)   # segundos de espera ante un tope por minuto
 
 
-def _flujo_gemini(cli, prompt):
+def _flujo_gemini(cli, prompt, prov="gemini"):
     opciones = _configuraciones()
-    modelos = modelos_actual()
+    modelos = modelos_de(prov)
     ultimo = None
     espera = 0
-    for m in range(st.session_state.get("modelo_ok", 0), len(modelos)):
+    for m in range(_idx_modelo(prov), len(modelos)):
         for i in range(st.session_state.get("cfg", 0), len(opciones)):
             emitido = False
             try:
@@ -888,8 +972,9 @@ def _flujo_gemini(cli, prompt):
                 )
                 for trozo in flujo:
                     if not emitido:
-                        st.session_state["modelo_ok"] = m
+                        _fija_modelo(prov, m)
                         st.session_state["cfg"] = i
+                        _apunta_uso(prov, modelos[m])
                         emitido = True
                     if getattr(trozo, "text", None):
                         yield trozo.text
@@ -909,16 +994,16 @@ def _flujo_gemini(cli, prompt):
     raise ultimo
 
 
-def _flujo_openai(cli, prompt):
+def _flujo_openai(cli, prompt, prov):
     """Mismo trato que el camino de Gemini: relevo de modelo y espera ante 429.
 
     Sin esto, un tope por minuto de Mistral se contaba como fallo del modelo y
     la consulta caia al catalogo sin afinar, que es justo lo que la prueba
     comparativa no debe confundir con "responde peor".
     """
-    modelos = modelos_actual()
+    modelos = modelos_de(prov)
     ultimo = None
-    m = st.session_state.get("modelo_ok", 0)
+    m = _idx_modelo(prov)
     espera = 0
     while m < len(modelos):
         emitido = False
@@ -940,7 +1025,8 @@ def _flujo_openai(cli, prompt):
                 texto = trozo.choices[0].delta.content
                 if texto:
                     if not emitido:
-                        st.session_state["modelo_ok"] = m
+                        _fija_modelo(prov, m)
+                        _apunta_uso(prov, modelos[m])
                         emitido = True
                     yield texto
             return
@@ -977,31 +1063,55 @@ Responde SOLO con este JSON:
 """
 
 
+def _interpreta_una(prov, texto):
+    """Un intento contra UN proveedor. Devuelve el texto crudo o levanta."""
+    c = _cliente(prov)
+    if c is None:
+        raise RuntimeError(f"Sin cliente para {prov}.")
+    modelos = modelos_de(prov)
+    modelo = modelos[min(_idx_modelo(prov), len(modelos) - 1)]
+    if prov == "gemini":
+        cfg = dict(system_instruction=INTERPRETE, max_output_tokens=2048)
+        try:
+            cfg["thinking_config"] = types.ThinkingConfig(thinking_level="minimal")
+        except Exception:  # noqa: BLE001
+            pass
+        r = c.models.generate_content(
+            model=modelo, contents=texto,
+            config=types.GenerateContentConfig(**cfg),
+        )
+        bruto = (getattr(r, "text", "") or "").strip()
+    else:
+        r = c.chat.completions.create(
+            model=modelo,
+            messages=[{"role": "system", "content": INTERPRETE},
+                      {"role": "user", "content": texto}],
+            max_tokens=2048, temperature=0,
+        )
+        bruto = (r.choices[0].message.content or "").strip()
+    _apunta_uso(prov, modelo)
+    return bruto
+
+
 def interpreta_consulta(cli, texto):
     clave = normaliza(texto)
     memoria = st.session_state.setdefault("interpretaciones", {})
     if clave in memoria:
         return memoria[clave]
-    try:
-        cfg = dict(system_instruction=INTERPRETE, max_output_tokens=2048)
-        if proveedor_actual() == "gemini":
-            try:
-                cfg["thinking_config"] = types.ThinkingConfig(thinking_level="minimal")
-            except Exception:  # noqa: BLE001
-                pass
-            r = cli.models.generate_content(
-                model=modelo_actual(), contents=texto,
-                config=types.GenerateContentConfig(**cfg),
-            )
-            bruto = (getattr(r, "text", "") or "").strip()
-        else:
-            r = cli.chat.completions.create(
-                model=modelo_actual(),
-                messages=[{"role": "system", "content": INTERPRETE}, {"role": "user", "content": texto}],
-                max_tokens=2048, temperature=0,
-            )
-            bruto = (r.choices[0].message.content or "").strip()
-    except Exception:  # noqa: BLE001
+
+    # Este paso tambien recorre la cascada. Si se quedara atado al primer
+    # proveedor, con Gemini agotado la consulta llegaria sin interpretar al
+    # siguiente y mediriamos mal: el modelo de relevo trabajaria con peores
+    # candidatos que el primero, y pareceria peor de lo que es.
+    bruto = None
+    for prov in orden_proveedores():
+        try:
+            bruto = _interpreta_una(prov, texto)
+            break
+        except Exception as e:  # noqa: BLE001
+            _quema(prov, e)
+            continue
+    if bruto is None:
         return []
 
     datos = {}
@@ -1034,11 +1144,42 @@ def interpreta_consulta(cli, texto):
 
 
 def flujo_modelo(cli, texto, candidatos):
+    """Recorre la cascada de proveedores hasta que uno empiece a responder.
+
+    Solo se puede relevar ANTES de haber emitido nada. Si un proveedor se corta
+    a mitad de la respuesta, cambiar a otro dejaria un JSON partido pegado al
+    principio de otro, y eso es peor que un fallo limpio: seria un resultado
+    incorrecto disfrazado de respuesta.
+    """
     prompt = f"CANDIDATOS (única fuente válida):\n{candidatos}\n\nDESCRIPCIÓN: {texto}"
-    if proveedor_actual() == "gemini":
-        yield from _flujo_gemini(cli, prompt)
-    else:
-        yield from _flujo_openai(cli, prompt)
+    ultimo = None
+    for prov in orden_proveedores():
+        c = _cliente(prov)
+        if c is None:
+            continue
+        emitido = False
+        try:
+            if prov == "gemini":
+                generador = _flujo_gemini(c, prompt, prov)
+            else:
+                generador = _flujo_openai(c, prompt, prov)
+            for trozo in generador:
+                emitido = True
+                yield trozo
+            return
+        except Exception as e:  # noqa: BLE001
+            if emitido:
+                raise
+            ultimo = e
+            _quema(prov, e)
+            # La cadena de relevo del proveedor caido queda degradada. El
+            # siguiente tiene que empezar por su primer modelo, no heredar un
+            # indice que no significa nada en su lista.
+            st.session_state["cfg"] = 0
+            continue
+    if ultimo:
+        raise ultimo
+    raise RuntimeError("No hay ningún proveedor de IA con clave configurada.")
 
 
 def objetos_parciales(bruto):
@@ -1917,7 +2058,7 @@ st.session_state.setdefault("pendiente", None)
 st.session_state.setdefault("usar_ia", True)
 st.session_state.setdefault("cache", {})
 st.session_state.setdefault("lexico", {})
-st.session_state.setdefault("modelo_ok", 0)
+st.session_state.setdefault("modelo_ok", {})   # indice de relevo POR proveedor
 st.session_state.setdefault("respuesta", None)
 st.session_state.setdefault("masiva_abierta", False)
 # Nunca debe quedarse echado entre recargas: si la prueba se corta a medias,
@@ -1927,9 +2068,12 @@ st.session_state.setdefault("por_guardar", [])
 st.session_state.setdefault("refuerzos_por_guardar", [])
 st.session_state.setdefault("ultima", "")
 st.session_state.setdefault("consulta", "")
-st.session_state.setdefault("proveedor", PROVEEDOR)
+st.session_state.setdefault("proveedor", CASCADA)
+st.session_state.setdefault("agotados", set())
+st.session_state.setdefault("uso_proveedor", {})
 
 AUTOMATICO = "Automático (cadena de relevo)"
+OPCIONES_PROVEEDOR = [CASCADA] + ORDEN
 st.session_state.setdefault("modelo_elegido", AUTOMATICO)
 st.session_state.setdefault("modelo_fijo", None)
 
@@ -1937,15 +2081,16 @@ st.session_state.setdefault("modelo_fijo", None)
 def _limpia_memoria_ia():
     """Todo lo que un proveedor o modelo anterior haya dejado escrito.
 
-    modelo_ok y cfg son indices sobre una lista de modelos que acaba de
-    cambiar: si no se reinician, apuntan a un modelo que ya no existe. La
+    modelo_ok son indices sobre listas de modelos que acaban de cambiar. La
     cache y las interpretaciones son respuestas del modelo viejo, y dejarlas
     haria que la comparacion midiese en parte al proveedor anterior.
     """
-    st.session_state["modelo_ok"] = 0
+    st.session_state["modelo_ok"] = {}
     st.session_state["cfg"] = 0
     st.session_state["cache"] = {}
     st.session_state["interpretaciones"] = {}
+    st.session_state["agotados"] = set()
+    st.session_state["uso_proveedor"] = {}
 
 
 def _cambia_proveedor():
@@ -2007,23 +2152,38 @@ def panel_ajustes():
 
         st.markdown("**Proveedor de IA**")
         st.selectbox(
-            "Proveedor", list(PROVEEDORES), key="proveedor",
+            "Proveedor", OPCIONES_PROVEEDOR, key="proveedor",
             on_change=_cambia_proveedor, label_visibility="collapsed",
-            help=f"De fábrica es {PROVEEDOR}. Cambiarlo vale solo para esta "
-                 "sesión: al recargar la página vuelve al de fábrica. Al "
-                 "cambiar se vacía la memoria de la sesión, para que ninguna "
-                 "consulta se responda con un resultado del proveedor anterior.",
+            format_func=lambda p: (
+                "Cascada: " + " → ".join(ORDEN) if p == CASCADA else p
+            ),
+            help="En cascada se recorren en orden y se salta el que no tenga "
+                 "clave. Fijar uno apaga el relevo: es la única forma de medir "
+                 "un proveedor sin que otro le responda por él. El cambio vale "
+                 "solo para esta sesión.",
         )
 
-        opciones_modelo = [AUTOMATICO] + ajustes_actual()["modelos"]
+        sin_clave = [p for p in ORDEN if not tiene_clave(p)]
+        if sin_clave:
+            st.caption("Sin clave en los Secrets, se saltan: " + ", ".join(sin_clave))
+        quemados = st.session_state.get("agotados", set())
+        if quemados:
+            st.caption("Apartados por cupo diario agotado: " + ", ".join(sorted(quemados)))
+
+        conteo = st.session_state.get("uso_proveedor", {})
+        if conteo:
+            st.caption("Quién ha respondido en esta sesión:")
+            for p, n in sorted(conteo.items(), key=lambda x: -x[1]):
+                st.caption(f"· {p}: **{n}** llamadas")
+
+        opciones_modelo = [AUTOMATICO] + PROVEEDORES[proveedor_actual()]["modelos"]
         if st.session_state.get("modelo_elegido") not in opciones_modelo:
             st.session_state["modelo_elegido"] = AUTOMATICO
         st.selectbox(
             "Modelo", opciones_modelo, key="modelo_elegido",
             on_change=_cambia_modelo,
-            help="Automático usa la cadena de relevo: si el primero falla, pasa "
-                 "al siguiente. Para comparar hay que fijar uno, o no sabrás "
-                 "cuál te ha respondido.",
+            help="Automático usa la cadena de relevo dentro del proveedor. Para "
+                 "comparar hay que fijar uno, o no sabrás cuál te ha respondido.",
         )
 
         if st.button("Probar la conexión con la IA", use_container_width=True):
@@ -2335,8 +2495,8 @@ def pantalla_masiva():
                 # El motivo del fallo es EL dato para saber si es cuota, límite
                 # por minuto o modelo caído. Sin él solo sabemos que falló.
                 "motivo_fallo": str(payload.get("fallo", ""))[:200],
-                "proveedor": proveedor_actual(),
-                "modelo": modelo_actual(),
+                "proveedor": st.session_state.get("ultimo_proveedor", ""),
+                "modelo": st.session_state.get("ultimo_modelo", ""),
                 "error": error,
                 "segundos": round(tardanza, 1),
                 "detalle_tiempos": " | ".join(f"{n}:{t:.1f}" for n, t in tiempos),
