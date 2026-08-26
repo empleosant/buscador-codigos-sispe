@@ -1,6 +1,6 @@
 """
-Codificador de ocupaciones SISPE
-Interfaz de apoyo para localizar codigos oficiales antes de grabarlos en SilcoiWeb.
+Codificador de ocupaciones
+Interfaz de apoyo para localizar codigos oficiales del catalogo de ocupaciones antes de grabarlos.
 """
 
 import os
@@ -902,7 +902,7 @@ def cliente():
     return _cliente(proveedor_actual())
 
 
-INSTRUCCIONES = """Eres un técnico de codificación de ocupaciones para SilcoiWeb (SEPE).
+INSTRUCCIONES = """Eres un técnico de codificación de ocupaciones.
 
 Recibes la descripción de un puesto y una lista cerrada de ocupaciones candidatas.
 Selecciona entre 3 y 5, de mayor a menor afinidad.
@@ -1050,7 +1050,7 @@ def _flujo_openai(cli, prompt, prov):
         raise ultimo
 
 
-INTERPRETE = """Eres experto en el catálogo de ocupaciones del SEPE (CNO).
+INTERPRETE = """Eres experto en el catálogo oficial de ocupaciones (CNO).
 
 Lees la descripción de un puesto escrita por un orientador laboral, con las
 palabras de la persona atendida, y devuelves el VOCABULARIO OFICIAL de los
@@ -2623,7 +2623,7 @@ except TypeError:
 
 with banda:
     st.markdown(
-        '<div class="rotulo">Catálogo SISPE <span>&middot;</span> SilcoiWeb</div>',
+        '<div class="rotulo">Catálogo oficial <span>&middot;</span> Códigos de ocupación</div>',
         unsafe_allow_html=True,
     )
     st.button("Codificador de ocupaciones", key="marca", on_click=empezar_de_nuevo)

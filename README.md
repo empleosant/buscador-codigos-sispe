@@ -1,7 +1,7 @@
-# Codificador de ocupaciones SISPE
+# Codificador de ocupaciones
 
-Herramienta de apoyo para localizar códigos del catálogo SISPE antes de
-grabarlos en SilcoiWeb.
+Herramienta de apoyo para localizar códigos del catálogo oficial de
+ocupaciones antes de grabarlos.
 
 ## Archivos
 
@@ -91,7 +91,7 @@ quedaba consagrada como verdad en la siguiente pasada. Ya no existe; si alguien
 lo usa, el script aborta y explica por qué.
 
 **Cada consulta real que falle debería acabar en `casos.csv`**, con el código
-comprobado contra el catálogo oficial o contra un caso ya grabado en SilcoiWeb,
+comprobado contra el catálogo oficial o contra un caso ya grabado,
 nunca copiado de lo que contesta el motor. La columna `tope` admite 1 (tiene que
 salir el primero) o 3 (basta con que esté entre los tres primeros).
 
