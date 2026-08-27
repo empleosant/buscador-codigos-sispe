@@ -2143,14 +2143,17 @@ def _limpia_memoria_ia():
 
 
 def _cambia_proveedor():
+    st.session_state["proveedor"] = st.session_state["sel_proveedor"]
     st.session_state["modelo_elegido"] = AUTOMATICO
+    st.session_state["sel_modelo"] = AUTOMATICO
     st.session_state["modelo_fijo"] = None
     _limpia_memoria_ia()
     _cierra_ajustes()
 
 
 def _cambia_modelo():
-    elegido = st.session_state.get("modelo_elegido")
+    elegido = st.session_state.get("sel_modelo", AUTOMATICO)
+    st.session_state["modelo_elegido"] = elegido
     st.session_state["modelo_fijo"] = None if elegido == AUTOMATICO else elegido
     _limpia_memoria_ia()
     _cierra_ajustes()
@@ -2184,7 +2187,9 @@ def _medicion_limpia():
     primero = PROVEEDORES[prov]["modelos"][0]
     _limpia_memoria_ia()
     st.session_state["proveedor"] = prov
+    st.session_state["sel_proveedor"] = prov
     st.session_state["modelo_elegido"] = primero
+    st.session_state["sel_modelo"] = primero
     st.session_state["modelo_fijo"] = primero
 
 
@@ -2197,10 +2202,13 @@ def _de_fabrica():
     """
     _limpia_memoria_ia()
     st.session_state["proveedor"] = CASCADA
+    st.session_state["sel_proveedor"] = CASCADA
     st.session_state["modelo_elegido"] = AUTOMATICO
+    st.session_state["sel_modelo"] = AUTOMATICO
     st.session_state["modelo_fijo"] = None
     st.session_state["n_candidatos"] = N_CANDIDATOS
     st.session_state["usar_ia"] = True
+    st.session_state["ia_interruptor"] = True
 
 
 def _fuera_de_fabrica():
@@ -2234,8 +2242,15 @@ EJEMPLOS = [
 def panel_ajustes():
     with st.popover(":material/tune:", use_container_width=True,
                 key=AJUSTES_ABIERTO, on_change="rerun"):
-        st.toggle(
-            "Afinar con IA", key="usar_ia", on_change=_cierra_ajustes,
+        # OJO: el valor por defecto va explicito con `value=`, y la clave del
+        # widget NO es "usar_ia". Con key="usar_ia" a secas, si Streamlit purga
+        # la clave -lo hace con widgets que viven dentro de un popover cerrado-
+        # st.toggle cae en su valor de fabrica, que es False, y la herramienta
+        # arrancaba con la IA apagada sin que nadie la hubiera tocado.
+        # "usar_ia" se mantiene como valor propio, no como estado de widget.
+        st.session_state["usar_ia"] = st.toggle(
+            "Afinar con IA", value=st.session_state["usar_ia"],
+            key="ia_interruptor", on_change=_cierra_ajustes,
             help="Desactivado, muestra las coincidencias del catálogo al instante.",
         )
         if st.session_state["registro"]:
@@ -2304,8 +2319,17 @@ def panel_ajustes():
 
         st.divider()
         st.markdown("**Proveedor de IA**")
-        st.selectbox(
-            "Proveedor", OPCIONES_PROVEEDOR, key="proveedor",
+        # Mismo patron que el interruptor de IA: el valor real vive en
+        # "proveedor" y el widget usa su propia clave con `index=` explicito.
+        # Con key="proveedor" a secas, una purga del estado del popover cerrado
+        # devolvia el selector a la primera opcion sin avisar: fijabas Mistral
+        # para medir, cerrabas el panel y la tanda salia en cascada.
+        try:
+            i_prov = OPCIONES_PROVEEDOR.index(st.session_state.get("proveedor", CASCADA))
+        except ValueError:
+            i_prov = 0
+        st.session_state["proveedor"] = st.selectbox(
+            "Proveedor", OPCIONES_PROVEEDOR, index=i_prov, key="sel_proveedor",
             on_change=_cambia_proveedor, label_visibility="collapsed",
             format_func=lambda p: (
                 "Cascada: " + " → ".join(ORDEN) if p == CASCADA else p
@@ -2338,9 +2362,11 @@ def panel_ajustes():
         opciones_modelo = [AUTOMATICO] + PROVEEDORES[proveedor_actual()]["modelos"]
         if st.session_state.get("modelo_elegido") not in opciones_modelo:
             st.session_state["modelo_elegido"] = AUTOMATICO
-        st.selectbox(
-            "Modelo", opciones_modelo, key="modelo_elegido",
-            on_change=_cambia_modelo,
+            st.session_state["modelo_fijo"] = None
+        st.session_state["modelo_elegido"] = st.selectbox(
+            "Modelo", opciones_modelo,
+            index=opciones_modelo.index(st.session_state["modelo_elegido"]),
+            key="sel_modelo", on_change=_cambia_modelo,
             help="Automático usa la cadena de relevo dentro del proveedor. Para "
                  "comparar hay que fijar uno, o no sabrás cuál te ha respondido.",
         )
