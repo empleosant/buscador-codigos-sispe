@@ -272,12 +272,6 @@ div[data-testid="stCustomComponentV1"] iframe {
   margin-bottom:clamp(0.25rem, 0.6vh, 0.45rem);
   box-shadow:0 2px 10px rgba(0,0,0,0.06);
 }
-.rotulo{
-  color:#8A8A8A; font-size:clamp(0.58rem, 0.65vw, 0.66rem); font-weight:600;
-  letter-spacing:.16em; text-transform:uppercase; margin:0 0 .1rem;
-}
-.rotulo span{ color:var(--rojo); font-weight:700; }
-
 /* Título */
 .st-key-marca button{
   background:transparent !important; border:none !important; box-shadow:none !important;
@@ -406,6 +400,16 @@ div[data-testid="stTextInput"] input{
 .pie-nueva{
   text-align:center; font-size:.74rem; font-weight:600; color:var(--suave); margin:.2rem 0 0;
 }
+/* Firma de autoria. Va al final de todo y en el gris suave: tiene que leerse
+   como una firma, no como un aviso. La herramienta se usa con un ciudadano
+   delante y el foco debe seguir estando en el resultado. */
+.pie-firma{
+  text-align:center; font-size:.72rem; color:var(--suave);
+  margin:2.2rem 0 .6rem; padding-top:.9rem;
+  border-top:1px solid rgba(0,0,0,.07);
+}
+.pie-firma a{ color:var(--suave); text-decoration:underline; text-underline-offset:2px; }
+.pie-firma a:hover{ color:var(--rojo); }
 div[data-testid="stExpander"]{ border:none; background:transparent; margin-top:.1rem; }
 div[data-testid="stExpander"] summary{ font-size:.8rem; color:var(--suave); padding:.1rem 0; }
 
@@ -1422,21 +1426,14 @@ GUION_INTERACTIVO = """
 // El alto del marco se calcula en el servidor suponiendo dos tarjetas por fila
 // y 48 caracteres por linea. En el movil hay UNA columna y caben la mitad de
 // letras, asi que el contenido crece y el marco lo recortaba. Aqui dentro si se
-// conoce el ancho real: se mide lo dibujado y se corrige el alto del iframe.
-function ajustaAlto(){
-  try {
-    var alto = document.documentElement.scrollHeight;
-    var marco = window.frameElement;
-    if (marco && alto > 0) {
-      marco.style.height = (alto + 8) + 'px';
-      marco.setAttribute('height', alto + 8);
-    }
-  } catch (e) { /* si el navegador no deja tocar el marco, se queda como estaba */ }
-}
-window.addEventListener('load', ajustaAlto);
-window.addEventListener('resize', ajustaAlto);
-setTimeout(ajustaAlto, 60);
-setTimeout(ajustaAlto, 400);
+// conoce el ancho real, y se le pide a Streamlit el alto que hace falta.
+//
+// IMPORTANTE: un solo mecanismo. Antes habia dos -uno tocaba window.frameElement
+// a mano y otro mandaba streamlit:setFrameHeight- y se disparaban el uno al
+// otro: cambiar el alto del marco redibuja el cuerpo, el observador lo detecta
+// y vuelve a pedir alto. Como ademas pedian valores distintos (+8 y +2), el
+// marco oscilaba entre los dos sin parar y en el movil se veia como un scroll
+// que no se detenia nunca.
 
 function copiarTexto(texto, boton){
   navigator.clipboard.writeText(texto).then(() => {
@@ -1456,11 +1453,28 @@ function copiarTexto(texto, boton){
   });
 }
 
+var ultimoAlto = 0;
+var pedido = false;
+
 function alto(){
+  var h = document.documentElement.scrollHeight;
+  // Solo se avisa si el cambio es REAL. Sin este guardia, el propio
+  // redimensionado del marco vuelve a disparar al observador y se entra en
+  // bucle. Dos pixeles de margen absorben los redondeos del navegador.
+  if (Math.abs(h - ultimoAlto) < 2) return;
+  ultimoAlto = h;
   parent.postMessage(
-    {type:'streamlit:setFrameHeight', height: document.documentElement.scrollHeight + 2},
+    {type:'streamlit:setFrameHeight', height: h + 2},
     '*'
   );
+}
+
+// El observador puede dispararse muchas veces en un mismo repintado. Se agrupa
+// todo en un unico aviso por fotograma para no inundar a Streamlit de mensajes.
+function pideAlto(){
+  if (pedido) return;
+  pedido = true;
+  requestAnimationFrame(function(){ pedido = false; alto(); });
 }
 
 document.querySelectorAll('.copiar').forEach(b => {
@@ -1485,9 +1499,17 @@ window.addEventListener('keydown', (e) => {
   }
 });
 
-const observador = new ResizeObserver(() => alto());
+const observador = new ResizeObserver(pideAlto);
 observador.observe(document.body);
-window.addEventListener('load', alto);
+window.addEventListener('load', pideAlto);
+window.addEventListener('resize', pideAlto);
+// Las tipografias se cargan desde fuera y al llegar cambian el alto del texto.
+// Sin esto, la ultima medida se tomaba con la letra provisional y las tarjetas
+// quedaban recortadas por abajo.
+if (document.fonts && document.fonts.ready) {
+  document.fonts.ready.then(pideAlto);
+}
+setTimeout(pideAlto, 300);
 """
 
 
@@ -2133,6 +2155,68 @@ def _cambia_modelo():
     _limpia_memoria_ia()
     _cierra_ajustes()
 
+
+# --- Tareas de un clic -------------------------------------------------------
+# Van como `on_click`, NO en linea. Un boton en linea se ejecuta despues de que
+# el selectbox ya exista en esta pasada, y Streamlit no deja escribir la clave
+# de un widget ya creado. En el callback se escribe antes del rerun y funciona.
+
+def _vacia_memoria():
+    """Caché e interpretaciones, sin tocar proveedor ni modelo."""
+    st.session_state["cache"] = {}
+    st.session_state["interpretaciones"] = {}
+
+
+def _reintenta_apartados():
+    """Devuelve al ruedo los proveedores marcados como sin cupo."""
+    st.session_state["agotados"] = set()
+
+
+def _medicion_limpia():
+    """Deja la sesión lista para una tanda comparable.
+
+    Fija el proveedor que este primero y su primer modelo, y vacia todo lo que
+    pudiera responder por memoria. Sustituye los cuatro pasos que habia que
+    acordarse de hacer a mano antes de cada prueba masiva, y que se olvidaron
+    en la tanda del 26/08.
+    """
+    prov = proveedor_actual()
+    primero = PROVEEDORES[prov]["modelos"][0]
+    _limpia_memoria_ia()
+    st.session_state["proveedor"] = prov
+    st.session_state["modelo_elegido"] = primero
+    st.session_state["modelo_fijo"] = primero
+
+
+def _de_fabrica():
+    """Deshace todo lo que se toca en mantenimiento.
+
+    Es el boton de seguridad antes de salir: los ajustes viven en la sesion,
+    asi que si te dejas los candidatos en 32 o la IA apagada, sigue asi para
+    quien use esa pestaña despues.
+    """
+    _limpia_memoria_ia()
+    st.session_state["proveedor"] = CASCADA
+    st.session_state["modelo_elegido"] = AUTOMATICO
+    st.session_state["modelo_fijo"] = None
+    st.session_state["n_candidatos"] = N_CANDIDATOS
+    st.session_state["usar_ia"] = True
+
+
+def _fuera_de_fabrica():
+    """Qué está tocado ahora mismo. Vacío = todo como de fábrica."""
+    dif = []
+    if st.session_state.get("proveedor", CASCADA) != CASCADA:
+        dif.append(f"proveedor fijado en {st.session_state['proveedor']}")
+    if st.session_state.get("modelo_fijo"):
+        dif.append(f"modelo fijado en {st.session_state['modelo_fijo']}")
+    cand = st.session_state.get("n_candidatos")
+    if cand and int(cand) != N_CANDIDATOS:
+        dif.append(f"candidatos en {int(cand)} (de fábrica {N_CANDIDATOS})")
+    if not st.session_state.get("usar_ia", True):
+        dif.append("IA desactivada")
+    return dif
+
 EJEMPLOS = [
     "Una persona que limpia habitaciones de hotel",
     "Una persona que conduce autobuses",
@@ -2180,6 +2264,45 @@ def panel_ajustes():
                 st.caption(f"· {etiqueta}: **{seg:.1f} s**")
             st.caption(f"· Total esperando al modelo: **{sum(t for _, t in tiempos):.1f} s**")
 
+        tocado = _fuera_de_fabrica()
+        if tocado:
+            st.warning(
+                "Ajustes fuera de fábrica: " + "; ".join(tocado)
+                + ". Viven en la sesión: quien use esta pestaña después los hereda.",
+                icon=":material/warning:",
+            )
+
+        st.divider()
+        st.markdown("**Tareas**")
+        t1, t2 = st.columns(2, gap="small")
+        t1.button(
+            "Preparar medición", on_click=_medicion_limpia,
+            use_container_width=True,
+            help="Fija el proveedor y su primer modelo, y vacía caché, "
+                 "interpretaciones y contadores. Deja la sesión lista para una "
+                 "tanda comparable, en un clic en vez de cuatro pasos.",
+        )
+        t2.button(
+            "Volver a fábrica", on_click=_de_fabrica, use_container_width=True,
+            help="Deshace todo: cascada, modelo automático, candidatos de "
+                 "fábrica, IA encendida y memoria vacía. Púlsalo antes de salir "
+                 "de mantenimiento.",
+        )
+        t3, t4 = st.columns(2, gap="small")
+        t3.button(
+            "Vaciar memoria", on_click=_vacia_memoria, use_container_width=True,
+            help="Caché e interpretaciones, sin tocar proveedor ni modelo. Para "
+                 "repetir una consulta y ver qué responde de verdad.",
+        )
+        t4.button(
+            "Reintentar apartados", on_click=_reintenta_apartados,
+            use_container_width=True,
+            disabled=not st.session_state.get("agotados"),
+            help="Devuelve al ruedo los proveedores marcados como sin cupo del "
+                 "día. Útil si se apartó uno por error.",
+        )
+
+        st.divider()
         st.markdown("**Proveedor de IA**")
         st.selectbox(
             "Proveedor", OPCIONES_PROVEEDOR, key="proveedor",
@@ -2200,11 +2323,17 @@ def panel_ajustes():
         if quemados:
             st.caption("Apartados por cupo diario agotado: " + ", ".join(sorted(quemados)))
 
+        # El contador es el instrumento para detectar que un proveedor lleva
+        # dias caido sin que se note. Como metrica se lee de un vistazo; como
+        # lista de captions grises se perdia entre las demas.
         conteo = st.session_state.get("uso_proveedor", {})
         if conteo:
-            st.caption("Quién ha respondido en esta sesión:")
-            for p, n in sorted(conteo.items(), key=lambda x: -x[1]):
-                st.caption(f"· {p}: **{n}** llamadas")
+            st.caption("Llamadas de esta sesión:")
+            for col, (p, n) in zip(
+                st.columns(len(conteo), gap="small"),
+                sorted(conteo.items(), key=lambda x: -x[1]),
+            ):
+                col.metric(p, n)
 
         opciones_modelo = [AUTOMATICO] + PROVEEDORES[proveedor_actual()]["modelos"]
         if st.session_state.get("modelo_elegido") not in opciones_modelo:
@@ -2243,24 +2372,27 @@ def panel_ajustes():
                 except Exception as e:  # noqa: BLE001
                     st.error(f"{type(e).__name__}: {e}")
 
+        st.divider()
+        st.markdown("**Herramientas**")
         compartido = lexico_compartido()
         gist_activo, _ = _credenciales()
         if gist_activo:
-            st.markdown("**Diccionario compartido**")
-            st.caption(f"{len(compartido)} términos aprendidos.")
+            st.caption(f"Diccionario compartido: {len(compartido)} términos aprendidos.")
             if st.button("Comprobar que guarda", use_container_width=True):
                 correcto, detalle = prueba_gist()
                 (st.success if correcto else st.error)(detalle)
 
-            st.markdown("**Prueba masiva**")
-            st.caption(
-                "Lanza muchas consultas seguidas por el circuito completo, con "
-                "IA incluida, y deja un registro descargable. Gasta cuota: cada "
-                "consulta son dos o tres llamadas al modelo."
-            )
-            if st.button("Preparar la prueba", use_container_width=True):
-                st.session_state["masiva_abierta"] = True
-                st.rerun()
+        # Fuera del `if gist_activo`: la prueba masiva no depende del diccionario
+        # compartido, y tenerla dentro hacia que caducar el token del Gist se
+        # llevara por delante el acceso a la prueba.
+        if st.button("Prueba masiva", use_container_width=True):
+            st.session_state["masiva_abierta"] = True
+            st.rerun()
+        st.caption(
+            "Lanza muchas consultas seguidas por el circuito completo, con IA "
+            "incluida, y deja un registro descargable. Gasta cuota: cada "
+            "consulta son dos o tres llamadas al modelo."
+        )
 
 
 PUESTOS_HABITUALES = """Eres orientador laboral en una oficina de empleo de Madrid.
@@ -2421,14 +2553,34 @@ def pantalla_masiva():
         )
         pausa = c2.number_input(
             "Pausa entre consultas (s)", 0.0, 60.0, 12.0, 1.0,
-            help="El plan gratuito admite 15 peticiones por minuto y cada consulta "
-                 "gasta dos o tres. Con 12 segundos caben unas cinco por minuto, "
-                 "que es el ritmo máximo sostenible. Bajarlo hace que la prueba se "
-                 "caiga y midas resultados sin afinar.",
+            help="Depende del proveedor. Gemini admite 15 peticiones por minuto y "
+                 "cada consulta gasta dos o tres: con 12 segundos caben unas cinco "
+                 "por minuto, que es su ritmo máximo sostenible. Mistral con "
+                 "ministral-3b aguanta 12,5 peticiones por SEGUNDO, así que ahí "
+                 "basta 1. Quedarse corto no rompe la prueba desde que hay cascada, "
+                 "pero la tanda acaba medida con un proveedor distinto del que "
+                 "creías: fija uno arriba antes de comparar.",
         )
         limpiar = c3.checkbox("Ignorar lo ya guardado", value=True,
                               help="Vacía la memoria de la sesión para que ninguna "
                                    "consulta se responda con un resultado antiguo.")
+
+        # Recordatorio de con que se va a lanzar. La tanda del 26/08 se midio
+        # sobre tres modelos distintos sin que se viera en ninguna pantalla.
+        elegido = st.session_state.get("proveedor", CASCADA)
+        if elegido == CASCADA:
+            st.warning(
+                "Vas a lanzar en **cascada**: si el primer proveedor se atasca, "
+                "parte de la tanda la responderá otro y el resultado no será "
+                "comparable. Para medir, fija proveedor y modelo en ajustes.",
+                icon=":material/warning:",
+            )
+        else:
+            fijo = st.session_state.get("modelo_fijo")
+            st.caption(
+                f"Se lanzará con **{elegido}** · "
+                + (f"**{fijo}**" if fijo else "modelo automático (puede degradar)")
+            )
 
         # Cuántas ocupaciones ve el modelo, solo para esta sesión. Permite
         # lanzar la misma tanda con dos valores distintos sin subir un archivo
@@ -2622,10 +2774,6 @@ except TypeError:
     banda = st.container()
 
 with banda:
-    st.markdown(
-        '<div class="rotulo">Catálogo oficial <span>&middot;</span> Códigos de ocupación</div>',
-        unsafe_allow_html=True,
-    )
     st.button("Codificador de ocupaciones", key="marca", on_click=empezar_de_nuevo)
     campo, boton, ajustes = st.columns([6.4, 1.1, 0.5], gap="small")
     with campo:
@@ -2716,3 +2864,18 @@ if _refuerzos:
     with cronometra("5. Guardar correcciones de orden (GitHub)"):
         for codigo, palabras in _refuerzos:
             guarda_refuerzo(codigo, palabras)
+
+# ---------------------------------------------------------------------------
+# FIRMA
+# ---------------------------------------------------------------------------
+# Ultimo elemento de la pagina, en todas las pantallas. Aqui esta la autoria
+# visible: el repositorio puede ser privado, pero quien use el enlace tiene que
+# poder saber quien ha hecho esto. `target="_blank"` para no sacar a nadie de
+# una busqueda a medias, y `rel="noopener"` porque abrir enlaces externos sin
+# el deja a la pagina de destino con acceso a la de origen.
+st.markdown(
+    '<div class="pie-firma">Creado por '
+    '<a href="https://www.linkedin.com/in/alvarosant/" target="_blank" '
+    'rel="noopener noreferrer">Álvaro Santamaría</a></div>',
+    unsafe_allow_html=True,
+)
