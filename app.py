@@ -215,6 +215,86 @@ def por_minuto(e):
         return False
     return True
 
+# ---------------------------------------------------------------------------
+# TOKENS DE ESTILO
+# ---------------------------------------------------------------------------
+# El rojo corporativo estaba escrito tres veces: en el :root de la pagina, en
+# el body del iframe de tarjetas y en .streamlit/config.toml. Tres copias que
+# nadie sincroniza acaban separandose. Ahora vive aqui y los dos bloques de CSS
+# lo interpolan. config.toml sigue aparte porque Streamlit lo lee antes de que
+# este archivo exista, asi que ese sigue siendo el unico duplicado inevitable.
+TOKENS_CLARO = {
+    "negro": "#0A0A0A",
+    "rojo": "#D1122E",
+    "rojo-oscuro": "#A50E24",
+    "texto": "#1A1A1A",
+    "suave": "#555555",
+    "tenue": "#8E8E93",
+    "linea": "#E2E8F0",
+    "linea-fuerte": "#CBD5E1",
+    "gris": "#F1F5F9",
+    "papel": "#FFFFFF",
+}
+
+TOKENS_OSCURO = {
+    "negro": "#E8E8E8",
+    "rojo": "#E8384F",
+    "rojo-oscuro": "#F25B6E",
+    "texto": "#E0E0E0",
+    "suave": "#A0A0A0",
+    "tenue": "#787878",
+    "linea": "#2D3748",
+    "linea-fuerte": "#4A5568",
+    "gris": "#1A202C",
+    "papel": "#1A202C",
+}
+
+# Escala de movimiento. Antes habia cinco temporizaciones sueltas repartidas
+# por la hoja (.15s ease, .18s ease, .18s cubic-bezier(.2,.8,.2,1),
+# .22s cubic-bezier(.2,.85,.3,1), .2s cubic-bezier(.16,1,.3,1)). Ninguna estaba
+# mal; el problema era que fueran cinco. Lo que se lee como acabado es que todo
+# se mueva con la misma ley.
+#   --entrada  para lo que aparece o crece (frena al final)
+#   --salida   para lo que responde a un gesto: hover, foco, pulsacion
+#   --paso     retraso entre tarjeta y tarjeta en la entrada escalonada
+MOVIMIENTO = {
+    "entrada": "cubic-bezier(.16,1,.3,1)",
+    "salida": "cubic-bezier(.4,0,1,1)",
+    "rapido": "120ms",
+    "medio": "200ms",
+    "lento": "320ms",
+    "paso": "45ms",
+}
+
+
+def _vars_css(selector, *dicts):
+    cuerpo = "".join(f"--{k}:{v};" for d in dicts for k, v in d.items())
+    return f"{selector}{{{cuerpo}}}"
+
+
+# Las variables de la pagina: claras en :root y redefinidas en oscuro. Los
+# tokens de movimiento no dependen del tema, asi que solo se emiten una vez.
+ESTILO_VARIABLES = (
+    _vars_css(":root", TOKENS_CLARO, MOVIMIENTO)
+    + "@media (prefers-color-scheme:dark){"
+    + _vars_css(":root", TOKENS_OSCURO)
+    + "}"
+)
+
+# Las tipografias se cargaban con @import dentro del <style>. Es la via mas
+# lenta que hay: el navegador no puede pedir la fuente hasta que ha leido y
+# parseado la hoja entera. De ahi salia el parpadeo de la letra provisional y
+# de ahi salio el parche document.fonts.ready del guion de tarjetas, que medía
+# el alto con la fuente equivocada. Con preconnect + link se piden en paralelo
+# y en cuanto el navegador ve la cabecera.
+ENLACE_FUENTES = (
+    '<link rel="preconnect" href="https://fonts.googleapis.com">'
+    '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>'
+    '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?'
+    'family=Libre+Franklin:wght@400;500;600;700&'
+    'family=JetBrains+Mono:wght@600;700&display=swap">'
+)
+
 st.set_page_config(
     page_title="Codificador de ocupaciones",
     page_icon="◉",
@@ -226,20 +306,7 @@ st.set_page_config(
 # ESTILO FLUIDO Y COMPACTO
 # ---------------------------------------------------------------------------
 
-st.markdown("""
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@400;500;600;700&family=JetBrains+Mono:wght@600;700&display=swap');
-
-:root{
-  --negro:#0A0A0A;
-  --rojo:#D1122E;
-  --rojo-oscuro:#A50E24;
-  --texto:#1A1A1A;
-  --suave:#555555;
-  --tenue:#8E8E93;
-  --linea:#E2E8F0;
-  --gris:#F1F5F9;
-}
+st.markdown(ENLACE_FUENTES + "<style>" + ESTILO_VARIABLES + """
 
 .stApp{ background:#FAFAFA; }
 html,body,[class*="css"],.stMarkdown{
@@ -277,7 +344,7 @@ div[data-testid="stCustomComponentV1"] iframe {
 .st-key-marca button p{
   color:#fff !important; font-size:clamp(1.2rem, 1.45vw, 1.45rem) !important;
   font-weight:700 !important; letter-spacing:-.025em; margin:0 !important;
-  text-align:left !important; border-bottom:2px solid transparent; transition:border-color .15s ease;
+  text-align:left !important; border-bottom:2px solid transparent; transition:border-color var(--rapido) var(--salida);
 }
 .st-key-marca button:hover p{ border-bottom-color:var(--rojo); }
 
@@ -309,7 +376,7 @@ div[data-testid="stTextInput"] input{
   font-size:clamp(0.84rem, 0.9vw, 0.92rem) !important;
   padding:clamp(0.42rem, 0.8vh, 0.6rem) 1rem !important;
   min-height:clamp(36px, 3.8vh, 44px) !important; letter-spacing:.02em;
-  transition:background .15s ease;
+  transition:background var(--rapido) var(--salida);
 }
 .st-key-buscar button:hover{ background:var(--rojo-oscuro) !important; }
 .st-key-buscar button p{ color:#fff !important; font-weight:700 !important; }
@@ -320,7 +387,7 @@ div[data-testid="stTextInput"] input{
   border-radius:4px !important; padding:0 !important;
   background:#1A1A1A !important; border:1px solid #333 !important; color:#fff !important;
   display:flex !important; align-items:center !important; justify-content:center !important;
-  transition:all .18s ease;
+  transition:background var(--rapido) var(--salida), border-color var(--rapido) var(--salida);
 }
 .st-key-ajustes button:hover{
   background:var(--rojo) !important; border-color:var(--rojo) !important; color:#fff !important;
@@ -377,7 +444,10 @@ div[class*="st-key-caja_pregunta"] .stButton button,
 .st-key-pregunta .stButton button{
   background:#fff !important; border:1.5px solid var(--negro) !important; font-weight:600 !important;
   border-radius:20px !important; padding:.42rem 1.25rem !important; min-height:36px !important;
-  font-size:.85rem !important; transition:all .18s cubic-bezier(.2,.8,.2,1) !important;
+  font-size:.85rem !important;
+  transition:background var(--medio) var(--entrada), color var(--medio) var(--entrada),
+             border-color var(--medio) var(--entrada), transform var(--medio) var(--entrada),
+             box-shadow var(--medio) var(--entrada) !important;
   white-space:normal !important; word-break:normal !important; text-align:center !important;
   line-height:1.24 !important; max-width:420px !important;
   height:auto !important; width:auto !important;
@@ -423,7 +493,9 @@ div[class*="st-key-caja_pregunta"] .stButton button:active,
   border-radius:50% !important; padding:0 !important;
   border:2px solid var(--negro) !important; background:#fff !important;
   display:flex !important; align-items:center !important; justify-content:center !important;
-  transition:all .22s cubic-bezier(.2,.85,.3,1); box-shadow:0 2px 8px rgba(0,0,0,0.06);
+  transition:background var(--medio) var(--entrada), border-color var(--medio) var(--entrada),
+              transform var(--medio) var(--entrada), box-shadow var(--medio) var(--entrada);
+  box-shadow:0 2px 8px rgba(0,0,0,0.06);
 }
 .st-key-reinicio button p{
   font-size:clamp(1.25rem, 1.5vw, 1.5rem) !important; line-height:1 !important;
@@ -455,7 +527,7 @@ div[data-testid="stExpander"] summary{ font-size:.8rem; color:var(--suave); padd
 }
 .bienvenida{
   text-align:center; padding:clamp(2.5rem, 8vh, 5rem) 1rem clamp(1rem, 3vh, 2rem);
-  animation:fadeIn .5s ease;
+  animation:fadeIn var(--lento) var(--entrada);
 }
 .bienvenida-icono{
   font-size:clamp(2.8rem, 4vw, 3.6rem); color:var(--linea);
@@ -513,7 +585,7 @@ div[data-testid="stExpander"] summary{ font-size:.8rem; color:var(--suave); padd
 .consulta-box{
   border-bottom:2px solid var(--negro); padding-bottom:.2rem;
   margin:0 0 clamp(0.25rem, 0.5vh, 0.4rem);
-  animation:fadeIn .25s ease;
+  animation:fadeIn var(--medio) var(--entrada);
 }
 .consulta-texto{
   font-size:clamp(0.95rem, 1.05vw, 1.08rem); font-weight:700;
@@ -526,16 +598,8 @@ div[data-testid="stExpander"] summary{ font-size:.8rem; color:var(--suave); padd
 
 /* ====== MEJORA 6: Modo oscuro ====== */
 @media (prefers-color-scheme:dark){
-  :root{
-    --negro:#E8E8E8;
-    --rojo:#E8384F;
-    --rojo-oscuro:#F25B6E;
-    --texto:#E0E0E0;
-    --suave:#A0A0A0;
-    --tenue:#787878;
-    --linea:#2D3748;
-    --gris:#1A202C;
-  }
+  /* Los tokens de esta rama se emiten desde TOKENS_OSCURO. Aqui solo quedan
+     los componentes, que no son variables. */
   .stApp{ background:#111318 !important; }
   .block-container{ background:#111318 !important; }
   .st-key-cabecera{ background:#0D0D0D; }
@@ -594,6 +658,129 @@ div[data-testid="stExpander"] summary{ font-size:.8rem; color:var(--suave); padd
 
   /* Nada puede desbordar a lo ancho. */
   .stApp, .block-container{ overflow-x:hidden; }
+}
+
+/* ---------- Esqueletos de espera ----------
+   Mientras el modelo afina, la rejilla no existía y de golpe ocupaba 300 px:
+   todo lo que hay debajo daba un salto. Estas piezas reservan el hueco con la
+   misma retícula y el mismo alto que las tarjetas de verdad.
+
+   No enseñan ningún resultado, y eso es deliberado: los provisionales se
+   quitaron de la espera porque el primero del catálogo se equivoca a menudo
+   con el lenguaje de la calle y verlo dos segundos destruye la confianza en el
+   que sale después. Un esqueleto no afirma nada, solo guarda el sitio. */
+.rejilla-hueso{
+  display:grid; grid-template-columns:repeat(2,1fr); gap:6px; margin-top:.15rem;
+}
+@media (max-width:760px){ .rejilla-hueso{ grid-template-columns:1fr; } }
+.hueso{
+  background:var(--papel); border:1px solid var(--linea);
+  border-left:4px solid var(--linea); border-radius:6px;
+  padding:8px 13px; display:flex; flex-direction:column; gap:7px;
+  min-height:86px;
+}
+.hueso span{
+  display:block; height:10px; border-radius:3px;
+  background:linear-gradient(90deg, var(--gris) 0%, var(--linea) 50%, var(--gris) 100%);
+  background-size:200% 100%;
+  animation:brillo 1.4s linear infinite;
+}
+.hueso span:nth-child(1){ width:38%; height:15px; }
+.hueso span:nth-child(2){ width:88%; }
+.hueso span:nth-child(3){ width:62%; }
+@keyframes brillo{
+  0%{ background-position:200% 0; }
+  100%{ background-position:-200% 0; }
+}
+
+/* ---------- Barra de espera ----------
+   La anterior avanzaba contra ESPERA_MAXIMA (30 s), pero la cascada contesta
+   entre 2 y 4,6 s: recorría del 10 % al 17 % y saltaba al final, que se lee
+   como atascada. Esta no promete un porcentaje que nadie sabe. */
+.barra-espera{
+  height:5px; border-radius:3px; background:var(--gris);
+  overflow:hidden; margin:.1rem 0 .55rem;
+}
+.barra-espera i{
+  display:block; height:100%; width:38%; border-radius:3px;
+  background:linear-gradient(90deg, var(--rojo), #E63946);
+  animation:vaiven 1.15s var(--entrada) infinite;
+}
+@keyframes vaiven{
+  0%{ transform:translateX(-100%); }
+  100%{ transform:translateX(265%); }
+}
+
+/* ---------- Botones de ejemplo de la bienvenida ----------
+   Eran los únicos botones sin estilo propio: salían con el aspecto de fábrica
+   de Streamlit, y son lo primero que ve quien abre la herramienta. Mismo
+   lenguaje que las tarjetas: filo izquierdo que se tiñe al pasar por encima. */
+div[class*="st-key-ej_"] button{
+  background:var(--papel) !important;
+  border:1px solid var(--linea) !important;
+  border-left:3px solid var(--linea-fuerte) !important;
+  border-radius:6px !important;
+  padding:.55rem .85rem !important;
+  text-align:left !important;
+  justify-content:flex-start !important;
+  box-shadow:0 1px 3px rgba(0,0,0,.03) !important;
+  transition:border-color var(--medio) var(--entrada),
+             transform var(--medio) var(--entrada),
+             box-shadow var(--medio) var(--entrada) !important;
+}
+div[class*="st-key-ej_"] button p{
+  font-size:.83rem !important; font-weight:400 !important;
+  color:var(--suave) !important; line-height:1.32 !important;
+  text-align:left !important; margin:0 !important;
+}
+div[class*="st-key-ej_"] button p strong{
+  color:var(--texto) !important; font-weight:600 !important;
+}
+div[class*="st-key-ej_"] button:hover{
+  border-left-color:var(--rojo) !important;
+  transform:translateY(-1px);
+  box-shadow:0 4px 12px rgba(0,0,0,.07) !important;
+}
+
+/* ---------- Widgets propios de Streamlit en oscuro ----------
+   config.toml fija un tema claro (backgroundColor #FFFFFF) y el modo oscuro de
+   esta hoja va por prefers-color-scheme. En un equipo con el sistema en oscuro
+   el fondo y las tarjetas se oscurecían y estos no: quedaba un sándwich. Y el
+   peor sitio para que pase es el aviso de corte de la IA, que es justo cuando
+   más falta hace que la herramienta parezca fiable. */
+@media (prefers-color-scheme:dark){
+  div[data-testid="stExpander"] summary{ color:var(--suave) !important; }
+  div[data-testid="stExpander"] summary:hover{ color:var(--rojo) !important; }
+  div[data-testid="stExpander"] details{
+    background:transparent !important; border-color:var(--linea) !important;
+  }
+  div[data-testid="stAlert"], div[data-testid="stNotification"]{
+    background:var(--gris) !important;
+    border:1px solid var(--linea) !important;
+    color:var(--texto) !important;
+  }
+  div[data-testid="stAlert"] p, div[data-testid="stNotification"] p{
+    color:var(--texto) !important;
+  }
+  .stProgress > div > div > div{ background:var(--gris) !important; }
+  .hueso{ background:#151920; }
+  div[class*="st-key-ej_"] button{
+    background:var(--gris) !important; border-color:var(--linea) !important;
+  }
+}
+
+/* ---------- Movimiento reducido ----------
+   Había seis @keyframes y tres eran infinitos: el icono que flota en la
+   bienvenida, el pulso del estado y los puntos suspensivos. Cero guardas.
+   Quien lo pide en su sistema se lleva la herramienta entera sin una sola
+   animación; nada de lo de arriba depende del movimiento para entenderse. */
+@media (prefers-reduced-motion:reduce){
+  *, *::before, *::after{
+    animation-duration:.001ms !important;
+    animation-iteration-count:1 !important;
+    transition-duration:.001ms !important;
+    scroll-behavior:auto !important;
+  }
 }
 </style>
 """, unsafe_allow_html=True)
@@ -1530,13 +1717,18 @@ def interpreta(bruto):
 # TARJETAS FLUIDAS
 # ---------------------------------------------------------------------------
 
-ESTILO_TARJETAS = """
-@import url('https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@400;500;600;700&family=JetBrains+Mono:wght@600;700&display=swap');
+# El iframe es un documento aparte: no hereda ni el :root de la pagina ni sus
+# tipografias. Los tokens salen del mismo diccionario para que no se separen, y
+# las fuentes se piden con <link> desde pinta_tarjetas, no con @import.
+ESTILO_TARJETAS = (
+    _vars_css("body", TOKENS_CLARO, MOVIMIENTO)
+    + "@media (prefers-color-scheme:dark){"
+    + _vars_css("body", TOKENS_OSCURO)
+    + "}"
+    + """
 *{ box-sizing:border-box; }
 body{
   margin:0; padding:0; background:transparent; font-family:'Libre Franklin',system-ui,sans-serif;
-  --negro:#0A0A0A; --rojo:#D1122E; --texto:#1A1A1A; --suave:#555555;
-  --linea:#E2E8F0; --gris:#F1F5F9;
   color:var(--texto); overflow:hidden;
 }
 .rejilla{
@@ -1551,11 +1743,23 @@ body{
 }
 
 .tarjeta{
-  background:#fff; border:1px solid var(--linea); border-left:4px solid #CBD5E1;
+  background:var(--papel); border:1px solid var(--linea); border-left:4px solid var(--linea-fuerte);
   border-radius:6px; padding:7px 13px; display:flex; flex-direction:column;
-  justify-content:space-between; transition:transform .15s ease, box-shadow .15s ease, border-color .15s ease;
-  box-shadow:0 1px 4px rgba(0,0,0,0.03); cursor:default;
-  animation:entradaTarjeta .2s cubic-bezier(.16,1,.3,1) backwards;
+  justify-content:space-between;
+  transition:transform var(--medio) var(--entrada), box-shadow var(--medio) var(--entrada),
+             border-color var(--medio) var(--entrada);
+  box-shadow:0 1px 4px rgba(0,0,0,0.03);
+  animation:entradaTarjeta var(--medio) var(--entrada) backwards;
+  /* Entrada escalonada. --i lo pone pinta_tarjetas en el style de cada
+     tarjeta. Las seis entraban a la vez y se leia como un bloque que aparece
+     de golpe, no como una lista que llega. Con seis tarjetas el ultimo
+     retraso es de 225 ms: por encima de ahi empieza a notarse como lentitud
+     y deja de compensar. */
+  animation-delay:calc(var(--i, 0) * var(--paso));
+  /* La tarjeta entera copia el codigo al pulsarla, pero llevaba
+     cursor:default: quien no pasaba por encima del boton Copiar no se
+     enteraba nunca de que podia pulsar en cualquier parte. */
+  cursor:pointer;
 }
 .tarjeta:hover{
   transform:translateY(-2px); box-shadow:0 5px 14px rgba(0,0,0,0.07); border-color:#CBD5E1;
@@ -1568,7 +1772,7 @@ body{
   box-shadow:0 6px 16px rgba(209,18,46,0.12);
 }
 .tarjeta.relleno{
-  background:#FAFAFA; border-left-color:#E2E8F0; opacity:.92;
+  background:var(--gris); border-left-color:var(--linea); opacity:.92;
 }
 
 .fila{
@@ -1587,12 +1791,15 @@ body{
 
 .copiar{
   font-family:'Libre Franklin',sans-serif; font-size:clamp(0.68rem, 0.74vw, 0.74rem);
-  font-weight:600; color:var(--texto); background:#fff; border:1px solid #CBD5E1;
+  font-weight:600; color:var(--texto); background:var(--papel);
+  border:1px solid var(--linea-fuerte);
   border-radius:4px; padding:.22rem .65rem; cursor:pointer;
-  transition:all .15s cubic-bezier(.2,.8,.2,1); white-space:nowrap;
+  transition:background var(--rapido) var(--salida), color var(--rapido) var(--salida),
+              border-color var(--rapido) var(--salida), transform var(--rapido) var(--salida);
+  white-space:nowrap;
   box-shadow:0 1px 2px rgba(0,0,0,0.03);
 }
-.copiar:hover{ background:var(--negro); color:#fff; border-color:var(--negro); transform:translateY(-1px); }
+.copiar:hover{ background:var(--negro); color:var(--papel); border-color:var(--negro); transform:translateY(-1px); }
 .copiar:active{ transform:scale(0.95); }
 .copiar.hecho{ background:#16A34A !important; border-color:#16A34A !important; color:#fff !important; box-shadow:0 2px 6px rgba(22,163,74,0.25); }
 
@@ -1614,6 +1821,13 @@ body{
   padding:.14rem .42rem; border-radius:3px; background:var(--gris); color:var(--suave);
 }
 .etiqueta.recomendada{ background:linear-gradient(135deg, var(--rojo) 0%, #B90E26 100%); color:#fff; box-shadow:0 1px 3px rgba(209,18,46,0.25); }
+/* Solo aparece al pasar por encima: dice lo que hace la tarjeta sin ocupar
+   sitio permanente en una rejilla que es apretada a proposito. */
+.pista{
+  font-size:.62rem; font-weight:600; color:var(--suave);
+  opacity:0; transition:opacity var(--medio) var(--entrada); margin-left:auto;
+}
+.tarjeta:hover .pista{ opacity:1; }
 .etiqueta.mando{ background:#FFF7ED; color:#C2410C; border:1px solid #FFEDD5; }
 .etiqueta.directa{ background:#EFF6FF; color:#2563EB; border:1px solid #DBEAFE; }
 
@@ -1628,19 +1842,33 @@ body{
   pointer-events:none;
 }
 
-/* MEJORA 6b: Modo oscuro en tarjetas */
+/* Modo oscuro de las tarjetas.
+   Los tokens los emite TOKENS_OSCURO al principio de esta hoja, asi que
+   .tarjeta y .copiar ya cambian solos: usan var(--papel) y var(--linea-fuerte).
+   Aqui abajo queda unicamente lo que NO es un token, es decir, los matices que
+   solo tienen sentido sobre fondo oscuro. */
 @media (prefers-color-scheme:dark){
-  body{ --negro:#E8E8E8; --rojo:#E8384F; --texto:#E0E0E0; --suave:#A0A0A0; --linea:#2D3748; --gris:#1A202C; }
-  .tarjeta{ background:#1A202C; border-color:#2D3748; }
   .tarjeta.top{ background:#1E1E2A; box-shadow:0 2px 8px rgba(232,56,79,0.1); }
   .tarjeta.relleno{ background:#151920; }
-  .copiar{ background:#1A202C; color:#E0E0E0; border-color:#4A5568; }
-  .copiar:hover{ background:#E0E0E0; color:#111; }
-  .etiqueta{ background:#2D3748; color:#A0A0A0; }
+  .copiar:hover{ background:var(--texto); color:#111318; }
+  .etiqueta{ background:#2D3748; color:var(--suave); }
   .etiqueta.directa{ background:#1E293B; color:#60A5FA; border-color:#1E3A5F; }
   .ripple-efecto{ background:rgba(232,56,79,0.15); }
 }
+
+/* El iframe es un documento aparte y no hereda la guarda de la pagina: aqui
+   viven la entrada escalonada y el ripple, que son justo lo que sobra cuando
+   alguien pide menos movimiento. */
+@media (prefers-reduced-motion:reduce){
+  *, *::before, *::after{
+    animation-duration:.001ms !important;
+    animation-iteration-count:1 !important;
+    animation-delay:0ms !important;
+    transition-duration:.001ms !important;
+  }
+}
 """
+)
 
 GUION_INTERACTIVO = """
 // El alto del marco se calcula en el servidor suponiendo dos tarjetas por fila
@@ -1720,13 +1948,33 @@ document.querySelectorAll('.tarjeta').forEach(t => {
   });
 });
 
-window.addEventListener('keydown', (e) => {
-  if (['1','2','3','4','5','6'].includes(e.key) && !['INPUT','TEXTAREA'].includes(document.activeElement.tagName)) {
-    const idx = parseInt(e.key) - 1;
-    const btns = document.querySelectorAll('.copiar');
-    if (btns[idx]) btns[idx].click();
+// Atajo 1-6 para copiar el codigo de esa posicion.
+//
+// Escuchaba solo en el window del marco, y ahi el foco casi nunca esta:
+// despues de escribir en el buscador el foco se queda en el documento padre,
+// asi que en uso normal la tecla no llegaba y el atajo estaba muerto salvo que
+// antes pulsaras dentro de la zona de tarjetas. Se registra en los dos sitios.
+function atajoCopiar(e){
+  if (!['1','2','3','4','5','6'].includes(e.key)) return;
+  var etiqueta = e.target && e.target.tagName;
+  if (etiqueta === 'INPUT' || etiqueta === 'TEXTAREA') return;
+  var botones = document.querySelectorAll('.copiar');
+  var boton = botones[parseInt(e.key, 10) - 1];
+  if (boton) { e.preventDefault(); boton.click(); }
+}
+
+window.addEventListener('keydown', atajoCopiar);
+
+// El padre puede estar en otro origen segun como sirva Streamlit el marco. Si
+// no deja cruzar, se lanza y nos quedamos con el listener local: exactamente
+// el comportamiento de antes, nada se rompe.
+try {
+  if (window.parent && window.parent !== window && window.parent.document) {
+    window.parent.document.addEventListener('keydown', atajoCopiar);
   }
-});
+} catch (err) {
+  /* origen distinto: se queda solo el listener del marco */
+}
 
 const observador = new ResizeObserver(pideAlto);
 observador.observe(document.body);
@@ -1771,8 +2019,9 @@ def pinta_tarjetas(ocupaciones):
 
         motivo_html = f'<div class="motivo">{o["motivo"]}</div>' if o.get("motivo") else ""
 
+        # --i alimenta el animation-delay de la entrada escalonada.
         trozos.append(
-            f'<div class="{clase}">'
+            f'<div class="{clase}" style="--i:{i - 1}">'
             f'  <div>'
             f'    <div class="fila">'
             f'      <div class="identificador">'
@@ -1784,7 +2033,9 @@ def pinta_tarjetas(ocupaciones):
             f'    <div class="denominacion">{o["denominacion"]}</div>'
             f'    {motivo_html}'
             f'  </div>'
-            f'  <div class="etiquetas-fila">{"".join(etiquetas_html)}</div>'
+            f'  <div class="etiquetas-fila">{"".join(etiquetas_html)}'
+            f'    <span class="pista">Pulsa para copiar</span>'
+            f'  </div>'
             f'</div>'
         )
 
@@ -1807,7 +2058,8 @@ def pinta_tarjetas(ocupaciones):
     estimada = int(estimada * 1.15) + 12
 
     components.html(
-        f"<style>{ESTILO_TARJETAS}</style>"
+        ENLACE_FUENTES
+        + f"<style>{ESTILO_TARJETAS}</style>"
         f"<div class=\"rejilla\">{''.join(trozos)}</div>"
         f"<script>{GUION_INTERACTIVO}</script>",
         height=estimada,
@@ -1830,7 +2082,7 @@ def pinta_otras(otras, arranque=1, titulo="Ver otras ocupaciones del catálogo")
             )
 
 
-def pinta_resultado(payload, estado=None, avance=0.06, interactivo=False, consulta=""):
+def pinta_resultado(payload, estado=None, interactivo=False, consulta=""):
     # Interruptor para la prueba masiva. resuelve() dibuja el resultado en
     # nueve puntos distintos; en una tanda de sesenta consultas eso llena la
     # pagina de tarjetas que nadie va a mirar. Cortando aqui se cortan los
@@ -1840,17 +2092,29 @@ def pinta_resultado(payload, estado=None, avance=0.06, interactivo=False, consul
         return
 
     if estado:
+        # La barra ya no dice un porcentaje. La anterior avanzaba contra
+        # ESPERA_MAXIMA (30 s) mientras la cascada contesta en 2 a 4,6 s: se
+        # quedaba en el 17 % y saltaba al final, que se lee como atascada.
         st.markdown(
-            f'<div class="pensando"><span class="pensando-icono">◉</span>{estado}</div>',
+            f'<div class="pensando"><span class="pensando-icono">◉</span>{estado}</div>'
+            f'<div class="barra-espera"><i></i></div>',
             unsafe_allow_html=True,
         )
-        st.progress(min(avance, 0.95))
         # Antes se volvia aqui, asi que durante la espera solo se veia la barra.
         # Pero el catalogo ya ha respondido en el primer milisegundo y esos
         # resultados estaban calculados y guardados sin llegar a mostrarse. Si
         # los hay, se pintan bajo la barra y se sustituyen cuando el modelo
         # termina: la espera es la misma, pero deja de ser una pantalla vacia.
         if not payload.get("ocupaciones"):
+            # Y si no los hay, el hueco lo guardan los esqueletos. Sin ellos la
+            # rejilla no existia y de pronto ocupaba 300 px, asi que todo lo de
+            # debajo saltaba justo cuando llega la respuesta.
+            st.markdown(
+                '<div class="rejilla-hueso">'
+                + '<div class="hueso"><span></span><span></span><span></span></div>' * 4
+                + '</div>',
+                unsafe_allow_html=True,
+            )
             return
     if payload.get("aviso"):
         st.info(payload["aviso"])
@@ -2130,7 +2394,7 @@ def resuelve(texto, zona, usar_ia=True, contexto="", busqueda=None):
 
     interpretado, aviso = None, ""
     with zona.container():
-        pinta_resultado({}, estado="Interpretando el oficio", avance=0.12)
+        pinta_resultado({}, estado="Interpretando el oficio")
     with cronometra("1. Interpretar el oficio"):
         lecturas = interpreta_consulta(texto)
     if lecturas:
@@ -2169,20 +2433,21 @@ def resuelve(texto, zona, usar_ia=True, contexto="", busqueda=None):
         return payload
 
     def consulta_al_modelo(candidatos, etiqueta):
-        bruto, avance = "", 0.10
+        # El estado se pinta UNA vez, al entrar, y no se vuelve a tocar hasta
+        # que hay respuesta. Antes se repintaba cada vez que el avance subia un
+        # 4 %, porque la barra tenia que moverse. Ya no muestra porcentaje, asi
+        # que repintar solo servia para reiniciar la animacion a media espera y
+        # para rehacer el arbol de Streamlit con cada trozo que llegaba.
+        with zona.container():
+            pinta_resultado({}, estado=etiqueta)
+        bruto = ""
         arranque = time.perf_counter()
         for trozo in flujo_modelo(texto + contexto, candidatos):
             bruto += trozo
-            transcurrido = time.perf_counter() - arranque
-            if transcurrido > ESPERA_MAXIMA:
+            if time.perf_counter() - arranque > ESPERA_MAXIMA:
                 raise TimeoutError(
                     f"El modelo ha tardado más de {ESPERA_MAXIMA} segundos."
                 )
-            nuevo = min(0.10 + transcurrido / (ESPERA_MAXIMA * 1.4), 0.92)
-            if nuevo - avance > 0.04:
-                avance = nuevo
-                with zona.container():
-                    pinta_resultado({}, estado=etiqueta, avance=avance)
         return interpreta(bruto)
 
     try:
@@ -2192,7 +2457,7 @@ def resuelve(texto, zona, usar_ia=True, contexto="", busqueda=None):
 
         if payload.get("mas_terminos"):
             with zona.container():
-                pinta_resultado({}, estado="Ampliando la búsqueda", avance=0.45)
+                pinta_resultado({}, estado="Ampliando la búsqueda")
             ampliados = busca(f"{busqueda or texto} {payload['mas_terminos']}",
                               tope=tope_ia + 6)
             if ampliados:

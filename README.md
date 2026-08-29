@@ -66,6 +66,15 @@ limpia.
 - **Modelo de IA**: bloque `PROVEEDORES`. Es una lista con relevo automático.
 - **Orden de la cascada**: constante `ORDEN` (`gemini`, `mistral`, `openrouter`).
 - **Vocabulario**: `vocabulario.json`. Si falta, la app arranca en modo mínimo.
+- **Colores**: `TOKENS_CLARO` y `TOKENS_OSCURO` en `app.py`. Los interpolan las
+  dos hojas de estilo (la de la página y la del marco de tarjetas), así que un
+  color se cambia en un sitio y vale en los dos. `.streamlit/config.toml` sigue
+  aparte porque Streamlit lo lee antes de que `app.py` exista: es el único
+  duplicado que queda.
+- **Movimiento**: `MOVIMIENTO`. Dos curvas (`--entrada` para lo que aparece,
+  `--salida` para lo que responde a un gesto), tres duraciones, y `--paso`, el
+  retraso entre tarjeta y tarjeta de la entrada escalonada. Con seis tarjetas el
+  último retraso es de 225 ms; por encima empieza a notarse como lentitud.
 
 ## Las dos baterías de pruebas
 
