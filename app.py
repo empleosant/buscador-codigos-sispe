@@ -388,9 +388,11 @@ div[class*="st-key-resp_opt"] button,
 div[class*="st-key-caja_pregunta"] .stButton button,
 .st-key-pregunta .stButton button{
   background:#fff !important; border:1.5px solid var(--negro) !important; font-weight:600 !important;
-  border-radius:20px !important; padding:.38rem 1.35rem !important; min-height:36px !important;
+  border-radius:20px !important; padding:.42rem 1.25rem !important; min-height:36px !important;
   font-size:.85rem !important; transition:all .18s cubic-bezier(.2,.8,.2,1) !important;
-  white-space:nowrap !important; height:auto !important; width:auto !important;
+  white-space:normal !important; word-break:normal !important; text-align:center !important;
+  line-height:1.24 !important; max-width:420px !important;
+  height:auto !important; width:auto !important;
   display:inline-flex !important; align-items:center !important; justify-content:center !important;
   box-shadow:0 1px 3px rgba(0,0,0,0.04) !important; cursor:pointer !important;
 }
@@ -985,12 +987,13 @@ REGLAS
 7. Respeta la naturaleza y función real del puesto:
    - Gestión de facturas, facturación, contabilidad, nóminas o presupuestos corresponden a EMPLEADOS ADMINISTRATIVOS (contabilidad 41111011, personal/nóminas 41121012, administrativo general 43091029). NUNCA selecciones COBRADORES DE FACTURAS, DEUDAS O ALQUILERES (44451017) salvo que se indique expresamente cobro a morosos o recaudación de deudas en calle.
    - Limpieza de habitaciones de hotel corresponde a CAMAREROS DE PISO (HOSTELERÍA) (92101027), no a mayordomos ni gobernantes.
+   - Reparto o transporte de bombonas de butano, gas o paquetería corresponde a CONDUCTORES DE CAMIÓN / FURGONETA / MOTOCARRO / TRANSPORTISTAS (grupo 8: 84321042 / 84121035 / 84401012 / 84311012), NUNCA a operadores de sistemas de distribución de agua o tuberías de gas (grupo 3).
    - Tareas operativas de conducción o manejo de maquinaria (carretilla, autobús, camión) corresponden a CONDUCTORES-OPERADORES (grupo 8), no a técnicos de gestión.
    - Domicilio particular frente a institución, centro o residencia.
 8. PREGUNTA Y OPCIONES (DESAMBIGUACIÓN):
-   - Rellena "pregunta" y "opciones" SIEMPRE que la consulta sea genérica y existan especialidades oficiales relevantes en la lista de candidatas (ej. peluquería: Unisex vs Señoras vs Caballeros y barbería; camareros: Barra vs Sala vs Pisos; conducción: Camión vs Autobús vs Reparto ligero; limpieza: Oficinas vs Domicilios vs Hospitales). Si la descripción ya es totalmente específica e inequívoca, deja "pregunta": "" y "opciones": [].
+   - Rellena "pregunta" y "opciones" SIEMPRE que la consulta sea genérica y existan especialidades oficiales relevantes en la lista de candidatas (ej. peluquería: Unisex vs Señoras vs Caballeros y barbería; camareros: Barra vs Sala vs Pisos; conducción: Camión vs Furgoneta vs Motocicleta; reparto de butano: Reparto en camión/furgoneta vs Instalador de gas). Si la descripción ya es totalmente específica e inequívoca, deja "pregunta": "" y "opciones": [].
    - La pregunta debe plantear una elección clara y directa (máximo 15 palabras).
-   - El campo "opciones" DEBE contener entre 2 y 3 alternativas directas, concisas y limpias (ej. ["Peluquería unisex", "Peluquería de señoras", "Caballeros y barbería"], ["Trámites de personal y nóminas", "Facturación y contabilidad"], ["Atención en barra y mostrador", "Servicio en mesas y sala", "Cocina"]). Evita fórmulas redundantes tipo "Sí (algo)" o palabras repetidas. NUNCA dejes "opciones" vacío si hay "pregunta".
+   - El campo "opciones" DEBE contener entre 2 y 3 alternativas directas, breves y limpias (máximo 4 a 6 palabras por opción, ej. ["Reparto en camión", "Reparto en furgoneta / moto", "Instalador de gas"], ["Trámites de personal y nóminas", "Facturación y contabilidad"], ["Peluquería unisex", "Peluquería de señoras", "Caballeros y barbería"]). Evita textos largos o fórmulas redundantes tipo "Sí (algo)". NUNCA dejes "opciones" vacío si hay "pregunta".
 9. Si ninguna de las candidatas describe con precisión la actividad, rellena "otros_terminos" con entre 6 y 10 palabras sueltas de la CNO.
 
 EJEMPLO DE RESPUESTA:
@@ -1326,11 +1329,8 @@ def limpia_opcion(texto):
             r"^(?:la|el|los|las|un|una|unos|unas|en|a|al|del|de|para|con|por|su|sus)\s+",
             "", t, flags=re.IGNORECASE,
         ).strip()
-    if len(t) > 44:
-        t = t[:44].rsplit(" ", 1)[0]
-        # Cortar por una palabra entera no basta: si el corte cae justo detras
-        # de un conector queda "Gestion de contabilidad y", que no significa
-        # nada. Se retrocede hasta que la ultima palabra tenga contenido.
+    if len(t) > 75:
+        t = t[:75].rsplit(" ", 1)[0]
         colgantes = {
             "y", "o", "u", "e", "de", "del", "al", "a", "en", "con", "por",
             "para", "sin", "sobre", "the", "la", "el", "los", "las", "un",
@@ -1339,7 +1339,7 @@ def limpia_opcion(texto):
         piezas = t.split()
         while len(piezas) > 1 and piezas[-1].lower().strip(",;") in colgantes:
             piezas.pop()
-        t = " ".join(piezas) + "…"
+        t = " ".join(piezas)
     return t.capitalize()
 
 
