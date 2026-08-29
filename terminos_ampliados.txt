@@ -1235,7 +1235,7 @@
 71921019:panel sanwich anclajes tornilleria perfileria andamio grapas remate remates
 71931016:tela asfaltica soplete goteras bututil impermeabilizar imprimacion membrana drenaje sellar
 71991012:puntal puntales cimbra madero viga encofrado apuntalar estabilizar
-71991021:montador montaje tabiquero instalador pladur trasdosado yeso laminado tabique perfileria encintar juntas atornillar
+71991021:montador de trasdosado montador trasdosado pladur pladurista yeso laminado tabique perfileria tabiquero instalador encintar juntas atornillar
 71991030:martillo demoledor piqueta escombro radial contenedor maza derribo escombrera
 71991049:tubular cruceta plataformas rodapie grapas niveladoras mosqueton brida arnes
 71991058:malla simple torsion postes cancela alambre tensores piquetes grapas mallazo
@@ -1618,7 +1618,7 @@
 78371228:borde canto tinte pincel zapato suela bota taco brocha
 78371237:hormas plantillas cuero suelas coser pegamento horma ortopedia talones
 78371246:hormas horma patronaje coser suelas cuero punzon lezna
-78371255:mediasuelas tacones pegamento coser tintes plantillas suelas lezna cepillo
+78371255:zapatero remendon remiendo reparador de calzado suelas tapas arreglo coser zapatos taller de reparacion de calzado
 78911019:neopreno botella plomada aletas mascara regulador estanco escafandra fondeo
 78911028:neopreno hormigon manguera perforadora hidraulica bolsa zanja subacuatico esclusa
 78911037:rescate baliza camilla arnes boya estanco busqueda reflotamiento oxigeno
