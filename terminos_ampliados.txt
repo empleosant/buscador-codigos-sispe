@@ -1075,9 +1075,9 @@
 57211024:parada cinturon ruta mochila colegio crios menores bus monitor
 57211033:patio bandejas pure babero siesta alergias crios vigilante
 57221018:deberes parque biberon panales merienda ninera juegos bano siesta
-58111019:navaja degradado patillas barba tijeras afeitado rapado tijera maquinilla
-58111028:mechas plancha rulos secador tinte tijeras peinado cepillo lavacabezas
-58111037:tijeras secador plancha mechas tinte lavado peinado capas barbero
+58111019:cortar pelo peluqueria peluquero caballero barberia barbero barba afeitado degradado corte de pelo masculino navaja tijeras rapado patillas
+58111028:cortar pelo peluqueria peluquera senora cabello mechas tinte peinados recogidos rulos secador corte de pelo femenino lavacabezas
+58111037:cortar pelo peluqueria peluquero unisex peluqueria mixta corte de pelo peinado tinte mechas tijeras secador lavado de cabeza
 58121012:toalla sauna turco hidromasaje albornoz ducha exfoliante termas balneario
 58121030:depilacion cejas cera mascarilla peeling laser cabina unas camilla
 58121049:tendencia corte look diseno colorista pasarela asesoramiento imagen estilismo
