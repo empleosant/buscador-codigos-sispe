@@ -326,19 +326,7 @@ div[data-testid="stTextInput"] input{
   background:var(--rojo) !important; border-color:var(--rojo) !important; color:#fff !important;
 }
 
-/* Consulta activa */
-.consulta-box{
-  border-bottom:2px solid var(--negro); padding-bottom:.2rem;
-  margin:0 0 clamp(0.25rem, 0.5vh, 0.4rem);
-}
-.consulta-texto{
-  font-size:clamp(0.95rem, 1.05vw, 1.08rem); font-weight:700;
-  letter-spacing:-.015em; color:var(--texto);
-}
-.seccion{
-  font-size:.65rem; font-weight:700; letter-spacing:.14em; text-transform:uppercase;
-  color:var(--suave); margin:1rem 0 .5rem;
-}
+/* Consulta activa (estilos en la sección de transiciones suaves) */
 
 /* Pregunta interactiva centrada (arriba de las tarjetas) */
 div[class*="st-key-caja_pregunta"], .st-key-pregunta{
@@ -450,9 +438,6 @@ div[class*="st-key-caja_pregunta"] .stButton button:active,
 .pie-nueva{
   text-align:center; font-size:.74rem; font-weight:600; color:var(--suave); margin:.2rem 0 0;
 }
-/* Firma de autoria. Va al final de todo y en el gris suave: tiene que leerse
-   como una firma, no como un aviso. La herramienta se usa con un ciudadano
-   delante y el foco debe seguir estando en el resultado. */
 .pie-firma{
   text-align:center; font-size:.72rem; color:var(--suave);
   margin:2.2rem 0 .6rem; padding-top:.9rem;
@@ -462,6 +447,125 @@ div[class*="st-key-caja_pregunta"] .stButton button:active,
 .pie-firma a:hover{ color:var(--rojo); }
 div[data-testid="stExpander"]{ border:none; background:transparent; margin-top:.1rem; }
 div[data-testid="stExpander"] summary{ font-size:.8rem; color:var(--suave); padding:.1rem 0; }
+
+/* ====== MEJORA 1: Pantalla de bienvenida ====== */
+@keyframes flotar{
+  0%,100%{ transform:translateY(0); }
+  50%{ transform:translateY(-6px); }
+}
+.bienvenida{
+  text-align:center; padding:clamp(2.5rem, 8vh, 5rem) 1rem clamp(1rem, 3vh, 2rem);
+  animation:fadeIn .5s ease;
+}
+.bienvenida-icono{
+  font-size:clamp(2.8rem, 4vw, 3.6rem); color:var(--linea);
+  animation:flotar 3s ease-in-out infinite; margin-bottom:.6rem;
+  user-select:none;
+}
+.bienvenida-texto{
+  font-size:clamp(.88rem, 1vw, .96rem); color:var(--tenue);
+  font-weight:500; line-height:1.5; max-width:360px; margin:0 auto;
+}
+.bienvenida-texto b{ color:var(--suave); font-weight:600; }
+
+/* ====== MEJORA 2: Indicador de "pensando" con pulso ====== */
+@keyframes pulso{
+  0%,100%{ opacity:.4; }
+  50%{ opacity:1; }
+}
+@keyframes puntos{
+  0%{ content:''; }
+  25%{ content:'.'; }
+  50%{ content:'..'; }
+  75%{ content:'...'; }
+}
+.pensando{
+  text-align:center; padding:.8rem 0 .4rem; font-size:.82rem;
+  font-weight:600; color:var(--suave); letter-spacing:.02em;
+}
+.pensando-icono{
+  display:inline-block; animation:pulso 1.4s ease-in-out infinite;
+  margin-right:.3rem; font-size:.9rem;
+}
+.pensando::after{
+  content:'...'; animation:puntos 1.2s steps(4, end) infinite;
+  display:inline;
+}
+
+/* ====== MEJORA 3: Chip de proveedor ====== */
+.chip-proveedor{
+  display:inline-flex; align-items:center; gap:4px;
+  font-size:.62rem; font-weight:600; color:var(--tenue);
+  background:var(--gris); border:1px solid var(--linea);
+  border-radius:12px; padding:.15rem .55rem; margin:.2rem auto;
+  letter-spacing:.03em;
+}
+.chip-proveedor-punto{
+  width:5px; height:5px; border-radius:50%; background:#16A34A;
+  display:inline-block;
+}
+
+/* ====== MEJORA 4: Transiciones suaves ====== */
+@keyframes fadeIn{
+  from{ opacity:0; transform:translateY(6px); }
+  to{ opacity:1; transform:translateY(0); }
+}
+.consulta-box{
+  border-bottom:2px solid var(--negro); padding-bottom:.2rem;
+  margin:0 0 clamp(0.25rem, 0.5vh, 0.4rem);
+  animation:fadeIn .25s ease;
+}
+.consulta-texto{
+  font-size:clamp(0.95rem, 1.05vw, 1.08rem); font-weight:700;
+  letter-spacing:-.015em; color:var(--texto);
+}
+.seccion{
+  font-size:.65rem; font-weight:700; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--suave); margin:1rem 0 .5rem;
+}
+
+/* ====== MEJORA 6: Modo oscuro ====== */
+@media (prefers-color-scheme:dark){
+  :root{
+    --negro:#E8E8E8;
+    --rojo:#E8384F;
+    --rojo-oscuro:#F25B6E;
+    --texto:#E0E0E0;
+    --suave:#A0A0A0;
+    --tenue:#787878;
+    --linea:#2D3748;
+    --gris:#1A202C;
+  }
+  .stApp{ background:#111318 !important; }
+  .block-container{ background:#111318 !important; }
+  .st-key-cabecera{ background:#0D0D0D; }
+  .st-key-cabecera div[data-testid="stTextInput"] div[data-baseweb="input"]{
+    background:#1A1A1A !important; border-color:#333 !important;
+  }
+  div[data-testid="stTextInput"] input{ color:#E0E0E0 !important; }
+  div[class*="st-key-caja_pregunta"], .st-key-pregunta{
+    background:#1A202C !important; border-color:#2D3748 !important;
+  }
+  div[class*="st-key-resp_opt"] button,
+  div[class*="st-key-caja_pregunta"] .stButton button,
+  .st-key-pregunta .stButton button{
+    background:#1A202C !important; color:#E0E0E0 !important; border-color:#4A5568 !important;
+  }
+  div[class*="st-key-resp_opt"] button:hover,
+  div[class*="st-key-caja_pregunta"] .stButton button:hover,
+  .st-key-pregunta .stButton button:hover{
+    background:#E0E0E0 !important; color:#111 !important;
+  }
+  .st-key-reinicio button{
+    background:#1A202C !important; border-color:#4A5568 !important;
+  }
+  .st-key-reinicio button:hover{
+    background:var(--rojo) !important; border-color:var(--rojo) !important;
+  }
+  .pie-firma{ border-top-color:rgba(255,255,255,.08); }
+  .consulta-box{ border-bottom-color:#E0E0E0; }
+  .bienvenida-icono{ color:#2D3748; }
+}
 
 /* ---------- Pantallas estrechas (móvil) ----------
    La herramienta se usa también desde el teléfono. Aquí no se rediseña nada:
@@ -991,15 +1095,12 @@ REGLAS
    - Tareas operativas de conducción o manejo de maquinaria (carretilla, autobús, camión) corresponden a CONDUCTORES-OPERADORES (grupo 8), no a técnicos de gestión.
    - Domicilio particular frente a institución, centro o residencia.
 8. PREGUNTA Y OPCIONES (DESAMBIGUACIÓN):
-   - Rellena "pregunta" y "opciones" SIEMPRE que la consulta sea genérica y existan especialidades oficiales relevantes en la lista de candidatas. Si la descripción ya es totalmente específica e inequívoca, deja "pregunta": "" y "opciones": [].
+   - Rellena "pregunta" y "opciones" SOLO cuando sea estrictamente necesario para diferenciar entre especialidades críticas. Si el oficio está claro desde el inicio y no hay duda, es OBLIGATORIO dejar "pregunta": "" y "opciones": []. No despliegues la batería de preguntas innecesariamente.
    - TONO DE LA PREGUNTA: Escríbela como si fueras un orientador laboral hablándole de tú a la persona que tienes delante, en lenguaje cercano y natural. Nada de fórmulas técnicas ni burocráticas. Ejemplos de buen tono:
      · "¿Cortabas pelo a hombres, a mujeres o a todo tipo de clientes?"
-     · "¿Repartías con camión grande o con furgoneta?"
-     · "¿Trabajabas en barra sirviendo copas o llevabas las mesas del comedor?"
-     · "¿Le hacías las nóminas al personal o llevabas la contabilidad y las facturas?"
      · "¿Cuidabas a la persona en su casa o en una residencia?"
-   - La pregunta debe ser breve (máximo 18 palabras), directa y fácil de entender para cualquiera.
-   - El campo "opciones" DEBE contener entre 2 y 3 alternativas breves y claras (máximo 6 palabras por opción), escritas también en tono natural como las diría la persona: ["Pelo de hombre y barbería", "Pelo de mujer", "De todo, unisex"]. Evita textos largos o fórmulas tipo "Sí (algo)". NUNCA dejes "opciones" vacío si hay "pregunta".
+   - La pregunta debe ser breve, directa y fácil de entender.
+   - El campo "opciones" DEBE contener un máximo de 3 alternativas y un mínimo de 1 alternativa breve (máximo 6 palabras por opción), escritas en tono natural: ["Pelo de hombre", "Pelo de mujer", "Unisex"]. Evita textos largos. NUNCA dejes "opciones" vacío si hay "pregunta".
 9. Si ninguna de las candidatas describe con precisión la actividad, rellena "otros_terminos" con entre 6 y 10 palabras sueltas de la CNO.
 
 EJEMPLO DE RESPUESTA:
@@ -1514,6 +1615,31 @@ body{
 }
 .etiqueta.recomendada{ background:linear-gradient(135deg, var(--rojo) 0%, #B90E26 100%); color:#fff; box-shadow:0 1px 3px rgba(209,18,46,0.25); }
 .etiqueta.mando{ background:#FFF7ED; color:#C2410C; border:1px solid #FFEDD5; }
+.etiqueta.directa{ background:#EFF6FF; color:#2563EB; border:1px solid #DBEAFE; }
+
+/* MEJORA 7: Efecto ripple al copiar */
+.tarjeta{ position:relative; overflow:hidden; }
+@keyframes ripple{
+  to{ transform:scale(4); opacity:0; }
+}
+.ripple-efecto{
+  position:absolute; border-radius:50%; background:rgba(209,18,46,0.12);
+  width:60px; height:60px; transform:scale(0); animation:ripple .5s ease-out forwards;
+  pointer-events:none;
+}
+
+/* MEJORA 6b: Modo oscuro en tarjetas */
+@media (prefers-color-scheme:dark){
+  body{ --negro:#E8E8E8; --rojo:#E8384F; --texto:#E0E0E0; --suave:#A0A0A0; --linea:#2D3748; --gris:#1A202C; }
+  .tarjeta{ background:#1A202C; border-color:#2D3748; }
+  .tarjeta.top{ background:#1E1E2A; box-shadow:0 2px 8px rgba(232,56,79,0.1); }
+  .tarjeta.relleno{ background:#151920; }
+  .copiar{ background:#1A202C; color:#E0E0E0; border-color:#4A5568; }
+  .copiar:hover{ background:#E0E0E0; color:#111; }
+  .etiqueta{ background:#2D3748; color:#A0A0A0; }
+  .etiqueta.directa{ background:#1E293B; color:#60A5FA; border-color:#1E3A5F; }
+  .ripple-efecto{ background:rgba(232,56,79,0.15); }
+}
 """
 
 GUION_INTERACTIVO = """
@@ -1579,7 +1705,16 @@ document.querySelectorAll('.copiar').forEach(b => {
 });
 
 document.querySelectorAll('.tarjeta').forEach(t => {
-  t.addEventListener('click', () => {
+  t.addEventListener('click', (e) => {
+    // Ripple visual
+    const rect = t.getBoundingClientRect();
+    const ripple = document.createElement('span');
+    ripple.className = 'ripple-efecto';
+    ripple.style.left = (e.clientX - rect.left - 30) + 'px';
+    ripple.style.top = (e.clientY - rect.top - 30) + 'px';
+    t.appendChild(ripple);
+    setTimeout(() => ripple.remove(), 500);
+    // Copiar
     const btn = t.querySelector('.copiar');
     if (btn) btn.click();
   });
@@ -1626,6 +1761,8 @@ def pinta_tarjetas(ocupaciones):
         etiquetas_html = []
         if es_primera:
             etiquetas_html.append('<span class="etiqueta recomendada">★ Recomendada</span>')
+        if o.get("motivo", "").startswith("Coincidencia directa"):
+            etiquetas_html.append('<span class="etiqueta directa">⚡ Directa</span>')
 
         etiqueta_clase = "etiqueta mando" if es_mando else "etiqueta"
         etiquetas_html.append(
@@ -1703,7 +1840,11 @@ def pinta_resultado(payload, estado=None, avance=0.06, interactivo=False, consul
         return
 
     if estado:
-        st.progress(min(avance, 0.95), text=estado)
+        st.markdown(
+            f'<div class="pensando"><span class="pensando-icono">◉</span>{estado}</div>',
+            unsafe_allow_html=True,
+        )
+        st.progress(min(avance, 0.95))
         # Antes se volvia aqui, asi que durante la espera solo se veia la barra.
         # Pero el catalogo ya ha respondido en el primer milisegundo y esos
         # resultados estaban calculados y guardados sin llegar a mostrarse. Si
@@ -1785,6 +1926,35 @@ def pinta_resultado(payload, estado=None, avance=0.06, interactivo=False, consul
             f'{payload["descartadas"]} '
             f'{"sugerencia que no figuraba" if payload["descartadas"] == 1 else "sugerencias que no figuraban"} '
             f'en el catálogo oficial.</div>',
+            unsafe_allow_html=True,
+        )
+
+    # MEJORA 3: Chip discreto de proveedor/modelo
+    prov = st.session_state.get("ultimo_proveedor", "")
+    modelo = st.session_state.get("ultimo_modelo", "")
+    tiempos = st.session_state.get("tiempos", [])
+    if prov and modelo and not payload.get("fallo"):
+        # Nombre legible: "gemini-2.5-flash-preview-05-20" → "Gemini Flash"
+        partes = modelo.replace("-preview", "").replace("-latest", "").split("-")
+        nombre_m = " ".join(p.capitalize() for p in partes if not p.isdigit() and len(p) > 1)
+        if not nombre_m:
+            nombre_m = modelo.split("-")[0].capitalize()
+        total_s = sum(t for _, t in tiempos) if tiempos else 0
+        tiempo_txt = f" · {total_s:.1f}s" if total_s > 0 else ""
+        st.markdown(
+            f'<div style="text-align:center">'
+            f'<span class="chip-proveedor">'
+            f'<span class="chip-proveedor-punto"></span>'
+            f'{nombre_m}{tiempo_txt}'
+            f'</span></div>',
+            unsafe_allow_html=True,
+        )
+    elif any(o.get("motivo", "").startswith("Coincidencia directa") for o in payload.get("ocupaciones", [])):
+        st.markdown(
+            '<div style="text-align:center">'
+            '<span class="chip-proveedor">'
+            '<span class="chip-proveedor-punto" style="background:#3B82F6"></span>'
+            'Coincidencia directa</span></div>',
             unsafe_allow_html=True,
         )
 
@@ -2886,7 +3056,7 @@ with banda:
     with campo:
         texto = st.text_input(
             "Consulta", label_visibility="collapsed", key="consulta",
-            placeholder="Describe el puesto o introduce un código de 8 cifras...",
+            placeholder="🔍 Describe el puesto o introduce un código de 8 cifras...",
         )
     with boton:
         buscar = st.button("Buscar", key="buscar", use_container_width=True)
@@ -2942,7 +3112,15 @@ elif st.session_state["actual"]:
     st.markdown('<div class="pie-nueva">Nueva búsqueda</div>', unsafe_allow_html=True)
 
 else:
-    st.markdown('<div class="seccion">Prueba con</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="bienvenida">'
+        '<div class="bienvenida-icono">◉</div>'
+        '<div class="bienvenida-texto">'
+        'Escribe el <b>puesto de trabajo</b> o describe <b>lo que hacía la persona</b>'
+        '</div></div>',
+        unsafe_allow_html=True,
+    )
+    st.markdown('<div class="seccion">O prueba con un ejemplo</div>', unsafe_allow_html=True)
     arranque = "Una persona que "
     for i in range(0, len(EJEMPLOS), 2):
         fila = EJEMPLOS[i:i + 2]
