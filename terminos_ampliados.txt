@@ -925,8 +925,8 @@
 38331024:walkie talkie emisora vhf uhf repetidor frecuencia antena canal microfono transceptor
 38331033:router switch crimpadora latiguillo fibra optica fusionadora coaxial batea rack
 38331042:soldador osciloscopio multimetro smd pcb condensador transistor circuito impreso
-41111011:factura asiento contable balance iva amortizacion diario mayor
-41121012:nomina finiquito contratacion seguridad social ilt irpf redactam nominas
+41111011:facturas facturacion contabilidad cuentas administracion financiera asiento contable balance iva amortizacion diario mayor impuestos albaranes
+41121012:nominas personal contratacion recursos humanos finiquitos gestion de personal seguridad social altas bajas irpf contratos
 41131015:tpv hipoteca prestazo comision moroso domiciliacion apunte cajero divisa
 41131024:excel spss macro encuesta tabulacion estadistico grafico base datos media
 41131033:siniestro poliza franquicia endoso recibo prima peritaje mediador coaseguro
@@ -998,7 +998,7 @@
 45001019:mostrador recepcion ventanilla tramites fotocopiadora grapadora sello justificante
 50001017:autonomo caja proveedores autonomos carta menus reservas nomina
 51101015:galeote camarote mar cocina fogon rancho tripulacion
-51101026:fogon horno sarten menu carta mise place escandallo
+51101026:cocinero cocinar restaurante chef cocina guisar hosteleria platos elaboracion fogon horno sarten menu carta escandallo
 51101037:plancha freidora bocadillos hamburguesas raciones tapas pinchos
 51101048:pure triturar biberon esterilizar papilla lacteo nutricion
 51101059:abrir latas envasar termoselladora bandeja racion raciones menu
