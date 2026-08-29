@@ -1252,7 +1252,7 @@
 72211012:cobre multicapa soldar soplete desague llaves griferia inodoro lavabo
 72211023:bridas valvulas manguitos soldadura manometro tuberia rosca prensa
 72211034:valvulas manguitos rosca bridas manometro tuberias soldadura racores
-72221011:butano propano caldera calentador soplete bocas manometro fuga
+72221011:instaladores de gas fontanero instalador de gas butano gas natural termos calderas instalacion y revision de gas gasistas
 72231014:excavadora tubo zanja polietileno fundicion zanjeo arena compactar
 72311013:termoplastica termofusible gunitadora marcadora reflectante calzada asfalto karcher boquilla
 72311024:tramoya telon patena atrezzo pistola cartapesta escenografia corporeo tramoyista
@@ -2028,7 +2028,7 @@
 84111014:taximetro carnet propina app licencia gasoil multas pasajeros recargas
 84121017:camilla sirena urgencias oxigeno desfibrilador rotativo tecnicos guardia traslado
 84121026:feretro corona tanatorio velatorio sepelio funeraria caja cementerio luto
-84121035:conductores de furgoneta repartidor de bombonas de butano bombona gas reparto a domicilio paquetes mensajeria furgoneta
+84121035:reparto de butano repartidor de butano butanero furgoneta de butano reparto a domicilio bombona de butano mensajeria paquetes furgoneta reparto ligero
 84121044:volante carnet autovia gps kilometros repostar peaje multas taller
 84121053:taximetro licencia parada callejero propina bonometro emisora turno gasolinera
 84201010:tacografo ruta pasaporte aduana frontera litera pasajeros maletero peaje
@@ -2040,8 +2040,8 @@
 84321015:trailer articulado muelle tacografo lona eskinas palet gasoil
 84321024:adr cisternas peligroso paneles bultos guantes estiba homologado
 84321033:llevar un camion hormigonera a la obra conductores de camion hormigonera camion hormigonera hormigon amasadora cubilote obra cuba de hormigon hormigoneras
-84321042:conductores de camion repartidor de bombonas de butano butanero camion de reparto distribucion de gas pesado
-84401012:reparto pizza moto casco cajon baul mensajero callejero calle callejear
+84321042:reparto de butano repartidor de butano butanero camion de butano bombonas de butano reparto de bombonas reparto a domicilio conductores de camion en general camionero transporte de mercancias
+84401012:repartidores en motocicleta ciclomotor motocarro reparto de comida paqueteria comida a domicilio repartidor moto motocarro
 91001018:plancha limpiar piso cocinar limpieza fregar comida ropa colada cuidar
 91001029:dormir pernoctar cuidar interna casa cocinar planchar limpiar asistenta fondo
 92101016:bandeja comedor office platos vaso cubiertos fregar retirar recoger sala
