@@ -344,20 +344,22 @@ div[data-testid="stTextInput"] input{
 }
 
 /* Pregunta interactiva centrada (arriba de las tarjetas) */
-.st-key-pregunta{
-  background:#fff; border:1px solid var(--linea); border-top:3px solid var(--rojo);
-  border-radius:8px; padding:clamp(0.6rem, 1vh, 0.85rem) clamp(1rem, 2vw, 1.8rem);
-  margin:0.25rem auto 0.6rem !important; box-shadow:0 2px 8px rgba(0,0,0,0.04);
+div[class*="st-key-caja_pregunta"], .st-key-pregunta{
+  background:#fff !important; border:1px solid var(--linea) !important; border-top:3px solid var(--rojo) !important;
+  border-radius:8px !important; padding:clamp(0.6rem, 1vh, 0.85rem) clamp(1rem, 2vw, 1.8rem) !important;
+  margin:0.25rem auto 0.6rem !important; box-shadow:0 2px 8px rgba(0,0,0,0.04) !important;
   text-align:center !important; width:100% !important;
 }
-.pregunta-titulo{
-  font-size:.65rem; font-weight:700; letter-spacing:.15em; text-transform:uppercase;
-  color:var(--rojo); margin-bottom:.18rem; text-align:center !important;
+div[class*="st-key-caja_pregunta"] .pregunta-titulo, .st-key-pregunta .pregunta-titulo{
+  font-size:.65rem !important; font-weight:700 !important; letter-spacing:.15em !important; text-transform:uppercase !important;
+  color:var(--rojo) !important; margin-bottom:.18rem !important; text-align:center !important;
 }
-.pregunta-texto{
-  font-size:clamp(0.92rem, 1vw, 1.02rem); line-height:1.35; font-weight:600;
-  color:var(--texto); margin-bottom:.65rem; text-align:center !important;
+div[class*="st-key-caja_pregunta"] .pregunta-texto, .st-key-pregunta .pregunta-texto{
+  font-size:clamp(0.92rem, 1vw, 1.02rem) !important; line-height:1.35 !important; font-weight:600 !important;
+  color:var(--texto) !important; margin-bottom:.65rem !important; text-align:center !important;
 }
+div:has(> [data-testid="stHorizontalBlock"] [class*="st-key-resp_opt"]) [data-testid="stHorizontalBlock"],
+div[class*="st-key-caja_pregunta"] [data-testid="stHorizontalBlock"],
 .st-key-pregunta [data-testid="stHorizontalBlock"]{
   display:flex !important;
   justify-content:center !important;
@@ -367,19 +369,26 @@ div[data-testid="stTextInput"] input{
   margin:0 auto !important;
   width:100% !important;
 }
+div:has(> [data-testid="stHorizontalBlock"] [class*="st-key-resp_opt"]) [data-testid="stColumn"],
+div[class*="st-key-caja_pregunta"] [data-testid="stColumn"],
 .st-key-pregunta [data-testid="stColumn"]{
   flex:0 1 auto !important;
   min-width:unset !important;
   width:auto !important;
+  max-width:none !important;
   padding:0 !important;
   display:flex !important;
   justify-content:center !important;
 }
+div[class*="st-key-resp_opt"],
+div[class*="st-key-caja_pregunta"] .stButton,
 .st-key-pregunta .stButton{
   width:auto !important;
   display:inline-flex !important;
   justify-content:center !important;
 }
+div[class*="st-key-resp_opt"] button,
+div[class*="st-key-caja_pregunta"] .stButton button,
 .st-key-pregunta .stButton button{
   background:#fff !important; border:1.5px solid var(--negro) !important; font-weight:600 !important;
   border-radius:20px !important; padding:.38rem 1.35rem !important; min-height:36px !important;
@@ -388,13 +397,19 @@ div[data-testid="stTextInput"] input{
   display:inline-flex !important; align-items:center !important; justify-content:center !important;
   box-shadow:0 1px 3px rgba(0,0,0,0.04) !important; cursor:pointer !important;
 }
+div[class*="st-key-resp_opt"] button:hover,
+div[class*="st-key-caja_pregunta"] .stButton button:hover,
 .st-key-pregunta .stButton button:hover{
   background:var(--negro) !important; color:#fff !important; border-color:var(--negro) !important;
   transform:translateY(-2px); box-shadow:0 4px 12px rgba(0,0,0,0.12) !important;
 }
-.st-key-pregunta .stButton button:hover p, .st-key-pregunta .stButton button:hover span{
+div[class*="st-key-resp_opt"] button:hover p, div[class*="st-key-resp_opt"] button:hover span,
+div[class*="st-key-caja_pregunta"] .stButton button:hover p, .st-key-pregunta .stButton button:hover p,
+div[class*="st-key-caja_pregunta"] .stButton button:hover span, .st-key-pregunta .stButton button:hover span{
   color:#fff !important;
 }
+div[class*="st-key-resp_opt"] button:active,
+div[class*="st-key-caja_pregunta"] .stButton button:active,
 .st-key-pregunta .stButton button:active{
   transform:translateY(0); box-shadow:0 1px 2px rgba(0,0,0,0.08) !important;
 }
@@ -1711,7 +1726,7 @@ def pinta_resultado(payload, estado=None, avance=0.06, interactivo=False, consul
 
     # 1. PREGUNTA ARRIBA (antes de las tarjetas)
     if payload.get("pregunta"):
-        caja = st.container()
+        caja = st.container(key=f"caja_pregunta_{abs(hash(str(consulta) + str(payload.get('pregunta', '')))) % 999983}")
         with caja:
             st.markdown(
                 '<div class="pregunta-titulo">Pregunta para la persona</div>'
