@@ -865,6 +865,7 @@ def busca(consulta, tope=20, grupos=None):
 
     n_term = max(1, len(originales))
     n_total = max(1, len({raiz(w) for w in terminos}))
+    q_norm = normaliza(q)
     resultados = []
     for i, valor in puntos.items():
         reg = IDX["registros"][i]
@@ -881,8 +882,23 @@ def busca(consulta, tope=20, grupos=None):
             + 0.30 * min(1.0, len(cubierto[i]) / n_total)
             + 0.15 * min(1.0, propios / n_term)
         )
+
+        den_norm = normaliza(reg["denom"])
+        den_corta = normaliza(reg["denom"].split(",")[0].split("(")[0].strip())
+        bonus_exacto = 1.0
+        if q_norm == den_norm or q_norm == den_corta:
+            bonus_exacto = 1.40
+        elif den_corta and (den_corta in q_norm or q_norm in den_corta):
+            bonus_exacto = 1.15
+
+        if ", EN GENERAL" in reg["denom"]:
+            bonus_exacto *= 1.12
+
+        palabras_den = max(1, len(reg["denom"].split()))
+        densidad = 1.0 / (0.90 + 0.10 * (palabras_den / 3.0))
+
         resultados.append(
-            (valor * nucleo * cobertura * familia, reg["codigo"], reg["denom"])
+            (valor * nucleo * cobertura * familia * bonus_exacto * densidad, reg["codigo"], reg["denom"])
         )
     resultados.sort(reverse=True)
     return resultados[:tope]
