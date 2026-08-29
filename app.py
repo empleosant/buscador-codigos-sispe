@@ -991,13 +991,19 @@ REGLAS
    - Tareas operativas de conducción o manejo de maquinaria (carretilla, autobús, camión) corresponden a CONDUCTORES-OPERADORES (grupo 8), no a técnicos de gestión.
    - Domicilio particular frente a institución, centro o residencia.
 8. PREGUNTA Y OPCIONES (DESAMBIGUACIÓN):
-   - Rellena "pregunta" y "opciones" SIEMPRE que la consulta sea genérica y existan especialidades oficiales relevantes en la lista de candidatas (ej. peluquería: Unisex vs Señoras vs Caballeros y barbería; camareros: Barra vs Sala vs Pisos; conducción: Camión vs Furgoneta vs Motocicleta; reparto de butano: Reparto en camión/furgoneta vs Instalador de gas). Si la descripción ya es totalmente específica e inequívoca, deja "pregunta": "" y "opciones": [].
-   - La pregunta debe plantear una elección clara y directa (máximo 15 palabras).
-   - El campo "opciones" DEBE contener entre 2 y 3 alternativas directas, breves y limpias (máximo 4 a 6 palabras por opción, ej. ["Reparto en camión", "Reparto en furgoneta / moto", "Instalador de gas"], ["Trámites de personal y nóminas", "Facturación y contabilidad"], ["Peluquería unisex", "Peluquería de señoras", "Caballeros y barbería"]). Evita textos largos o fórmulas redundantes tipo "Sí (algo)". NUNCA dejes "opciones" vacío si hay "pregunta".
+   - Rellena "pregunta" y "opciones" SIEMPRE que la consulta sea genérica y existan especialidades oficiales relevantes en la lista de candidatas. Si la descripción ya es totalmente específica e inequívoca, deja "pregunta": "" y "opciones": [].
+   - TONO DE LA PREGUNTA: Escríbela como si fueras un orientador laboral hablándole de tú a la persona que tienes delante, en lenguaje cercano y natural. Nada de fórmulas técnicas ni burocráticas. Ejemplos de buen tono:
+     · "¿Cortabas pelo a hombres, a mujeres o a todo tipo de clientes?"
+     · "¿Repartías con camión grande o con furgoneta?"
+     · "¿Trabajabas en barra sirviendo copas o llevabas las mesas del comedor?"
+     · "¿Le hacías las nóminas al personal o llevabas la contabilidad y las facturas?"
+     · "¿Cuidabas a la persona en su casa o en una residencia?"
+   - La pregunta debe ser breve (máximo 18 palabras), directa y fácil de entender para cualquiera.
+   - El campo "opciones" DEBE contener entre 2 y 3 alternativas breves y claras (máximo 6 palabras por opción), escritas también en tono natural como las diría la persona: ["Pelo de hombre y barbería", "Pelo de mujer", "De todo, unisex"]. Evita textos largos o fórmulas tipo "Sí (algo)". NUNCA dejes "opciones" vacío si hay "pregunta".
 9. Si ninguna de las candidatas describe con precisión la actividad, rellena "otros_terminos" con entre 6 y 10 palabras sueltas de la CNO.
 
 EJEMPLO DE RESPUESTA:
-{"ocupaciones":[{"codigo":"58111037","denominacion":"PELUQUEROS UNISEX","nivel":"00","motivo":"Corte y peinado general."},{"codigo":"58111028","denominacion":"PELUQUEROS DE SEÑORAS","nivel":"00","motivo":"Peluquería y estética femenina."},{"codigo":"58111019","denominacion":"PELUQUEROS DE CABALLEROS","nivel":"00","motivo":"Barbería y corte masculino."}],"pregunta":"¿A qué tipo de clientela o especialidad se orienta el servicio?","opciones":["Peluquería unisex","Peluquería de señoras","Caballeros y barbería"],"otros_terminos":""}
+{"ocupaciones":[{"codigo":"58111037","denominacion":"PELUQUEROS UNISEX","nivel":"00","motivo":"Corte y peinado general."},{"codigo":"58111028","denominacion":"PELUQUEROS DE SEÑORAS","nivel":"00","motivo":"Peluquería y estética femenina."},{"codigo":"58111019","denominacion":"PELUQUEROS DE CABALLEROS","nivel":"00","motivo":"Barbería y corte masculino."}],"pregunta":"¿Cortabas pelo a hombres, a mujeres o a todo tipo de clientes?","opciones":["Pelo de hombre y barbería","Pelo de mujer","De todo, unisex"],"otros_terminos":""}
 """
 
 
@@ -1736,7 +1742,7 @@ def pinta_resultado(payload, estado=None, avance=0.06, interactivo=False, consul
         caja = st.container(key=f"caja_pregunta_{abs(hash(str(consulta) + str(payload.get('pregunta', '')))) % 999983}")
         with caja:
             st.markdown(
-                '<div class="pregunta-titulo">Pregunta para la persona</div>'
+                '<div class="pregunta-titulo">Necesito un detalle más</div>'
                 f'<div class="pregunta-texto">{payload["pregunta"]}</div>',
                 unsafe_allow_html=True,
             )
