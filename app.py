@@ -281,12 +281,31 @@ ESTILO_VARIABLES = (
     + "}"
 )
 
-# Las tipografias se cargaban con @import dentro del <style>. Es la via mas
-# lenta que hay: el navegador no puede pedir la fuente hasta que ha leido y
-# parseado la hoja entera. De ahi salia el parpadeo de la letra provisional y
-# de ahi salio el parche document.fonts.ready del guion de tarjetas, que medía
-# el alto con la fuente equivocada. Con preconnect + link se piden en paralelo
-# y en cuanto el navegador ve la cabecera.
+# Las tipografias, en dos versiones, porque los dos documentos tienen reglas
+# distintas y NO son intercambiables:
+#
+#   IMPORT_FUENTES  para la pagina. st.markdown pasa el texto por un parser de
+#     Markdown, y este solo respeta el HTML si el bloque EMPIEZA por <pre>,
+#     <script>, <style> o <textarea>. Si delante va cualquier otra cosa -- un
+#     <link>, por ejemplo -- no se abre bloque HTML y la hoja entera se pinta
+#     como texto en la pantalla. Ademas Streamlit sanea lo que le llega y <link>
+#     no esta en la lista de etiquetas permitidas, asi que por ahi no hay salida:
+#     en la pagina toca @import, con todo lo lento que es.
+#     Y dentro del <style>, @import tiene que ir el PRIMERO: el navegador
+#     descarta cualquier @import que venga despues de otra regla.
+#
+#   ENLACE_FUENTES  para el marco de tarjetas. components.html escribe un
+#     documento de verdad, sin parser de Markdown y sin saneado, asi que ahi si
+#     valen preconnect y link: se piden en paralelo y en cuanto el navegador ve
+#     la cabecera. Es justo el documento donde importaba, porque el parpadeo de
+#     la letra provisional era lo que hacia medir el alto con la fuente
+#     equivocada y obligo al parche document.fonts.ready.
+IMPORT_FUENTES = (
+    "@import url('https://fonts.googleapis.com/css2?"
+    "family=Libre+Franklin:wght@400;500;600;700&"
+    "family=JetBrains+Mono:wght@600;700&display=swap');"
+)
+
 ENLACE_FUENTES = (
     '<link rel="preconnect" href="https://fonts.googleapis.com">'
     '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>'
@@ -306,7 +325,7 @@ st.set_page_config(
 # ESTILO FLUIDO Y COMPACTO
 # ---------------------------------------------------------------------------
 
-st.markdown(ENLACE_FUENTES + "<style>" + ESTILO_VARIABLES + """
+st.markdown("<style>" + IMPORT_FUENTES + ESTILO_VARIABLES + """
 
 .stApp{ background:#FAFAFA; }
 html,body,[class*="css"],.stMarkdown{
