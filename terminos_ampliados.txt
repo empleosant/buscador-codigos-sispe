@@ -123,7 +123,7 @@
 21121519:prostata cistoscopia litotricia urologo vejiga incontinencia ecografia sondaje
 21121528:historiales triaje citas codificacion cie hce archivo epik
 21121537:agujas fitoterapia reiki hierbas tinturas holistica
-21211010:inyecciones vias curas sangre tension termometro pastilleros turnos hospital
+21211010:enfermeros no especializados enfermera ambulatorio vacunas curas inyecciones enfermeria general hospital
 21221013:ansiedad contenciones psiquiatrico mania delirios psicofarmacos contencion
 21221022:domicilios curas centro salud ancianos vacunacion inyecciones tension sintrom
 21221031:reconocimientos mutua apto espirometria analitica absentismo prevencion accidentes
@@ -140,7 +140,7 @@
 21401048:recetas mostrador parafarmacia dispensar estupefacientes caducidades genericos posologia botiquin principios
 21511013:empastes ortodoncia extracciones curetajes endodoncia radiografia obturacion bruxismo implantes anestesia
 21511024:caries brackets endodoncia tartrectomia implantes ortodoncia empastes provisionales periapical obturacion
-21521010:masajes camilla magnetoterapia ultrasonidos contracturas vendaje puncion electrodos rehabilitacion drenaje
+21521010:fisioterapeutas en general hacer masajes terapeuticos fisioterapia descargar espalda contracturas rehabilitacion masajes terapia centro de salud
 21531013:antropometria dietas pautas macronutrientes calorias pliegues menus bioimpedancia alimetacion nutricion
 21541016:disfagia fonacion tartamudez dislalia articulacion vocalizacion deglucion logopedia afasia
 21541025:audiometria audifonos implantes timpanometria sordera moldes logopedia acufenos foniatria rehabilitacion
@@ -186,8 +186,8 @@
 22301055:empatia valores asertividad debate dilema tolerancia civismo derechos constitucion
 22301066:cronometro dorsal balon colchoneta estiramiento calentamiento circuito abdominales pito
 22301088:sintaxis tilde diptongo soneto ortografia morfosintaxis redaccion preterito oracion
-22301099:listening speaking reading writing phrasal verb bilingue gramatica fluidez extranjero
-22301103:derivada matriz trigonometria teorema algebra fraccion binomio logaritmo ecuacion
+22301099:profesores de matematicas dar clases matematicas algebra calculo instituto eso bachillerato secundaria ensenanza secundaria
+22301103:profesores de matematicas dar clases matematicas dar clases de matematicas instituto eso bachillerato secundaria matematicas algebra calculo profesor docente
 22301112:solfeo pentagrama partitura afinador flauta guitarra corchea metronomo armonia
 22301121:catequesis biblia evangelio parroquia liturgia moral bautizo testamento
 22301130:taller arduino impid soldador circuitos pizarra digital programar escuadra
@@ -788,7 +788,7 @@
 33221018:cie codificacion hce historia clinica admision archivo ccie mas oca
 33231011:antropometria dieta menu adipometria biotipo pletismografia calorimetria bza bioimpedancia
 33241014:biseladora gafa lentilla montura optometrista pupilar graduacion esferico cilindrico eje
-33251017:contractura vendaje descarga fisio kinesiologia estiramiento masoterapia miofascial
+33251017:masajistas masajista hacer masajes terapeuticos quiromasaje descargar espalda contracturas masaje quiromasajista deportivo
 33261010:adr cisterna btp bulto expedidor carta panel naranja cartonero
 33261029:fumigar desratizar cucaracha termita rodenticida nebulizacion pulverizacion plaga bicho
 33261038:potabilidad legionella efluente contaminacion inmision vertido sonometria aforo analito
@@ -833,7 +833,7 @@
 36131011:agenda directivo vuelos dietas gastos excel powerpoint convocar actas
 36131020:archivador fotocopiadora llamada agenda escanear grapadora excel word
 36131039:factura albaran excel word fotocopiadora archivador tramitar
-36141014:cita volante tarjeta mutua historial consulta pasillo
+36141014:secretarios de centros medicos o clinicas secretaria recepcionista clinica citas telefono recepcionista telefonista atencion llamadas clinica dental medica
 36211014:hacienda irpf recargo multa embargo inspeccion aeat notificacion
 36211023:embargo apremio notificacion hacienda deudor recaudacion tasacion subasta
 36221017:dependencia ayuda subsidio expediente prestacion vulnerable social
@@ -854,7 +854,7 @@
 37141017:violencia machista cuotas paridad coeducacion acoso conciliacion planes transversalidad
 37151010:vecindario asociacionismo talleres barrio participacion asamblea movilizacion dinamizacion
 37151029:residencia tercera edad bingo psicomotricidad memoria abuelos envejecimiento pasatiempos
-37151038:manualidades excursiones ludoteca talleres pasatiempos gymkana dinamicas campamento
+37151038:animadores socioculturales animador infantil fiestas de cumpleanos juegos cumpleanos globoflexia pintacaras comuniones eventos infantiles
 37151047:patio comedor conserjeria ludoteca extraescolares vigilancia
 37161013:capellania liturgia parroquia sacramentos pastoral rezo catequesis altar
 37211017:entrenamiento dorsal podio crono preparador patrocinador fichaje
@@ -961,7 +961,7 @@
 43091029:fotocopiar archivador grajadoras sellar impresora carpetas albaran folios
 43091038:calculadora contabilidad arqueo balanza sumadora asientos extractos mayor mecanica
 44111018:reclamaciones mostrador incidencias colas devoluciones vales formularios explicaciones
-44121011:acreditaciones acreditados congresos acreditacion identificador perimetral acomodador credencial tribuna
+44121011:recepcionistas en general citas telefono secretaria recepcionista atender llamadas mostrador
 44121020:crucero travesia camarotes embarque equipajes
 44121039:megafonia mostradores check puertas abordo maletas embarque cancelas retrasos
 44121048:conserjeria llaves mostrador centralita tarjeta visitantes avisos correspondencia paqueteria
@@ -1006,8 +1006,8 @@
 51101071:horno manga pastelera bizcocho fondant masa reposteria obrador
 51101082:coordinar logistica menu menus pasajeros aerolinea stock
 51201016:coctelera coctel gin tonic cubalibre combinado hielo chupito
-51201027:cafetera tirar canas tapas terraza bandeja comandas desayunos pinchos
-51201038:bandeja comandas lito descorche servilleta comensal
+51201027:camarero de barra servir copas discoteca pub copas cubatas cocteleria cocteles barra de noche cafetería bebidas mostrador
+51201038:camarero de sala servir mesas copas discoteca pub restaurante salon comedor terraza
 51201049:bandeja terraza barra comandas pinchos canas tapas raciones
 51201050:cafetera tirador canas caja comandas stock inventario
 51201061:maitre lito comensal rango comandas descorche reservas
@@ -1039,7 +1039,7 @@
 52201231:barra pan bolleria vitrina hornos emparedados tartas pasteles obrador
 52201240:abrigos vison zorro pieles perchas forro costura
 52201251:colonias champu cosmeticos estanterias reposicion limpieza gandola gel
-52201262:hielo merluza bacalao balanza rape gambas filetear escamar
+52201262:pescadero limpiando pescado en la plaza de abastos pescadero pescaderia plaza de abastos puesto de pescado limpiar pescado escamar despachar pescado marisco dependientes de pescaderia
 52201273:cuchillo deshuesar visceras picadora bascula filetear mostrador vitrina pechuga muslo
 52201284:caja registradora tpv balanza gandola estanterias reposicion ticket mostrador pasillo
 52201295:pastillas freno filtros bujias catalogo referencias ordenador aceites escobillas manguitos
@@ -1074,7 +1074,7 @@
 57211015:panales babero chupete cuna trona pure siesta biberon
 57211024:parada cinturon ruta mochila colegio crios menores bus monitor
 57211033:patio bandejas pure babero siesta alergias crios vigilante
-57221018:deberes parque biberon panales merienda ninera juegos bano siesta
+57221018:cuidar ninos pequenos bebes familia canguro ninera au pair domicilio cuidar menores mañanas tardes cuidar bebes casa particular
 58111019:cortar pelo peluqueria peluquero caballero barberia barbero barba afeitado degradado corte de pelo masculino navaja tijeras rapado patillas
 58111028:cortar pelo peluqueria peluquera senora cabello mechas tinte peinados recogidos rulos secador corte de pelo femenino lavacabezas
 58111037:cortar pelo peluqueria peluquero unisex peluqueria mixta corte de pelo peinado tinte mechas tijeras secador lavado de cabeza
@@ -1215,7 +1215,7 @@
 71111025:varillas atar estribos dobladora cortadora amarrar zunchos anclajes mallas
 71111036:vibrador bomba artesa helicoptero regla manguera camio guinche talocha
 71121011:grua torre pernos puntales soldadura jacenas paneles pilares premoldeados
-71211015:llana mallo cemento mortero carretilla rasillones tabiques escombro maestras
+71211015:poner ladrillos levantar tabiques muros cemento paleta tochos rasillas albanil oficial de albanileria reformas construccion
 71211026:juntas maestras enfoscado rasilla rejonche murete estetica
 71211037:arquetas colectores azadon camio absorcion pozos lodos desatascos
 71211048:mortero mampresa cachote junta piedra murete cal seca maza
@@ -1283,7 +1283,7 @@
 72931013:silicona ventosa cortacristales climalit masilla luna escaparate calzo espejo
 72931024:plomo vidriera soldador estano termofusion catedral tiffany espatula cazoleta
 72931035:luna autonivelante cortalunas ventosa sika imprimacion hilo piano parabrisas moldura
-72941010:termosifones captadores fontaneria anticongelante cobre soldar aislar purgador llaves
+72941010:instalar paneles solares placas solares tejados cubiertas fotovoltaica autoconsumo energia solar instalador placas paneles fotovoltaicos
 72941021:acumuladores termostato glicol llaves cobre aislar purgador soldar valvula presion
 72941032:fotovoltaica estructura tejas inversor atornillar cableado tejados taladro perfileria bornas
 72951013:cristales hidrolimpiadora desueldes andamio desengrasante chupona arnes rascador mancha pistola
@@ -1361,7 +1361,7 @@
 74011081:hidraulica retroexcavadora oruga tractor pala martillo soldadura bomba manguera bulon taller
 74011092:bogie pantografo vias freno neumatica carril tractor diesel taller acoplador
 74011100:rampa tobera bomba banco ultrasonidos caudalimetro presiones taller
-74011119:mecanico coches automoviles vehiculos taller turismos automocion motor mecanica frenos embrague correa distribucion pastillas discos alternador aceite diagnosis
+74011119:mecanico del automovil cambiar ruedas neumaticos taller coche aceite filtros frenos mantenimiento del coche reparacion de coches vehiculos
 74021019:turbina helice hangar torquimetro avionica revision fuselaje matricula turborreactor
 74021028:turbina helice avionica torquimetro hangar fuselaje revision turborreactor palea taller
 74021037:turbina helice hangar torquimetro avionica fuselaje revision turborreactor palea taller
@@ -1618,7 +1618,7 @@
 78371228:borde canto tinte pincel zapato suela bota taco brocha
 78371237:hormas plantillas cuero suelas coser pegamento horma ortopedia talones
 78371246:hormas horma patronaje coser suelas cuero punzon lezna
-78371255:zapatero remendon remiendo reparador de calzado suelas tapas arreglo coser zapatos taller de reparacion de calzado
+78371255:zapateros reparadores de calzado reparar pinchazos suelas de zapatos tapas calzado viejo zapatero remendon arreglo de calzado arreglar zapatos
 78911019:neopreno botella plomada aletas mascara regulador estanco escafandra fondeo
 78911028:neopreno hormigon manguera perforadora hidraulica bolsa zanja subacuatico esclusa
 78911037:rescate baliza camilla arnes boya estanco busqueda reflotamiento oxigeno
@@ -2028,7 +2028,7 @@
 84111014:taximetro carnet propina app licencia gasoil multas pasajeros recargas
 84121017:camilla sirena urgencias oxigeno desfibrilador rotativo tecnicos guardia traslado
 84121026:feretro corona tanatorio velatorio sepelio funeraria caja cementerio luto
-84121035:furgon reparto paquete carretilla palet callejero navegador mercancias carga
+84121035:conductores de furgoneta repartidor de bombonas de butano bombona gas reparto a domicilio paquetes mensajeria furgoneta
 84121044:volante carnet autovia gps kilometros repostar peaje multas taller
 84121053:taximetro licencia parada callejero propina bonometro emisora turno gasolinera
 84201010:tacografo ruta pasaporte aduana frontera litera pasajeros maletero peaje
@@ -2039,8 +2039,8 @@
 84311012:paquete palet transpaleta furgoneta ruta albaran factura reparto mercancias
 84321015:trailer articulado muelle tacografo lona eskinas palet gasoil
 84321024:adr cisternas peligroso paneles bultos guantes estiba homologado
-84321033:trailer aduana fronteras tarima tacografo lona pasaporte ruta gabarra
-84321042:trailer tacografo gondola lona portacontenedores palet transpaleta ruta muelle
+84321033:llevar un camion hormigonera a la obra conductores de camion hormigonera camion hormigonera hormigon amasadora cubilote obra cuba de hormigon hormigoneras
+84321042:conductores de camion repartidor de bombonas de butano butanero camion de reparto distribucion de gas pesado
 84401012:reparto pizza moto casco cajon baul mensajero callejero calle callejear
 91001018:plancha limpiar piso cocinar limpieza fregar comida ropa colada cuidar
 91001029:dormir pernoctar cuidar interna casa cocinar planchar limpiar asistenta fondo
@@ -2214,3 +2214,15 @@
 83121014:vias agujas shunter locomotoras vagones marshalling estacion andenes
 83221013:motosierra procesadora desbrozadora skidder pinza troza arboles
 98121018:carruaje caballos librea arneses calesa cochero caballeriza tiro equino
+92101018:limpiar cristales de edificios altos y escaparates limpiar cristales ventanas escaparates edificios altos rasqueta pertiga cristales cristalerias limpia cristales
+22301017:profesores de ensenanza secundaria dar clases instituto eso bachillerato docente secundaria
+52201026:vender ropa tienda de ropa comercio textil prendas boutique dependienta de ropa centro comercial cobrar en tienda
+52201017:vender ropa y cobrar en una tienda de un centro comercial vender ropa tienda comercio ropa prendas cobrar dependienta dependiente de ropa tienda de ropa boutique modas dependientes de comercio
+57101022:cuidar ninos pequenos bebes familia canguro ninera au pair domicilio cuidar menores por las mañanas tardes casa particular
+33151017:hacer masajes terapeuticos masajista quiromasajista descargar la espalda contracturas masaje quiromasaje espalda cervicales lumbar
+21431023:fisioterapeuta masajes terapeuticos rehabilitacion contracturas fisioterapia descargar espalda centro de salud clinica
+95301019:ayudante de mecanico aprendiz de mecanico peon de automocion taller mecanico cambio de aceite filtros mantenimiento rapido
+21211083:enfermeros de atencion primaria enfermera ambulatorio vacunas curas centro de salud inyecciones atencion primaria
+24121016:tasadores agricolas tasador tasar fincas rusticas terrenos parcelas valoracion rustica peritaje rustico valoracion de fincas
+52201099:dependientes de pescaderia pescadero pescaderia plaza de abastos puesto de pescado limpiar pescado escamar despachar pescado marisco
+44111015:recepcionistas telefonistas secretaria recepcionista citas telefono clinica recepcion mostrador atender llamadas
