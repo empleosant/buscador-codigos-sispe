@@ -359,15 +359,33 @@ div[data-testid="stTextInput"] input{
   color:var(--texto); margin-bottom:.42rem; text-align:center !important;
 }
 .st-key-pregunta div[data-testid="stHorizontalBlock"]{
-  justify-content:center !important; align-items:center !important;
+  display:flex !important;
+  justify-content:center !important;
+  align-items:center !important;
+  gap:0.55rem !important;
+  flex-wrap:wrap !important;
+}
+.st-key-pregunta div[data-testid="stColumn"]{
+  flex:0 1 auto !important;
+  min-width:unset !important;
+  width:auto !important;
+}
+.st-key-pregunta .stButton{
+  width:auto !important;
+  display:inline-block !important;
 }
 .st-key-pregunta .stButton button{
-  background:#fff; border:1px solid var(--negro); font-weight:600; border-radius:4px;
-  padding:.32rem .75rem; min-height:34px; font-size:.84rem; transition:all .15s ease;
-  white-space:normal !important; height:auto !important;
+  background:#fff !important; border:1px solid var(--negro) !important; font-weight:600 !important;
+  border-radius:4px !important; padding:.35rem 1.1rem !important; min-height:34px !important;
+  font-size:.84rem !important; transition:all .15s ease !important;
+  white-space:nowrap !important; height:auto !important; width:auto !important;
+  display:inline-flex !important; align-items:center !important; justify-content:center !important;
 }
 .st-key-pregunta .stButton button:hover{
-  background:var(--negro); color:#fff; border-color:var(--negro);
+  background:var(--negro) !important; color:#fff !important; border-color:var(--negro) !important;
+}
+.st-key-pregunta .stButton button:hover p, .st-key-pregunta .stButton button:hover span{
+  color:#fff !important;
 }
 
 .nota{ font-size:.74rem; color:var(--suave); margin:.15rem 0; }
@@ -920,13 +938,13 @@ REGLAS
 6. No propongas ocupaciones de dirección, jefatura ni mando (niveles 10, 20, 30) salvo que la descripción diga expresamente que dirigía equipos, centros o departamentos.
 7. Respeta el entorno de trabajo que indique la descripción: domicilio particular frente a institución, centro o residencia.
 8. PREGUNTA Y OPCIONES (DESAMBIGUACIÓN):
-   - Rellena "pregunta" y "opciones" solo si hay duda para desempatar entre las DOS PRIMERAS ocupaciones. Si no hay duda, deja "pregunta": "" y "opciones": [].
+   - Rellena "pregunta" y "opciones" solo si hay duda para afinar o desempatar entre las ocupaciones candidatas (por funciones, entorno, sector o especialidad). Si no hay duda, deja "pregunta": "" y "opciones": [].
    - La pregunta debe plantear una elección clara y directa (máximo 15 palabras).
-   - El campo "opciones" DEBE contener una lista con las 2 alternativas concretas (ej. ["Atención en caja / mostrador", "Cocina y preparación de comida"], ["Casas particulares", "Residencias / Centros"], o ["Sí", "No"]). NUNCA dejes "opciones" vacío si hay "pregunta".
+   - El campo "opciones" DEBE contener una lista con entre 2 y 3 alternativas concisas y concretas (ej. ["Atención en caja y mostrador", "Cocina y plancha", "Reparto a domicilio"], ["Casas particulares", "Residencias / Centros"], o ["Sí", "No"]). NUNCA dejes "opciones" vacío si hay "pregunta".
 9. Si ninguna de las candidatas describe con precisión la actividad, rellena "otros_terminos" con entre 6 y 10 palabras sueltas de la CNO.
 
 EJEMPLO DE RESPUESTA:
-{"ocupaciones":[{"codigo":"51201027","denominacion":"CAMAREROS DE BARRA Y/O DEPENDIENTES DE CAFETERÍA","nivel":"00","motivo":"Atención en mostrador y servicio de comida rápida."},{"codigo":"93101024","denominacion":"PINCHES DE COCINA","nivel":"00","motivo":"Elaboración y preparación de alimentos en restauración."}],"pregunta":"¿A qué tarea dedicaba la mayor parte de su jornada?","opciones":["Atención en caja y mostrador","Preparación de comida en cocina"],"otros_terminos":""}
+{"ocupaciones":[{"codigo":"51201027","denominacion":"CAMAREROS DE BARRA Y/O DEPENDIENTES DE CAFETERÍA","nivel":"00","motivo":"Atención en mostrador y servicio de comida rápida."},{"codigo":"93101024","denominacion":"PINCHES DE COCINA","nivel":"00","motivo":"Elaboración y preparación de alimentos en restauración."}],"pregunta":"¿A qué tarea dedicaba la mayor parte de su jornada?","opciones":["Atención en caja y mostrador","Preparación de comida en cocina","Reparto a domicilio"],"otros_terminos":""}
 """
 
 
@@ -1291,6 +1309,13 @@ def extraer_opciones(pregunta, opciones_modelo=None):
     for f in fillers:
         q_limpia = re.sub(f, "", q_limpia, flags=re.IGNORECASE).strip()
 
+    if " o " in q_limpia or "," in q_limpia:
+        partes = [p.strip() for p in re.split(r",\s*|\s+o\s+", q_limpia) if p.strip()]
+        if 2 <= len(partes) <= 3:
+            ops = [limpia_opcion(p) for p in partes]
+            if len(set(ops)) == len(ops) and all(len(x) > 1 for x in ops):
+                return ops
+
     if " o " in q_limpia:
         partes = [p.strip() for p in re.split(r"\s+o\s+", q_limpia, maxsplit=1) if p.strip()]
         if len(partes) == 2:
@@ -1637,10 +1662,7 @@ def pinta_resultado(payload, estado=None, avance=0.06, interactivo=False, consul
 
     # 1. PREGUNTA ARRIBA (antes de las tarjetas)
     if payload.get("pregunta"):
-        try:
-            caja = st.container(key="pregunta")
-        except TypeError:
-            caja = st.container()
+        caja = st.container()
         with caja:
             st.markdown(
                 '<div class="pregunta-titulo">Pregunta para la persona</div>'
@@ -1649,21 +1671,11 @@ def pinta_resultado(payload, estado=None, avance=0.06, interactivo=False, consul
             )
             if interactivo:
                 opciones = extraer_opciones(payload.get("pregunta", ""), payload.get("opciones"))
-                # El ancho se reparte segun lo que ocupa cada texto. Con el
-                # limite en 44 caracteres hace falta algo mas de holgura que
-                # antes, o el boton vuelve a cortar la frase por su cuenta.
-                pesos = [max(1.2, len(opc) * 0.105) for opc in opciones]
-                spacer = max(0.2, (9.0 - sum(pesos)) / 2.0)
-                col_weights = [spacer] + pesos + [spacer]
-                cols = st.columns(col_weights, gap="small")
+                cols = st.columns(len(opciones), gap="small")
                 for idx, opc in enumerate(opciones):
-                    with cols[idx + 1]:
-                        # El identificador incluye la consulta: con uno fijo,
-                        # dos busquedas dibujadas en la misma pantalla chocan y
-                        # Streamlit aborta. No pasa buscando de una en una,
-                        # pero si en la prueba masiva, donde tumbaba 18 de 40.
-                        marca_op = f"resp_opt_{idx}_{abs(hash(consulta)) % 999983}"
-                        if st.button(opc, key=marca_op, use_container_width=True):
+                    with cols[idx]:
+                        marca_op = f"resp_opt_{idx}_{abs(hash(str(consulta) + str(payload.get('pregunta', '')))) % 999983}"
+                        if st.button(opc, key=marca_op, use_container_width=False):
                             st.session_state["respuesta"] = (consulta, payload["pregunta"], opc)
                             st.rerun()
 
