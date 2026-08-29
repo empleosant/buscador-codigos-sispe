@@ -64,10 +64,10 @@ PROVEEDORES = {
     "gemini": {
         "clave": "GEMINI_API_KEY",
         "modelos": [
-            "gemini-3.5-flash-lite",
-            "gemini-3.1-flash-lite",
+            "gemini-2.5-flash",
             "gemini-2.5-flash-lite",
-            "gemini-3.6-flash",
+            "gemini-2.0-flash",
+            "gemini-1.5-flash",
         ],
     },
     "mistral": {
@@ -931,21 +931,11 @@ EJEMPLO DE RESPUESTA:
 
 
 def _configuraciones():
-    base = dict(
+    return [dict(
         system_instruction=INSTRUCCIONES,
-        max_output_tokens=2048,
+        max_output_tokens=700,
         response_mime_type="application/json",
-    )
-    opciones = []
-    for nivel in ("minimal", "low"):
-        try:
-            opciones.append(
-                {**base, "thinking_config": types.ThinkingConfig(thinking_level=nivel)}
-            )
-        except Exception:  # noqa: BLE001
-            break
-    opciones.append(base)
-    return opciones
+    )]
 
 
 PAUSAS_429 = (4, 10, 20)   # segundos de espera ante un tope por minuto
@@ -1081,11 +1071,11 @@ def _interpreta_una(prov, texto):
     modelos = modelos_de(prov)
     modelo = modelos[min(_idx_modelo(prov), len(modelos) - 1)]
     if prov == "gemini":
-        cfg = dict(system_instruction=INTERPRETE, max_output_tokens=2048)
-        try:
-            cfg["thinking_config"] = types.ThinkingConfig(thinking_level="minimal")
-        except Exception:  # noqa: BLE001
-            pass
+        cfg = dict(
+            system_instruction=INTERPRETE,
+            max_output_tokens=256,
+            response_mime_type="application/json",
+        )
         r = c.models.generate_content(
             model=modelo, contents=texto,
             config=types.GenerateContentConfig(**cfg),
@@ -1096,7 +1086,9 @@ def _interpreta_una(prov, texto):
             model=modelo,
             messages=[{"role": "system", "content": INTERPRETE},
                       {"role": "user", "content": texto}],
-            max_tokens=2048, temperature=0,
+            max_tokens=256,
+            temperature=0,
+            response_format={"type": "json_object"},
         )
         bruto = (r.choices[0].message.content or "").strip()
     _apunta_uso(prov, modelo)
@@ -2879,17 +2871,23 @@ else:
 # Estas dos escrituras van a la API de GitHub y ocurren AL TERMINAR la
 # busqueda, cuando el usuario ya cree que ha acabado. No se veian en el panel
 # porque solo se cronometraba a Gemini; aqui pueden irse varios segundos.
-_pendientes = st.session_state.pop("por_guardar", [])
-if _pendientes:
-    with cronometra("4. Guardar términos aprendidos (GitHub)"):
-        for clave, valor in _pendientes:
-            guarda_termino(clave, valor)
+import threading
 
+_pendientes = st.session_state.pop("por_guardar", [])
 _refuerzos = st.session_state.pop("refuerzos_por_guardar", [])
-if _refuerzos:
-    with cronometra("5. Guardar correcciones de orden (GitHub)"):
-        for codigo, palabras in _refuerzos:
+
+if _pendientes or _refuerzos:
+    def _ejecuta_segundo_plano(pendientes, refuerzos):
+        for clave, valor in pendientes:
+            guarda_termino(clave, valor)
+        for codigo, palabras in refuerzos:
             guarda_refuerzo(codigo, palabras)
+    
+    threading.Thread(
+        target=_ejecuta_segundo_plano,
+        args=(_pendientes, _refuerzos),
+        daemon=True
+    ).start()
 
 # ---------------------------------------------------------------------------
 # FIRMA
