@@ -1068,9 +1068,9 @@
 56211012:receta medicamento parafarmacia formula boticario prospecto jarabe
 56221015:ambulancia camilla sirena uvi desfibrilador oxigeno collarin paramedico
 56291016:camilla hospital urgencias pasillo mortuorio traslado grua celador
-56291025:residencia silla grua panal movilizacion dependiente
+56291025:cuidadora cuidador residencia ancianos mayores geriatrico asilo centro de dia residencia de ancianos cuidadores de personas dependientes instituciones ayuda minusvalia
 56291034:dentista clinica aspirador instrumental empaste radiografia odontologo bacha
-57101013:grua panales aseo ducha paseos comida compras medicacion
+57101013:asistente domiciliario ayuda a domicilio casas particulares atencion domiciliaria ancianos mayores abuelos dependientes enfermos en su casa higiene aseo
 57211015:panales babero chupete cuna trona pure siesta biberon
 57211024:parada cinturon ruta mochila colegio crios menores bus monitor
 57211033:patio bandejas pure babero siesta alergias crios vigilante
@@ -1130,8 +1130,8 @@
 59311047:autobomba manguera casco hacha hidrante sirena reten epa extintor escarmiento
 59321013:motosierra cortafuegos azada desbrozadora nodriza monte epa brigada
 59411019:walther pistola chaleco escolta coche blindado
-59411028:walkie porra garita rotativa fichas vigilante patrulla radar
-59411037:polvorin detonador dinamita furgon
+59411028:vigilante de seguridad vigilantes vigilante seguridad privada control de accesos vigilancia garita rondas patrulla edificio empresa vigilante
+59411037:explosivos polvorin minas canteras dinamita transporte de fondos armamento pirotecnia seguridad de explosivos
 59421012:muelle barco amarrador estacha grua
 59421058:llaves finca portal porteria
 59421067:maletas hall conserje recepcion checkin llaves maletero porteria botones
@@ -1235,7 +1235,7 @@
 71921019:panel sanwich anclajes tornilleria perfileria andamio grapas remate remates
 71931016:tela asfaltica soplete goteras bututil impermeabilizar imprimacion membrana drenaje sellar
 71991012:puntal puntales cimbra madero viga encofrado apuntalar estabilizar
-71991021:pladur trasdosado yeso laminado tabique perfileria encintar juntas atornillar
+71991021:montador montaje tabiquero instalador pladur trasdosado yeso laminado tabique perfileria encintar juntas atornillar
 71991030:martillo demoledor piqueta escombro radial contenedor maza derribo escombrera
 71991049:tubular cruceta plataformas rodapie grapas niveladoras mosqueton brida arnes
 71991058:malla simple torsion postes cancela alambre tensores piquetes grapas mallazo
@@ -1361,7 +1361,7 @@
 74011081:hidraulica retroexcavadora oruga tractor pala martillo soldadura bomba manguera bulon taller
 74011092:bogie pantografo vias freno neumatica carril tractor diesel taller acoplador
 74011100:rampa tobera bomba banco ultrasonidos caudalimetro presiones taller
-74011119:frenos embrague correa distribucion pastillas discos alternador aceite taller diagnosis
+74011119:mecanico coches automoviles vehiculos taller turismos automocion motor mecanica frenos embrague correa distribucion pastillas discos alternador aceite diagnosis
 74021019:turbina helice hangar torquimetro avionica revision fuselaje matricula turborreactor
 74021028:turbina helice avionica torquimetro hangar fuselaje revision turborreactor palea taller
 74021037:turbina helice hangar torquimetro avionica fuselaje revision turborreactor palea taller
@@ -1388,7 +1388,7 @@
 74031245:cosechadora tractor cultivador hidraulica tdf cardan aperos soldadora radial
 74041015:diesel marino propulsor reductora eje estribor babor eslora torquimetro
 74051018:pinion camara radios llanta desviador cambio frenos aceite grasa
-75101015:tuberia corrugada caja derivacion automandito magnetotermico diferencial enchufe clemas taladro pasamuros
+75101015:obra electricista electricidad reformas construccion instalador electrico cuadros tuberia corrugada caja derivacion automandito magnetotermico diferencial enchufe clemas taladro pasamuros
 75101024:cuadro electrico bandeja portacables manguera bornas conexion trifasica rele variador
 75101033:alicates destornillador buscapolos clemas canaleta taladro roseta automandito
 75211017:avioneta arnes fuselaje terminales multimetro soldador cableado continuidad
@@ -2045,7 +2045,7 @@
 91001018:plancha limpiar piso cocinar limpieza fregar comida ropa colada cuidar
 91001029:dormir pernoctar cuidar interna casa cocinar planchar limpiar asistenta fondo
 92101016:bandeja comedor office platos vaso cubiertos fregar retirar recoger sala
-92101027:kelly carro habitacion sabanas toallas camas bano polvo aspirador pasillo
+92101027:limpieza habitaciones hotel limpiadora pisos camarera hosteleria alojamientos kelly carro sabanas toallas camas bano polvo aspirador pasillo
 92101038:hospital clinica desinfeccion lejia quirofano pasillos habitaciones mopas fregona residuos
 92101049:valet maletas pasillo habitaciones toallas sabanas carro equipaje limpieza mozo
 92101050:fregona aspirador bayeta polvo estropajo mopas suelos cristales desengrasante
