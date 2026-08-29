@@ -935,8 +935,12 @@ REGLAS
 3. Devuelve SIEMPRE entre 3 y 5 ocupaciones, aunque dudes.
 4. Nivel profesional: 90 aprendices (sin experiencia) / 00 técnicos o sin categoría (estándar con experiencia) / 10 dirección / 20 mandos intermedios / 30 jefes de equipo / 70 auxiliares / 80 peones.
 5. El campo "motivo" explica en menos de 10 palabras por qué encaja, en español con acentuación correcta.
-6. No propongas ocupaciones de dirección, jefatura ni mando (niveles 10, 20, 30) salvo que la descripción diga expresamente que dirigía equipos, centros o departamentos.
-7. Respeta el entorno de trabajo que indique la descripción: domicilio particular frente a institución, centro o residencia.
+6. No propongas ocupaciones de dirección, jefatura ni mando (niveles 10, 20, 30 como Gobernantes, Mayordomos, Encargados, Gerentes) salvo que la descripción diga expresamente que dirigía personal o departamentos.
+7. Respeta la naturaleza y función real del puesto:
+   - Gestión de facturas, facturación, contabilidad, nóminas o presupuestos corresponden a EMPLEADOS ADMINISTRATIVOS (contabilidad 41111011, personal/nóminas 41121012, administrativo general 43091029). NUNCA selecciones COBRADORES DE FACTURAS, DEUDAS O ALQUILERES (44451017) salvo que se indique expresamente cobro a morosos o recaudación de deudas en calle.
+   - Limpieza de habitaciones de hotel corresponde a CAMAREROS DE PISO (HOSTELERÍA) (92101027), no a mayordomos ni gobernantes.
+   - Tareas operativas de conducción o manejo de maquinaria (carretilla, autobús, camión) corresponden a CONDUCTORES-OPERADORES (grupo 8), no a técnicos de gestión.
+   - Domicilio particular frente a institución, centro o residencia.
 8. PREGUNTA Y OPCIONES (DESAMBIGUACIÓN):
    - Rellena "pregunta" y "opciones" solo si hay duda para afinar o desempatar entre las ocupaciones candidatas (por funciones, entorno, sector o especialidad). Si no hay duda, deja "pregunta": "" y "opciones": [].
    - La pregunta debe plantear una elección clara y directa (máximo 15 palabras).
