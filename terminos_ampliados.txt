@@ -16,6 +16,7 @@
 12211032:leads conversion funnels trafico branding crm cac kpis roas presupuesto
 12211041:leads scripts cvc marcacion rotacion dialer inbound outbound
 12221017:briefing photocall sponsor clipping networking atrezzo patrocinios copy
+12221026:dossier canutillo infoperiodistas argumentario canutillos cortes noticiarios notas comunas
 12231010:autocad lean planta lay out gantt capx opx capex pmi kpi
 12231029:patente ensayo prototipo triz agil scrum spin off paper
 13111018:tractor cosechadora abono purin tractorista invernadero poda fumigar
@@ -76,6 +77,7 @@
 21111011:ambulatorio receta historial botiquin recetar auscultar sintomas diagnosticar derivar urgencias
 21111020:receta historial ambulatorio auscultar sintomas diagnosticar derivar urgencias parte baja
 21121023:alergia prick test polen acaros asma urticaria antihistaminico inmunoterapia rasguno
+21121032:tubos centrifuga pipeta frotis hemograma coagulacion reactivos suero muestras microscopio
 21121041:biopsia microscopio autopsia muestra tejido citologia patologo tubo porta
 21121050:quirofano intubar anestesia sedacion monitor bisturi epidural respirador quirurgico
 21121061:varices eco doppler bypass fistula trombosis aneurisma quirurgico endoprotesis
@@ -113,9 +115,9 @@
 21121416:ictus cefalea epilepsia esclerosis temblor parkinson acv neurologica migrana
 21121425:parto ecografia cesarea embarazo matriz feto matronas gineco esterilidad
 21121434:graduacion retinografia cataratas agudeza visual oftalmologica optica gafas cristalino
+21121443:radioterapia acelerador tumores radiaciones lineal oncologo paliativos metastasis
 21121452:quimioterapia tumores metastasis oncologo leucemia linfoma biologicos paliativos
 21121461:otitis laringe audifono rinolaringologia amigdalas sordera garganta vertigos
-21121443:radioterapia acelerador tumores radiaciones lineal oncologo paliativos metastasis
 21121470:vacunas otitis bronquiolitis pediatra lactantes fiebre jarabe auscultar recetas
 21121489:ansiedad depresion psicofarmacos divan consulta recetas lorazepam olanzapina mania
 21121498:resonancia tac ecografia radiografia rayos contraste mamografia scanner radiologo
@@ -123,7 +125,8 @@
 21121519:prostata cistoscopia litotricia urologo vejiga incontinencia ecografia sondaje
 21121528:historiales triaje citas codificacion cie hce archivo epik
 21121537:agujas fitoterapia reiki hierbas tinturas holistica
-21211010:enfermeros no especializados enfermera ambulatorio vacunas curas inyecciones enfermeria general hospital
+21211010:enfermero enfermera enfermeria general inyecciones vacunas vias sueros curas analiticas hospital ambulatorio centro medico enfermeros no especializados
+21211083:enfermero de atencion primaria enfermera cabecera centro salud ambulatorio consultas vacunas seguimiento cronicos enfermeros curas inyecciones
 21221013:ansiedad contenciones psiquiatrico mania delirios psicofarmacos contencion
 21221022:domicilios curas centro salud ancianos vacunacion inyecciones tension sintrom
 21221031:reconocimientos mutua apto espirometria analitica absentismo prevencion accidentes
@@ -133,26 +136,29 @@
 21231016:matrona parto embarazo ecografia dilatacion monitor tacto feto contracciones
 21301014:adn pcr secuenciacion embriones clonacion muestras razas genotipado mutaciones pedigris herencia
 21301025:autopsias biopsias muestras citologias microscopio necropsias histologia patologia organos tincion
-21301036:quirofano estetoscopio vacunas esterilizar radiografias ecografia clinica consulta suturar analgesia
+21301036:veterinario veterinaria clinica operar perros gatos vacunas desparasitar animales quirofano estetoscopio esterilizar radiografias ecografia consulta suturar analgesia
 21401015:centrifuga tubos muestras suero pipeta reactivos hematologia coagulacion cromatografia cultivos
 21401026:dispensacion unidosis planta antibioticos cytostaticos recetas farmacos sueros caducidades quirofano
 21401037:capsulas excipientes lote comprimidos jarabes batch excipiente esterilidad formulacion mezclador
 21401048:recetas mostrador parafarmacia dispensar estupefacientes caducidades genericos posologia botiquin principios
+21431023:fisioterapeuta masajes terapeuticos rehabilitacion contracturas fisioterapia descargar espalda centro de salud clinica
 21511013:empastes ortodoncia extracciones curetajes endodoncia radiografia obturacion bruxismo implantes anestesia
+21511019:odontologo dentista clinica dental empastes extracciones implantes endodoncias caries odontologia
 21511024:caries brackets endodoncia tartrectomia implantes ortodoncia empastes provisionales periapical obturacion
-21521010:fisioterapeutas en general hacer masajes terapeuticos fisioterapia descargar espalda contracturas rehabilitacion masajes terapia centro de salud
+21521010:fisioterapeuta fisioterapia rehabilitacion masajes terapeuticos contracturas lesiones traumatologia descargar espalda clinica centro de salud fisioterapeutas en general hacer terapia
 21531013:antropometria dietas pautas macronutrientes calorias pliegues menus bioimpedancia alimetacion nutricion
 21541016:disfagia fonacion tartamudez dislalia articulacion vocalizacion deglucion logopedia afasia
 21541025:audiometria audifonos implantes timpanometria sordera moldes logopedia acufenos foniatria rehabilitacion
 21551019:graduacion lentillas monturas optometria astigmatismo miopia tonometro gafa biometria retinografia
 21561012:ortesis autonomia ferulas adaptacion estimulacion cognitivo discapacidad psicomotricidad actividades barra
-21571015:bisturi fresa silicona quiropodia callos plantilla una podoscopio espolon verruga
+21571015:podologo podologia clinica podologica quiropodia unas encarnadas durezas papilomas plantillas pies pisada bisturi fresa silicona callos plantilla una podoscopio espolon verruga
 21581018:ergonomia prevencion mutua insht toxico ruido dret rtp latigazo medicion bioseguridad
 21591020:dosimetria radioterapia acelerador linac isodosis blindaje radioisotopo fisica oncologia ciclotron
 21591039:ansiedad depresion consulta terapia tcc psicoterapia divan apego trauma psicologo empatia
 21591048:pir residencia hospital salud mental psiquiatria intervencion psicopatologia psicodiagnostico clinica
 22101011:universidad rectorado tesis tfg master facultad dekanato aulario campus oposicion decano
 22201010:boceto caballete burnish arcilla torculo grabado cincel modelado esmalte horno bastidor
+22201021:nudos aparejos sextante recalada derrota singladura patron canas mallas
 22201032:patron navegacion radar aparejo marea sonar plotter cabulleria sonda nudo babor
 22201043:factura contaplus excel contabilidad nomina conta aranzadi facturae trilema asiento balance
 22201054:tractor tractorista poda injerto invernadero cosechadora arado sembradora abono almendro vivero
@@ -180,6 +186,7 @@
 22201281:programacion redes linux router switch java python html ciberseguridad excel
 22201292:reciclaje vertedero extintor mangueras ecologia depuradora contaminacion residuos biometria
 22301011:boceto acuarela acrilico tiralineas escuadra cartabon perspectiva volumen modelado
+22301017:profesores de ensenanza secundaria dar clases instituto eso bachillerato docente secundaria
 22301022:tutor clauster boletin corregir suspensos matricula claustro programacion temario
 22301033:microscopio celula fosil petroleo tectonica genetica ecosistema vertebrados
 22301044:cronologia monarquia revolucion feudalismo cartografia egipto roma constitucion economia
@@ -237,6 +244,7 @@
 24111029:cuantica optica termodinamica acelerador laser particulas relativismo
 24111038:laboratorio espectrometro osciloscopio probeta microscopio calibrar ensayo medicion laser
 24121013:radar isobaras pronostico satelite borrasca anticiclon termometro anemometro precipitacion
+24121016:tasadores agricolas tasador tasar fincas rusticas terrenos parcelas valoracion rustica peritaje rustico valoracion de fincas
 24121022:radar isobaras pronostico satelite borrasca anticiclon termometro anemometro precipitacion
 24131016:difractometro rayos difraccion monocristal red cristalina redox espectrometria molecula
 24131025:matraz pipeta reactivo cromatografia disolucion reflujo pipetear precipitacion
@@ -244,8 +252,8 @@
 24141019:sismografo gravimetro magnetometro falla epicentro subsuelo estratigrafia sismo
 24141028:martillo lupa afloramiento estrato cuenca fosil cartografia sondeo
 24141037:espectrometro isotopo lixiviacion muestreo geoquimica mineralogia trazador cromatografia
-24141055:fresadora pincel lupa estratigrafia yacimiento fosilizacion taxonomia holotipo microfosil
 24141046:geotecnia tunel cimentacion talud sondeo cartografia estrato sismica mecanica
+24141055:fresadora pincel lupa estratigrafia yacimiento fosilizacion taxonomia holotipo microfosil
 24141064:martillo lupa afloramiento estrato cuenca fosil cartografia sondeo
 24151012:siniestralidad solvencia tarificacion reaseguro mortalidad provisiones reservas riesgo
 24151021:teorema algoritmo demostracion topologia matriz estocastico calculo algebra
@@ -261,13 +269,22 @@
 24211073:vitro vivo metabolismo organo cultivo electrofisiologia transductor pipeta
 24211082:hongos roya mildiu entomologia inoculo plaga sintomatologia microscopio fitosanitario
 24211091:pcr secuenciacion crispr polimorfismo marcador transgenico hibridacion fenotipo mejora
+24211103:anticuerpos linfocitos citometria leucocitos inmunoensayo celulas hla inmunidad suero
+24211112:agar petri cultivos cepas bacilos hongos incubadora tincion colonias
+24211121:dietas macros calorias antropometria balanza menus adelgazar proteinas hidratos
+24211130:batitermografo mareografo salinidad plancton batimetria boyas corrientes bentos
 24211149:microscopio cultivo parasito muestra heces sangre laboratorio pipeta placa agar reactivo centrifuga
 24211158:alimento laboratorio caldito muestra higiene cromo cultivo salmonela contaminacion etiqueta
 24211167:laboratorio pipeta centrifuga placa agar muestra reactivo cultivo microscopio tes proveta
+24211176:excipientes disolucion viales pipetas cromatografia ensayos reactivos farmacos dosis
 24211185:mareografo batiscafo sonda salinidad muestra plancton corriente marea boya
+24211194:estanques alevines larvas salinidad microalgas rotiferos piensos batea oxigeno
 24211206:taxidermia binoculares trampa censo anillamiento muestreo camuflaje prismaticos fauna coto
+24211215:crispr plasmidos secuenciacion pcr clonaje vectores enzimas proteinas genetica
 24221012:suelo arcilla perfil carbonato muestra calicata porosidad textura fertilidad humus
+24221021:tractores aperos riegos abonos plagas parcelas invernaderos rotacion hectareas
 24231015:pinar troceo cortafuegos repoblacion motosierra pestes rasante cubicacion apeo monte
+24241018:fecundacion tractores cosechadoras abonos sulfatar poda invernaderos parcelas aperos
 24251011:pinar talas apeo cubicacion repoblacion plagas rasante topografia cortafuegos monte
 24261014:auditoria contaminacion vertido decibelios residuos reciclaje muestreo sonometro atmosfera chimenea
 24271017:barrica cata sulfito vendimia mosto uva botella clarificacion fermentacion cepa
@@ -280,6 +297,7 @@
 24311072:turnos tiempos metodos cuello takt ergonomia celulas balanceo layout
 24311081:mrp erp oee gatt stock cuellos secuenciacion lotes turnos leadtime
 24311090:escandallo moldes extrusion cpk kaizen poke yoka troqueles utillajes tolerancias
+24311102:prototipos cad planos tolerancias ensamblaje croquis piezas despieces moldes
 24311111:gantt presupuesto licitacion pliegos ofertas certificaciones planos cronograma kpis
 24321011:autocad cimentaciones encofradores topografia rasantes zanjas geotectica pilotes hormigon
 24331014:calderas turbinas bombas termica intercambiadores cogeneracion compresores valvulas vapor
@@ -313,6 +331,7 @@
 24431022:router switch fibra coaxial red antena repetidor empalme rack latiguillo
 24511016:plano autocad revit croquis cimentacion fachada edificacion reforma licencia memoria
 24521019:jardin parterre riego botanica plano croquis especie arbol arbusto pradera
+24531012:semaforos retenciones aforos peajes radares cinemometros rotondas
 24531021:pgou planeamiento manzana zonificacion acera rasante alineacion edificabilidad parcela
 24541015:gis teledeteccion ortofoto gps fotogrametria topografia autocad geodesia arcgis
 24611015:iso metrologia auditoria sigma calibraje kpi nonconformity trazabilidad estadistica oee
@@ -362,11 +381,11 @@
 24821070:ceramica telar torno arcilla gres alfareria tallar esmaltar molde mazor
 24821081:patronaje patron patronista escalado coser maquina
 24831019:estacion total teodolito gps levantamiento topografico replanteo tasacion autocad nivel
-24841012:photoshop illustrator indesign maquetacion banner flyer branding mockup logotipo vetor
-25111013:demanda divorcio desahucio herencia contrato burofax indemnizacion hipoteca testamento
-25111022:querella imputado calabozo fiscalia comiseria juzgado atestado audiencia prision
-25111031:despido finiquito inspeccion ere conciliacion smac indemnizacion carteleria convenio
-25111040:letrado minuta poder procurador estrado demanda juzgado escrito alegacion recurso
+24841012:disenador grafico multimedia logotipos folletos carteles illustrator photoshop indesign publicidad imagen corporativa maquetacion banner flyer branding mockup logotipo vetor
+25111013:abogado civil derecho herencias divorcios contratos arrendamientos separaciones clausulas suelo reclamaciones juzgados demanda divorcio desahucio herencia contrato burofax indemnizacion hipoteca testamento
+25111022:abogado penal derecho juicios penales denuncias querellas asistencias a detenidos juzgado de instruccion delitos querella imputado calabozo fiscalia comiseria atestado audiencia prision
+25111031:abogado laboral derecho despidos finiquitos smac reclamacion de salarios convenios colectivos ere ertis juzgado lo social despido finiquito inspeccion conciliacion indemnizacion carteleria convenio
+25111040:abogados en general asesor juridico letrado bufete litigios demandas defensa judicial asistencia letrada minuta poder procurador estrado demanda juzgado escrito alegacion recurso
 25121016:acusacion querella instruccion sumario delito fiscalia testigo imputado sentencia
 25131019:estrado toga sentencia auto providencia vista deliberacion sumario fiscalia ponente
 25911015:escritura minuta fedatario apostilla testamento hipoteca arras folio protocolo compraventa
@@ -411,8 +430,9 @@
 26511067:press clipping photocall dossier brand briefing influencer patrocinio gabinete sponsor
 26511076:kpi focus group spss excel cuestionario tabulacion cata muestreo briefing
 26511085:community manager reels tiktok post hashtag analytics story copy hootsuite bio
+26521015:briefing cunas flyers banners copys street marketing mockups rrss
 26531018:hardware preventa switch servidor toner ram cpu router perifericos
-27111019:backend scrum jira git fullstack agile api java sprint
+27111019:programador desarrollador de software analista python java javascript c# backend frontend aplicaciones web app scrum jira git fullstack agile api sprint
 27111028:architect kubernetes docker microservicios devops linux git scrum cloud
 27111037:fullstack git docker kubernetes java scrum jira ciberseguridad devops agile
 27111046:backend java scrum git agile api jira frontend linux docker
@@ -420,7 +440,7 @@
 27121021:architecture microservicios docker kubernetes git scrum agile api legacy
 27121030:java python git scrum backend frontend bug deploy commit
 27121049:erp sql java csharp api software ciclo metodologia analitica diseno
-27131015:html css javascript wordpress figma responsive seo maquetar
+27131015:disenador web diseno de paginas wordpress html css tiendan online ecommerce maquetacion responsive javascript figma seo maquetar
 27131024:react angular node php javascript frontend backend api fullstack
 27191013:auditoria iso rgpd ciberseguridad hacking consultoria cumplimiento pentesting
 27191022:hardware software scrum agile ticketing helpdesk soporte incidencias
@@ -528,9 +548,13 @@
 29341115:foco rider azafata tarima microfonia camerino escaleta ensayo escenario
 29341124:raccord racord guion escaleta claqueta
 29351015:atril sincro locucion microfono
+29351024:doble accion cascada arnes caida saltos plato rodaje
 29351033:casting monologo camerino guion
+29351042:figurante fondo rodaje cache dia casting
+29361018:libreto apuntador bambalinas texto patio butacas teatro ensayo
 29361027:mesas controlador vinilos auriculares microfono mescla
 29361036:atril microfono locucion auricular
+29361045:microfono galas presentacion eventos animador tarima publico guion escenario
 29371011:ruedo burladero albero capote muleta
 29371020:banderillas capote albero burladero estoque
 29371039:traje muleta capote espada burladero
@@ -618,6 +642,7 @@
 31281074:martillo yunque tenaza hornillo estampa fragua calentar
 31281083:crisol colada arena molde cuchara desmoldear vaciar
 31281092:cera revestimiento centrifuga horno crisol joya acabado
+31281104:laminador bobina rodillos tren metal caliente plancha fundicion extrusion
 31281113:prensa sinterizar polvo matriz compactar horno mezcla
 31281122:electrodo tig mig mag careta escoria radial cordon
 31291013:maqueta cutter pliego rotulo escalimetro carton tijera
@@ -649,6 +674,7 @@
 31291273:telares urdimbre trama lanzadera tejeduria ligamentos hilados urdidora
 31291282:nonwoven calandrado cardado termofijado agujas punzonado agujeteado fibras hiladas
 31311012:subestacion transformador alta media baja tension interruptores celdas tendido empalmes
+31311023:subestacion trafo transformador alta tension redispatching scada telemando red
 31311034:caldera turbina generador vapor emisiones chimenea quemadores scada ciclos
 31311045:valvulas sensores manometro caudalimetro plc calibracion transmisiones
 31311056:presa compuertas turbina embalse alternador caudales aliviadero saltos
@@ -724,6 +750,7 @@
 31601030:ultrasonidos radiografia ensayos cordon metales fisura galga
 31601041:estructuras metales ensayos ultrasonidos galga fisura cordon metrologia
 31601052:trazabilidad caducidad laboratorio bcc hisopo microbiota conservantes
+31601063:piezas metrologia torquimetro calibra fallas defectos cmm linea
 31601074:electromecanica circuitos multimetro tolerancias esquema componentes
 31601085:humedad nudos veta cepillado tableros carpinteria
 31601096:calibre micrometro defecto homologacion remesa tolerancias metrologia rechazos
@@ -776,10 +803,13 @@
 32091175:radial cizalla plegadora torno fresadora soldadura calibrador broca
 33111016:acelerador dosimetria plomado tac oncologia linac
 33121019:tac ecografo resonancia revelado radiologia colimador
+33121028:gammacamara isotopos pet tac radiotrazador radiactivo dosis scintigrafia
 33121037:plomado revelado ecografo tac colimador rad
 33131012:microtomo biopsia tincion formol cuchilla porta
+33141014:higienista dental limpieza bucal tartrectomia raspados fluorizacion auxiliar de dentista clinica dental
 33141015:tubo centrifuga suero pipeta aguja gradilla hematologia
 33141024:centrifuga tubos pipeta aguja mechero placa medio
+33151017:hacer masajes terapeuticos masajista quiromasajista descargar la espalda contracturas masaje quiromasaje espalda cervicales lumbar
 33151018:corse ferula termoplastico molde escayola bota protesis
 33161011:cera zirconio yeso articulador mofla resina fresadora
 33161020:cera zirconio yeso articulador mofla resina fresadora
@@ -787,8 +817,8 @@
 33211024:curetaje ultrasonidos aspirador sonda tartaro abrillantador
 33221018:cie codificacion hce historia clinica admision archivo ccie mas oca
 33231011:antropometria dieta menu adipometria biotipo pletismografia calorimetria bza bioimpedancia
-33241014:biseladora gafa lentilla montura optometrista pupilar graduacion esferico cilindrico eje
-33251017:masajistas masajista hacer masajes terapeuticos quiromasaje descargar espalda contracturas masaje quiromasajista deportivo
+33241014:auxiliar de veterinaria atencion a mascotas enfermeria sujecion quirofano cuidado perros y gatos biseladora gafa lentilla montura optometrista pupilar graduacion esferico cilindrico eje
+33251017:masajista quiromasajista masajes deportivos contracturas descarga muscular relajantes quiromasaje masaje corporal masajistas hacer terapeuticos descargar espalda deportivo
 33261010:adr cisterna btp bulto expedidor carta panel naranja cartonero
 33261029:fumigar desratizar cucaracha termita rodenticida nebulizacion pulverizacion plaga bicho
 33261038:potabilidad legionella efluente contaminacion inmision vertido sonometria aforo analito
@@ -808,6 +838,7 @@
 34041019:spss sas encuestas cuestionarios tabulacion muestreo regresion bases kpis
 34041028:encuestas entrevistas mister shopper cuestionarios llamadas calle portatil tablet visitas
 34051012:firmas falsificaciones peritaje boligrafo tintas cotejo testamento grafologia pericial
+34051021:hipotecaria valoracion metros cuadrados catastro peritaje mercado tasacion
 34051049:valoracion peritaje mercado tasacion siniestro depreciacion inmueble vehiculo mobiliario
 35101019:puerta fria cartera comision rappel prospeccion catalogo visitas rappels pedidos
 35101028:cuentas estrategia kpis forecast pipeline reuniones contratos margenes
@@ -823,7 +854,7 @@
 35321013:catering stands montadores azafatas hospitality protocolo photocall
 35331016:prestaciones desempleo demandantes orientacion insercion curato itinerarios
 35341019:comunidad derramas derrama inquilinos juntas morosos finca porteria
-35341028:inmobiliaria piso alquiler hipoteca arras notaria llaves exclusivas
+35341028:agente inmobiliario comercial ensenar pisos venta alquiler captacion de inmuebles inmobiliaria intermediario piso hipoteca arras notaria llaves exclusivas
 35351012:gabinete notas prensa branding networking sponsor influencers reputacion
 35391014:cache bolo rider contratacion gira manager bolos audiciones
 35391023:espacios soportes cunas pautas creatividades campanas banners audiencias
@@ -833,7 +864,7 @@
 36131011:agenda directivo vuelos dietas gastos excel powerpoint convocar actas
 36131020:archivador fotocopiadora llamada agenda escanear grapadora excel word
 36131039:factura albaran excel word fotocopiadora archivador tramitar
-36141014:secretarios de centros medicos o clinicas secretaria recepcionista clinica citas telefono recepcionista telefonista atencion llamadas clinica dental medica
+36141014:secretaria medica recepcionista de clinica citas medicas historiales pacientes dental hospital centro consultas secretarios centros medicos o clinicas telefono telefonista atencion llamadas
 36211014:hacienda irpf recargo multa embargo inspeccion aeat notificacion
 36211023:embargo apremio notificacion hacienda deudor recaudacion tasacion subasta
 36221017:dependencia ayuda subsidio expediente prestacion vulnerable social
@@ -887,17 +918,28 @@
 37311016:reflex flash tripode objetivo estudio retrato enfoque boken
 37311025:prensa redactores flash teleobjetivo exclusiva cobertura camara tripode
 37311034:revelado negativo cubeta ampliadora emulsion quimico positivado escaneo
+37321019:atrezo decorado atrezzista atrezzo decoracion atrezista utileria atreccista
 37321028:maniqui cartel vitrina atrezzo iluminacion rotulacion gancho peana promocion visual
 37321037:autocad render planos infografia tabiqueria lamparas tapiceria muestras distribuidores
+37321046:jardin verde cesped paisajismo riego botanica pradera plantas vivero
+37321055:feria stand moqueta eventos expositor melamina carpas rotulos
+37321064:atrezzo escenografia tramoya bambalinas telon escenografico decorado
+37321073:maqueta escala balsa carton cutter plano maquetacion maquetas miniatura
+37331012:archivador legajo expediente clasificar carpeta estanteria digitalizar escanear rotular caja
+37331021:catalogacion tebeo monografia signatura tebeoteca hemeroteca prestamo tecleo tebeos
+37331030:vitrina comisario restauracion inventario pinacoteca montador peana peanas restaurador
 37341015:escandallos proveedores comandas escandallo brigada menu stock alergenos carta
 37341024:salsa guisar despiezar emplatar freir asar hornear fondos mise place
+37391010:vestuario taquilla toalla percha perchero lavanderia vestidor guardarropa lavadora toallas
+37391029:atrezzo utileria atrecista decorado utilero decorados atrecistas atrezzista atrezo
 37391038:tinta aguja esterilizacion plantilla cicatrizador delineado sombreado perforacion guantes
+37391047:escaleta patio butacas escenario bambalinas apuntador apuntadora
 37391056:varas telones bambalinas escenarios focos carteleria andamios tarimas teloneria
 38111011:servidores racks switches sysadmin respaldos parches datacenter firewall
 38121014:erp crm bases consultas sql depuracion migracion reportes scripts
-38121023:routers switches impresoras crimpadora drivers formateo patchcord antivirus
+38121023:tecnico microinformatico de soporte helpdesk arreglar ordenadores formatear instalar windows impresoras routers a usuarios switches crimpadora drivers formateo patchcord antivirus
 38121032:soldador multimetro condensadores placa bios fuentes disipador soldadura
-38131017:switch router vpn fibra lan dns subredes wifi
+38131017:tecnico de redes soporte instalacion cableado estructurado switches routers cisco wifi fibra configuracion red switch router vpn lan dns subredes
 38141010:html css javascript php dominios ftp hosting cms plugins
 38201017:java python git apis bugs pull request ide
 38311019:premiere avid finalcut timeline brutos master ingest transcode
@@ -925,13 +967,14 @@
 38331024:walkie talkie emisora vhf uhf repetidor frecuencia antena canal microfono transceptor
 38331033:router switch crimpadora latiguillo fibra optica fusionadora coaxial batea rack
 38331042:soldador osciloscopio multimetro smd pcb condensador transistor circuito impreso
-41111011:facturas facturacion contabilidad cuentas administracion financiera asiento contable balance iva amortizacion diario mayor impuestos albaranes
-41121012:nominas personal contratacion recursos humanos finiquitos gestion de personal seguridad social altas bajas irpf contratos
+41111011:empleado de contabilidad auxiliar contable facturas balances impuestos asientos contables libro mayor facturacion contaplus sage autonomos cuentas administracion financiera asiento balance iva amortizacion diario albaranes
+41121012:empleado de nominas gestion personal altas y bajas seguridad social sistema red siltra contratos laboral recursos humanos contratacion finiquitos irpf
 41131015:tpv hipoteca prestazo comision moroso domiciliacion apunte cajero divisa
 41131024:excel spss macro encuesta tabulacion estadistico grafico base datos media
 41131033:siniestro poliza franquicia endoso recibo prima peritaje mediador coaseguro
 41131042:tesoreria cash flow balance conciliar extracto pagares remesa morosidad caja
 41211023:transpaleta flejadora palet carretilla anden muelle carnet carretillero picking
+41211034:camara frigorifica transpaleta palet escandallo camaras albaran caducidad congelacion
 41211045:boveda suela tacon horma badana badanas pegamento troquel cortadora
 41211056:albaran picking stock albaranes inventario palet transpaleta escaneo
 41211067:etiquetadora pistola precintadora retractiladora caja codigo barras palet pesaje
@@ -947,6 +990,7 @@
 41231072:pista torre chaleco rotaflex marshalling guia baliza estacionamiento plataforma tarmac
 41231083:enclavamiento catenaria paneles semaforo pupitre pantallas averias circuitos desvio tablero
 41231094:aduana flete routing transitario imponible contenedor arancel dgp fletamento
+41311011:grabador de datos grabacion de datos data entry digitador introduccion de datos mecanografia facturas formularios bases de datos
 42101011:archivador tebeos lomos legajos
 42101022:escaner pdf ocr digitalizar indexar papel fotocopia carpeta metadatos escanear
 42211011:cartero buzon carta paquete urgente bar
@@ -958,13 +1002,14 @@
 43011016:maquina taquigrafia apuntes discursos velocidad taquigrafo taquiofono mecanografia
 43011025:teclear excel alfanumerico validacion registros formularios pantallas captura ficheros
 43091010:notificaciones embargos juzgados citaciones tribunales exhortos demandas procuradores desahucios
-43091029:fotocopiar archivador grajadoras sellar impresora carpetas albaran folios
+43091029:administrativo general auxiliar archivo tramitacion documentos cartas correo atencion telefono oficina fotocopias gestion administrativa fotocopiar archivador grajadoras sellar impresora carpetas albaran folios
 43091038:calculadora contabilidad arqueo balanza sumadora asientos extractos mayor mecanica
+44111015:recepcionista telefonista atencion de llamadas citaciones citas recepcion clinica centralita correo mostrador entrada recepcionistas telefonistas secretaria telefono atender
 44111018:reclamaciones mostrador incidencias colas devoluciones vales formularios explicaciones
 44121011:recepcionistas en general citas telefono secretaria recepcionista atender llamadas mostrador
 44121020:crucero travesia camarotes embarque equipajes
 44121039:megafonia mostradores check puertas abordo maletas embarque cancelas retrasos
-44121048:conserjeria llaves mostrador centralita tarjeta visitantes avisos correspondencia paqueteria
+44121048:recepcionista de hotel recepcion check in out atencion a huespedes reservas telefonicas conserjeria hotelera llaves mostrador centralita tarjeta visitantes avisos correspondencia paqueteria
 44121057:centralita extensiones desviar llamadas conmutador transferir tonos recepcion recados agenda
 44211017:escapada alojamiento senderismo comarca pax bungalow patronal reserva huesped
 44211026:amadeus emision billete vuelo bono traslados crucero itinerario cupo catalogo
@@ -975,7 +1020,7 @@
 44211071:emision comision cupo bonos pasajero billetes cruceros pasaje tiquete
 44211080:amadeus emision billetes bono mostrador traslados cruceros cupo itinerario
 44211091:transfer aeropuertos pasajero cartel minibus maletero guagua acogida
-44221010:overbooking checkin tarjeta llave conserje tip noches late booking
+44221010:teleoperador teleoperadora telemarketing atencion al cliente llamadas entrantes emision de grabacion call center encuestas soporte telefonico overbooking checkin tarjeta llave conserje tip noches late booking
 44231013:conmutador extensiones llamada centralita cascos desviar transferir operadora interno
 44241016:crm headset marcacion script locucion speech tipificacion callcenter televenta
 44241025:ambulancia protocolo dotacion patrulla geolocalizacion incidencias bomberos alerta
@@ -998,7 +1043,7 @@
 45001019:mostrador recepcion ventanilla tramites fotocopiadora grapadora sello justificante
 50001017:autonomo caja proveedores autonomos carta menus reservas nomina
 51101015:galeote camarote mar cocina fogon rancho tripulacion
-51101026:cocinero cocinar restaurante chef cocina guisar hosteleria platos elaboracion fogon horno sarten menu carta escandallo
+51101026:cocinero cocinera jefe de cocina menu del dia plancha fuegos freidora horno arroces paellas tapas raciones restaurante chiringuito brasa gastronomia cocinar chef guisar hosteleria platos elaboracion fogon sarten carta escandallo
 51101037:plancha freidora bocadillos hamburguesas raciones tapas pinchos
 51101048:pure triturar biberon esterilizar papilla lacteo nutricion
 51101059:abrir latas envasar termoselladora bandeja racion raciones menu
@@ -1006,8 +1051,8 @@
 51101071:horno manga pastelera bizcocho fondant masa reposteria obrador
 51101082:coordinar logistica menu menus pasajeros aerolinea stock
 51201016:coctelera coctel gin tonic cubalibre combinado hielo chupito
-51201027:camarero de barra servir copas discoteca pub copas cubatas cocteleria cocteles barra de noche cafetería bebidas mostrador
-51201038:camarero de sala servir mesas copas discoteca pub restaurante salon comedor terraza
+51201027:camarero de barra camarera cafeteria servir cafes desayunos cañas copas mostrador cobro en bar pub discoteca coctelero barista barman cubatas cocteleria cocteles noche cafetería bebidas
+51201038:camarero de sala camarera restaurante servir mesas comanda llevar bandeja comedor banquete eventos terraza tomar nota salon copas discoteca pub
 51201049:bandeja terraza barra comandas pinchos canas tapas raciones
 51201050:cafetera tirador canas caja comandas stock inventario
 51201061:maitre lito comensal rango comandas descorche reservas
@@ -1016,14 +1061,18 @@
 52101023:pasillo reposicion lineal gondola caja escaparate inventario mercancia horario albaran
 52101034:caja tpv cierre cuadre franquicia escaparate lineal horario facturacion
 52201013:raqueta zapatilla cana anzuelo spinning esquiar pescar patinete dorsal hinchable
+52201017:dependiente de comercio dependienta atencion al cliente ventas tienda asesor cobrar mostrador vender ropa y en una un centro comercial prendas boutique modas dependientes
 52201024:tornillo broca taco taladro martillo tuerca silicona arandela sierra cerradura
+52201026:dependienta de ropa dependiente tienda moda textil prendas boutique probadores centro comercial zara mango bershka vender comercio cobrar en
 52201035:tripode objetivo flash bateria tarjeta memoria revelado camara cargador carrete
+52201044:dependiente de panaderia panadera despachar pan bolleria empanadas despacho de pan cafeteria degustacion
 52201046:envolver lazo celofan bolsa tarjeta felicitacion suvenir expositor vitrina
 52201057:zapato bota sandalia hebilla suela cordon plantilla betun escaparate probador
-52201068:cortafiambre cuchillo balanza loncha jamon queso embutido vitrina trinchadora melsa
+52201068:dependiente de carniceria carnicero charcutero cortar jamon deshuesar despachar embutidos charcuteria filetear carne cortafiambre cuchillo balanza loncha queso embutido vitrina trinchadora melsa
 52201079:caja tpv ticket mostrador balanza escaparate pasillo bolsa gandola perchero
 52201080:cable disco duro placa base procesador memoria ram toner teclado raton router
 52201091:nevera lavadora microondas television placa induccion secadora horno lavavajillas campana
+52201099:dependientes de pescaderia pescadero pescaderia plaza de abastos puesto de pescado limpiar pescado escamar despachar pescado marisco
 52201101:tabaco mechero timbre loteria sello recarga recambio sellos cupon
 52201110:receta jarabe pastilla pomada prospecto termometro tensiometro parafarmacia blister supositorio
 52201121:ramos coronas oasis celofan espinas flor tijeras envoltorio
@@ -1031,6 +1080,7 @@
 52201143:linea caja tiquet escaner dataphone reposicion pasillo lineal gandola
 52201154:herbario infusion tinturas capsulas fitoterapia granel natural herbolario
 52201165:afinacion cuerdas partituras boquilla estuche arpeggios lutier baquetas
+52201176:muneca peluche puzzle lego juguete barbie consola pista
 52201187:fotocopiadora encuadernar boligrafos cartuchos resma agendas archivador
 52201198:protesis muletas silla ruedas vendas gasas camilla tensiometro
 52201204:graduacion monturas cristales lentillas dioptrias estuche varillas
@@ -1039,7 +1089,7 @@
 52201231:barra pan bolleria vitrina hornos emparedados tartas pasteles obrador
 52201240:abrigos vison zorro pieles perchas forro costura
 52201251:colonias champu cosmeticos estanterias reposicion limpieza gandola gel
-52201262:pescadero limpiando pescado en la plaza de abastos pescadero pescaderia plaza de abastos puesto de pescado limpiar pescado escamar despachar pescado marisco dependientes de pescaderia
+52201262:dependiente de pescaderia pescadero limpiar pescado escamar plaza abastos puesto despachar marisco limpiando en la dependientes
 52201273:cuchillo deshuesar visceras picadora bascula filetear mostrador vitrina pechuga muslo
 52201284:caja registradora tpv balanza gandola estanterias reposicion ticket mostrador pasillo
 52201295:pastillas freno filtros bujias catalogo referencias ordenador aceites escobillas manguitos
@@ -1056,7 +1106,7 @@
 54921021:estand tarima microfono degustacion folletos muestras mostrador micro promocion stand
 54931015:pasarela catalogo sesion fotografo maquillaje peluqueria casting pose flash esteticien
 54991013:mercadadillo mercancia stand mostrador calleferia muestrario bazar
-55001018:caja tiquet escaneo dataphone cobro cambio lineal efectivo tickect
+55001018:cajero de comercio cajera supermercado cobro en caja registradora arqueo tpv con tarjeta datáfono mercadona carrefour lidl tiquet escaneo dataphone cambio lineal efectivo tickect
 55001027:arqueo contabilidad cobro talonario remesa factura tique liquidacion traspaso
 55001036:taquilla boleto entrada abono taquillero boletaje torniquete taquillera
 56111013:hospital auxiliar tcae planta higiene cama bacinilla panal geriatrico
@@ -1064,21 +1114,24 @@
 56111031:psiquiatrico toxicos desintoxicacion psiquiatria brote contencion sedacion abstinencia
 56111040:fisio polea camilla andador muleta electrodos paralelo
 56111059:hospital planta urgencias turno tcae inyectable suero camilla
-56121016:ambulatorio medico vacunas cita tarjetasanitaria curas tension inyectable
+56121016:auxiliar de enfermeria tcae curas basicas toma constantes higiene hospitalaria atencion pacientes en ambulatorio clinica hospital medico vacunas cita tarjetasanitaria tension inyectable
 56211012:receta medicamento parafarmacia formula boticario prospecto jarabe
+56211017:gerocultor auxiliar de geriatria atencion a mayores en residencia geriátrico aseo cambios posturales ancianos
 56221015:ambulancia camilla sirena uvi desfibrilador oxigeno collarin paramedico
-56291016:camilla hospital urgencias pasillo mortuorio traslado grua celador
-56291025:cuidadora cuidador residencia ancianos mayores geriatrico asilo centro de dia residencia de ancianos cuidadores de personas dependientes instituciones ayuda minusvalia
+56291016:celador celadores camillero traslado de pacientes camillas sillas ruedas urgencias hospital centro salud sanitario camilla pasillo mortuorio grua
+56291025:cuidador de personas dependientes discapacidad geriatrico residencia centros dia acompanamiento aseo movilidad cuidadores dependencia cuidadora ancianos mayores asilo centro instituciones ayuda minusvalia
 56291034:dentista clinica aspirador instrumental empaste radiografia odontologo bacha
-57101013:asistente domiciliario ayuda a domicilio casas particulares atencion domiciliaria ancianos mayores abuelos dependientes enfermos en su casa higiene aseo
+57101013:auxiliar de ayuda a domicilio servicio sad asistente domiciliario cuidar abuelos ancianos mayores higiene personal paseos medicacion particular casas particulares atencion domiciliaria dependientes enfermos en su casa aseo
+57101022:cuidar ninos pequenos bebes familia canguro ninera au pair domicilio cuidar menores por las mañanas tardes casa particular
 57211015:panales babero chupete cuna trona pure siesta biberon
 57211024:parada cinturon ruta mochila colegio crios menores bus monitor
 57211033:patio bandejas pure babero siesta alergias crios vigilante
-57221018:cuidar ninos pequenos bebes familia canguro ninera au pair domicilio cuidar menores mañanas tardes cuidar bebes casa particular
-58111019:cortar pelo peluqueria peluquero caballero barberia barbero barba afeitado degradado corte de pelo masculino navaja tijeras rapado patillas
-58111028:cortar pelo peluqueria peluquera senora cabello mechas tinte peinados recogidos rulos secador corte de pelo femenino lavacabezas
-58111037:cortar pelo peluqueria peluquero unisex peluqueria mixta corte de pelo peinado tinte mechas tijeras secador lavado de cabeza
-58121012:toalla sauna turco hidromasaje albornoz ducha exfoliante termas balneario
+57221018:canguro ninera au pair cuidar ninos pequenos bebes en casa tardes mananas llevar al colegio menores domicilio familia mañanas particular
+58111019:peluquero de caballeros barbero barberia corte masculino degradado arreglo barba afeitado navaja maquinilla patillas cortar pelo peluqueria caballero tijeras rapado
+58111028:peluquera de senoras peluqueria femenina mechas tintes recogidos peinados rulos corte femenino moldeados estetica capilar cortar pelo senora cabello tinte secador lavacabezas
+58111037:peluquero unisex peluqueria mixta cortar pelo peinar lavar cabeza corte de cabello tinte mechas moldeador secador peinado tijeras lavado
+58121012:esteticista estetica depilacion cera laser manicura pedicura unas de gel tratamientos faciales masaje corporal cabina toalla sauna turco hidromasaje albornoz ducha exfoliante termas balneario
+58121021:postizo maquillaje caracterizacion peluca latex protesis aerografo
 58121030:depilacion cejas cera mascarilla peeling laser cabina unas camilla
 58121049:tendencia corte look diseno colorista pasarela asesoramiento imagen estilismo
 58121058:brocha pincel colorete base sombras labial corrector maquillaje aerografo
@@ -1093,7 +1146,7 @@
 58241017:facturacion mostrador rampa embarque maleta asiento tarjeta handler
 58241026:acreditacion congresista stand ponente azafata protocolo microfono sala
 58251010:sendero fauna flora avistamiento prismaticos interpretacion ruta parque
-58251029:monumento explicacion excursion itinerario microfono audifonos turista ruta
+58251029:guia turistico de turismo visitas guiadas monumentos casco historico museo excursiones turistas free tour monumento explicacion excursion itinerario microfono audifonos turista ruta
 58311017:camara viveres congelador provisiones cocina rancho abordo bodega
 58311026:plancha lavadora secadora toallas sabanas calandra detergente
 58311035:pisos camarera gobernanta llaves lenceria minibar pasillo supervisor
@@ -1101,15 +1154,17 @@
 58321010:provisiones stock economato inventario camara almacen compras proveedor
 58331013:maletas llaves recepcion hall checkin reservas huespedes mostrador conserjeria equipaje
 58331022:llaves portteria avisos correspondencia recados telefono mostrador turnos acceso entrada
-58331031:comunidad porteria basura portales vecinos cartas limpieza bombillas caldera escaleras
+58331031:conserje portero de finca urbana colegio mantenimiento comunidad llaves correspondencia portales cubos basura porteria vecinos cartas limpieza bombillas caldera escaleras
 58401013:habitaciones reservas desayuno limpieza gestion llaves turismo autonomo
 58911011:paseos ayuda compa recados medico pasear asistencia compras dependencia
+58911020:doncella criada sirvienta colada plancha vajilla argenteria mucama
 58921014:formol aguja bisturi sutura diseccion cadaver conservacion autopsia forense
 58921023:tanatorio sepelio corona feretro esquela coche funebre incineracion entierro
 58921032:horno incinerador cenizas urna ataud crematorio temperatura feretro camara
-58921041:maquillaje cera pincel estetica rostro formol difunto ceras
+58921041:tanatopractor tanatopraxia tanatoestetica maquillar difuntos preparar fallecidos tanatorio funeraria embalsamador maquillaje cera pincel estetica rostro formol difunto ceras
 58921050:autopsia formol bistoqueria conservacion sutura cadaver inyeccion necropsia
 58931017:clikcer obediencia correa adiestramiento premio recompensa cachorro agility silbato
+58931026:zologico jaula pienso terrario felino cetreria veterinario safari primate
 58931035:montar silla riendas picadero herradura doma estribo trote galope
 58931044:tijeras nudos secador pelo rapado cepillo maquina era desenredar
 58941010:radar cono radarista cinemometro atasco retencion accidente alcoholdemia alcoholemia gualdrapa
@@ -1130,14 +1185,17 @@
 59311047:autobomba manguera casco hacha hidrante sirena reten epa extintor escarmiento
 59321013:motosierra cortafuegos azada desbrozadora nodriza monte epa brigada
 59411019:walther pistola chaleco escolta coche blindado
-59411028:vigilante de seguridad vigilantes vigilante seguridad privada control de accesos vigilancia garita rondas patrulla edificio empresa vigilante
+59411028:vigilante de seguridad jurado privada control accesos rondas centro comercial escaner camaras cctv prosegur securitas vigilantes vigilancia garita patrulla edificio empresa
 59411037:explosivos polvorin minas canteras dinamita transporte de fondos armamento pirotecnia seguridad de explosivos
 59421012:muelle barco amarrador estacha grua
+59421021:vigilante torno vitrina sala pinacoteca exposiciones pinacotecas
+59421030:caseta garita ladron guindilla perimetral valla vallas candado perimetrales
+59421049:parque columpio fuente pipican jardin estanque rotonda bancos tobogan
 59421058:llaves finca portal porteria
 59421067:maletas hall conserje recepcion checkin llaves maletero porteria botones
-59421076:ronda fichar camaras garita porteria patrulla vigilante
+59421076:vigilante portero controlador de accesos garaje edificio eventos vigilancia en general ronda fichar camaras garita porteria patrulla
 59911014:celda modulo funcionarios vis economato patio garrote
-59921017:flotador silla torre patillas botiquin piscina nadar rescate socorrismo
+59921017:socorrista banista socorrismo acuatico vigilancia en piscina municipal playa salvamento primeros auxilios flotador rescate silla torre patillas botiquin nadar
 59931010:gps trampa seprona furtivo patrulla monte topografico ambiental inspeccion
 59931029:coto escopeta furtivos trucha veda prismaticos patrulla silvestris
 59991018:faro muelle recinto garita esclusa amarrar vigilancia turno
@@ -1152,10 +1210,11 @@
 61101072:remolacha tabaco algodon girasol recoleccion cuaderno campo cultivo
 61101083:melocoton pera manzana aclareo calibre cajon palot tijera
 61101094:tijeras vendimia tijera empalizada uva racimo cepa sarmiento
+61101102:patata zanahoria remolacha cebolla yuca cosechadora azada tubercu bieldo melgas
 61101113:aceituna vara vibrador manto picadora aceitunero peinadora empalizada
 61101124:cosechar tractor azada vendimia aceituna almendra recoleccion podar arar
 61201017:capataz tractores cuadrilla poda riego fertilizantes fitosanitarios
-61201028:motosierra cortacesped poda desbrozar cortar podadora arbustos abono sembrar
+61201028:jardinero mantenimiento de jardines cortar cesped poda arboles riego desbrozadora cortacesped plantacion motosierra jardineria urbanizaciones desbrozar podadora arbustos abono sembrar
 61201039:mantenimiento arbustos riego desbrozadora soplador motosierra poda cesped talar
 61201040:sembrar regar abono invernadero sustrato podar planton trasplantar macetas
 61201051:champinon compost micelio sustrato cosecha recoleccion naves
@@ -1165,6 +1224,7 @@
 61201095:semillero esquejes planton injerto sembrar maceta sustrato arboles
 62011011:ordeno vacas establo ensilaje paja pienso pezonera purines tambo
 62021014:esquilar maquina trasquilar lana tijeras rebano ovinos vellon trasquilador
+62021023:rebano ovejas cabras pastor perro esquilar cencerro prado establo pasto
 62021032:rebano pastor ovejas cabras pastoreo lechal corderos mastin corral
 62031017:cerdos tolva paridera lechones piensos granja purines destete
 62031026:piensos lechones purines tolvas gestacion parideras cerdas slatted nodrizas toston
@@ -1205,6 +1265,7 @@
 64221027:patron cana radar sonda gps chaleco aparejos costera puerto
 64221036:neopreno botella plomos bibotella regulador arpon escafandra mariscador
 64231011:amoniaco compresor congelador tunel escarcha valvula termometro refrigeracion
+64231020:puente marineria estrobo babor estribor derrota aparejo guardia maniobra marea
 64231039:aparejo anzuelo palangre cebo rula marea marinero cubierta cordel
 64231048:nido atunero catalejo avistamiento binoculares vigia radar ojeador altura
 64231057:patron patronaje capitan rula marea cana aparejos costera puerto
@@ -1215,14 +1276,17 @@
 71111025:varillas atar estribos dobladora cortadora amarrar zunchos anclajes mallas
 71111036:vibrador bomba artesa helicoptero regla manguera camio guinche talocha
 71121011:grua torre pernos puntales soldadura jacenas paneles pilares premoldeados
-71211015:poner ladrillos levantar tabiques muros cemento paleta tochos rasillas albanil oficial de albanileria reformas construccion
+71211015:albanil oficial de primera segunda peon poner ladrillos levantar tabiques muros cemento paleta tochos rasillas reformas construccion reforma casas albanileria
 71211026:juntas maestras enfoscado rasilla rejonche murete estetica
 71211037:arquetas colectores azadon camio absorcion pozos lodos desatascos
 71211048:mortero mampresa cachote junta piedra murete cal seca maza
 71221012:puntero maza escoda cincel pulidora radial granito
+71221018:encofrador encofrados hormigon armado muros pilares forjados tableros desencofrar encofrado de madera metalico obra civil
 71221023:sillar mampresa puntero maza radial soga tizones esquinal
 71221034:teselas baldosa pinzas cortador mallado junta pegamento niveladores
 71221045:cincel maza buril escoda plantilla abujardado desbaste pulido
+71231011:ferrallista ferralla corte y doblado de hierro armaduras mallas electrosoldadas zunchos varillas vigas obra
+71311010:carpintero ebanista muebles de madera puertas tarimas encimeras cepillar cortar madera cepillo ingletadora lijadora taller de carpinteria
 71311016:estopa brea calafateo masilla mazo formon calafatear casco
 71311027:cimbra puntales vigas encofrado tablero maderas cabrios correas
 71311038:astillero cuaderna roda codaste casco quilla maderas formon
@@ -1230,12 +1294,14 @@
 71311050:fotocelula motorizacion automatismo cuadro finales carrera finalesarrera banda fotocelulas
 71311061:lamas recogedor cinta eje manivela polea cordon capialzado guias
 71311072:espuma silicona atornillador nivel taladro taco sellar escuadra tirafondo
+71321013:ventanas persianas climalit silicona escuadra troqueladora taladro remache guillotina
+71321024:atornillador silicona herraje manilla bisagra anclaje nivel taladro escuadra
 71911012:fregona bombilla taladro averia gotera manitas desatascar cerradura persiana
 71911023:cesped marcador redes porterias cloro depuradora piscinas electronico
 71921019:panel sanwich anclajes tornilleria perfileria andamio grapas remate remates
 71931016:tela asfaltica soplete goteras bututil impermeabilizar imprimacion membrana drenaje sellar
 71991012:puntal puntales cimbra madero viga encofrado apuntalar estabilizar
-71991021:montador de trasdosado montador trasdosado pladur pladurista yeso laminado tabique perfileria tabiquero instalador encintar juntas atornillar
+71991021:montador de trasdosado montador trasdosado pladurista pladur montador de pladur yeso laminado tabiques trasdosados techos continuos perfileria tornillos encintador pastas juntas colocadores de prefabricados ligeros
 71991030:martillo demoledor piqueta escombro radial contenedor maza derribo escombrera
 71991049:tubular cruceta plataformas rodapie grapas niveladoras mosqueton brida arnes
 71991058:malla simple torsion postes cancela alambre tensores piquetes grapas mallazo
@@ -1244,20 +1310,20 @@
 71991085:cemento clinker ensacadora silos tolva molino tolvas granel sacos
 71991094:arnes cuerda mosqueton vertical linea vida andamio colgado rapel altura
 71991106:ladrillo refractario horno mamposteria mortero chimeneas fundicion calderas
-72111011:molduras pladur estuco yeso colgante falsos techos fibra placas
+72111011:escayolista poner escayola molduras falsos techos arcos decorativas yeso muerto escayolistas enlucidos pladur estuco colgante fibra placas
 72121012:monocapa andamio talochas rasqueta pistola manguera estuco
 72121021:yeso talocha llana masilla enfoscado enlucir maestros guarnecido aljez
 72121030:estuco marmol marmolina llana cal caliza veneciano raspado brunido
 72121041:enfoscado cemento llana mortero talocha arlita maestras raspar
-72211012:cobre multicapa soldar soplete desague llaves griferia inodoro lavabo
-72211023:bridas valvulas manguitos soldadura manometro tuberia rosca prensa
+72211012:fontanero fontaneria tuberias desatascos griferia cisternas bajantes pvc plomo cobre botes sifonicos humedades fuga de agua termos radiadores multicapa soldar soplete desague llaves inodoro lavabo
+72211023:instaladores de tuberias fontaneria canalizaciones bajantes redes agua potable colectores saneamiento fontanero en general bridas valvulas manguitos soldadura manometro tuberia rosca prensa
 72211034:valvulas manguitos rosca bridas manometro tuberias soldadura racores
-72221011:instaladores de gas fontanero instalador de gas butano gas natural termos calderas instalacion y revision de gas gasistas
+72221011:instalador de gas instaladores butano natural termos calderas revision acometidas gasistas soldadura cobre fontanero instalacion y
 72231014:excavadora tubo zanja polietileno fundicion zanjeo arena compactar
 72311013:termoplastica termofusible gunitadora marcadora reflectante calzada asfalto karcher boquilla
 72311024:tramoya telon patena atrezzo pistola cartapesta escenografia corporeo tramoyista
-72311035:empapelar cola rodillo brocha cutre goteo alisado lija masilla alisar
-72321010:pistola lija poro poliuretano tinner tintar barniz mopa
+72311035:pintor pintores pintar paredes techos fachadas alisado de quitar gotele empapelar masillar pintura plastica esmalte rodillo brocha airless cola cutre goteo lija masilla alisar
+72321010:pintor de automoviles pintura coches cabina imprimacion aparejo barniz pistola pulido carroceria vehiculos lija poro poliuretano tinner tintar mopa
 72321021:cabina pistola disolvente horno electrostatica desengrasar imprimacion chorro
 72321032:pan oro mixtion bol armenio bolus pincelada dorar estofado policromia
 72321043:chorreo arena epoxy anticorrosiva andamio airless minio gunitado arenadora
@@ -1265,7 +1331,8 @@
 72321065:aerografo estarcido plantilla tampografia miniatura pincel cerda acrilico
 72321076:patina decapante cera lija brocha pistola barniz antiquario
 72401017:colisa cuchilla pegamento rasqueta rodillo alisador felpudo
-72401028:linoleo pvc vinilico soldador boquilla termica cuchilla formon
+72401019:alicatador solador poner azulejos baldosas gres porcelanico alicatados banos cocinas lechada mortero cola alicatadores y soladores
+72401028:parquetista tarima flotante poner parquet acuchillar barnizar suelos de madera suelo laminado rodapies colocador pavimentos linoleo pvc vinilico soldador boquilla termica cuchilla formon
 72401039:radial muela pulidora granito marmol disco puente biseladora cortes
 72401040:tarima parquet grapadora ingletadora cepillo liston pulidora acuchillar
 72401051:adoquin maza arena cementadora compactadora piqueta nivel regla
@@ -1274,25 +1341,27 @@
 72501018:tuberia chapa fibra conducto aislamiento silicona taladro soporte brida
 72501029:multicapa cobre soldar soplete prensa radial racor manguito llave purgador
 72501030:gas manometro pestana cortatubos bomba nitrogeno soldadura manifold inverter
+72501041:calefactor instalador de calefaccion calderas radiadores suelo radiante climatizacion aerotermia circuitos caldera radiador purgar termostato gasoil butano multitubular manometro llave tuberia
 72501052:compresor refrigerante valvula presostato evaporador condensador fuga manifold frigorista
 72911019:soplete tela asfaltica imprimacion butilo impermeabilizar goteras membrana oxirural
 72911020:remache canalon chapa panel sandwich taladro plegadora silicona traslapo remate
 72911031:gancho laja martillo clavo alero cumbrera tejado escuadra
 72911042:teja arabe flamenca mixta cumbrera mortero desvan canal alero gotera
 72921016:lana roca insuflado poliuretano copopren eps xps aislamiento camara trasdosado
-72931013:silicona ventosa cortacristales climalit masilla luna escaparate calzo espejo
+72931013:limpiacristales limpiar cristales vidrios de edificios ventanas escaparates pertiga rasqueta cristalero silicona ventosa cortacristales climalit masilla luna escaparate calzo espejo
 72931024:plomo vidriera soldador estano termofusion catedral tiffany espatula cazoleta
 72931035:luna autonivelante cortalunas ventosa sika imprimacion hilo piano parabrisas moldura
-72941010:instalar paneles solares placas solares tejados cubiertas fotovoltaica autoconsumo energia solar instalador placas paneles fotovoltaicos
+72941010:instalador de placas solares paneles fotovoltaica energia solar autoconsumo tejados inversores baterias instaladores instalar cubiertas fotovoltaicos
 72941021:acumuladores termostato glicol llaves cobre aislar purgador soldar valvula presion
 72941032:fotovoltaica estructura tejas inversor atornillar cableado tejados taladro perfileria bornas
 72951013:cristales hidrolimpiadora desueldes andamio desengrasante chupona arnes rascador mancha pistola
 73111012:arena moldes machos caja macho vaciado colada aleacion horno
-73121015:soplete careta escoria radial rebaba taller piqueta guantes mesa
-73121024:pistola tobera metalizado desgaste revestimiento fundicion cordon careta taller
+73121015:soldador soldadura por arco electrodo soldar vigas estructuras metalicas caldereria cerrajeria carpinteria metalica soplete careta escoria radial rebaba taller piqueta guantes mesa
+73121024:soldador tig mig mag soldadura semiautomatica hilo continuo acero inoxidable aluminio tuberias calderero tubero pistola tobera metalizado desgaste revestimiento fundicion cordon careta taller
 73121033:acetileno oxigeno soplete boquilla chatarra desguace piqueta radial guantes careta
 73121042:carril vias termita crisol molde soldadura zuncho escoria piqueta careta
 73121051:tubular electrodo tig mig mag hilo cerrajeria carpinteria careta radial
+73121060:electrodo tig mig mag radial escoria bisel careta puente grua cordon
 73121071:acetileno soplete boquilla varilla aportacion careta piqueta guantes taller manoreductor
 73121082:radioxis tungsteno tig electrodo tuberia radiografia biseladora careta raiz
 73121093:zapatas tolva patin guias chapa gruesa careta taller
@@ -1320,8 +1389,8 @@
 73211011:troquel balancin matrice cizalla rebaba matriz
 73211020:yunque fragua fuelle bigornia martillo tenaza soldadura herrar
 73221014:culata cerrojo canon percutor armeria muelle bascula mecanismo
-73221023:soldadura radial cerradura bombin pestillo persiana cerrojo soldador
-73221032:afilado muela desbaste pulido cortapapeles bisturi hoja
+73221023:cerrajero cerrajeria abrir puertas bombines cerraduras ganzuas candados rejas blindadas cambio de llaves chico cerrajeros soldadura radial cerradura bombin pestillo persiana cerrojo soldador
+73221032:carpintero de aluminio ventanas cerramientos persianas mosquiteras perfiles puertas correderas cortinas cristal instalador afilado muela desbaste pulido cortapapeles bisturi hoja
 73221041:fresadora electroerosion matrice electrodo plano calibre pantografo
 73221050:micrometro calibre gramil reloj comparador tolerancia patron
 73221061:machihembrado resina caja molde arena modelo
@@ -1330,6 +1399,7 @@
 73231026:balancin troquel remachadora matriz prensa punzon molde alimentador
 73231035:radial soldadura torreta refrigerante viruta micrometro calibre llave
 73231044:cuchilla bancada viruta desbaste pasada avance mordaza
+73231053:plasma cizalla sierra oxicorte viruta broca cnc esmeriladora disco taladro
 73231062:punzon matriz prensa dobladora balancin troquel guillotina
 73231071:prensa balancin troquel matriz estampacion hidraulica forja
 73231080:cabezal plato broca fresa viruta mordaza escariador refrigerante
@@ -1348,7 +1418,7 @@
 73231213:fresa plano micrometro calibre viruta broca escuadra plato mordazas mandril
 73231222:cnc simulador codigos parametros cero pieza compensacion mordazas holgura
 73231231:calibre micrometro pastillas broca mordazas plano escuadra buril refrigerante roscar
-73231240:swarf mandril torreta cnc refrigerante viruta herramienta palpador carrusel plato
+73231240:tornero fresador mecanizado cnc centro de torno fresa control numerico lectura planos piezas metalicas viruta galgas swarf mandril torreta refrigerante herramienta palpador carrusel plato
 73241010:muela esmeril afilar banco brocas sierra tijeras cortador broca vaciar
 73241029:lija pasta brillo pulidora desbastar espejo rotativa franela acabado
 74011016:ordenes repuestos elevador jefe recambios presupuesto averias rampa porton cronograma
@@ -1361,12 +1431,13 @@
 74011081:hidraulica retroexcavadora oruga tractor pala martillo soldadura bomba manguera bulon taller
 74011092:bogie pantografo vias freno neumatica carril tractor diesel taller acoplador
 74011100:rampa tobera bomba banco ultrasonidos caudalimetro presiones taller
-74011119:mecanico del automovil cambiar ruedas neumaticos taller coche aceite filtros frenos mantenimiento del coche reparacion de coches vehiculos
+74011119:mecanico del automovil taller reparacion de coches turismos cambio aceite filtros frenos correa distribucion diagnosis embrague neumaticos cambiar ruedas coche mantenimiento vehiculos
 74021019:turbina helice hangar torquimetro avionica revision fuselaje matricula turborreactor
-74021028:turbina helice avionica torquimetro hangar fuselaje revision turborreactor palea taller
+74021028:chapista de automoviles chapa y pintura bancada sacar bollos desabollar carroceria soldadura lijar aletas parachoques turbina helice avionica torquimetro hangar fuselaje revision turborreactor palea taller
 74021037:turbina helice hangar torquimetro avionica fuselaje revision turborreactor palea taller
 74021046:rotor transmision helice turbina avionica hangar patin reductora palea taller
 74031012:autonoma variador cuadro neumatica plc soldadura rodamientos relle pinza taller
+74031021:perforadora sonda carretilla compresor manguera barreno tolva polvorin martillo neumatico
 74031030:tractor cosechadora apero cultivador hidraulica cardan engrase distribuidor rotavator
 74031049:autonoma variador cuadro neumatica plc soldadura rodamientos relle pinza fresadora torno
 74031058:hidraulica retroexcavadora oruga pala martillo soldadura bulon distribuidor cilindro
@@ -1383,14 +1454,16 @@
 74031188:rodillos offset rotativa tiralineas engranajes pinzas mantilla cuerpos tinteros
 74031197:fotocopiadora fusor engranajes sensores plotters rodillos alimentador placa
 74031209:rodamientos retenes poleas correas soldadura radial torquimetro multimetro mangueras
+74031218:bobina lanzadera crochet lanzaderas hilatura tension aguja telar
 74031227:torno fresadora portabrocas plaquitas mandril torreta micrometro pie rey
 74031236:inyeccion turbo culata pistones llave dinamometrica bancada carter filtros taques
 74031245:cosechadora tractor cultivador hidraulica tdf cardan aperos soldadora radial
+74031254:llave inglesa torquimetro pie rey cala rosca rodamiento junta torica extractor muela
 74041015:diesel marino propulsor reductora eje estribor babor eslora torquimetro
 74051018:pinion camara radios llanta desviador cambio frenos aceite grasa
-75101015:obra electricista electricidad reformas construccion instalador electrico cuadros tuberia corrugada caja derivacion automandito magnetotermico diferencial enchufe clemas taladro pasamuros
+75101015:electricista de edificios reformas instalador cableado cuadros electricos enchufes magnetotermicos rozas boletines iluminacion obra electricidad construccion electrico tuberia corrugada caja derivacion automandito magnetotermico diferencial enchufe clemas taladro pasamuros
 75101024:cuadro electrico bandeja portacables manguera bornas conexion trifasica rele variador
-75101033:alicates destornillador buscapolos clemas canaleta taladro roseta automandito
+75101033:electricista industrial cuadros industriales automatas plc motores trifasica mantenimiento electrico en fabricas factorias alicates destornillador buscapolos clemas canaleta taladro roseta automandito
 75211017:avioneta arnes fuselaje terminales multimetro soldador cableado continuidad
 75211026:automata plc armario conexionado bornas cableado esquema regleta
 75211035:termostato resistencia lavadora multimetro placa base condensador fusibles puente
@@ -1460,6 +1533,8 @@
 76161016:pincel horno esmalte cobalto cromo decorado coccion pigmeto
 76161025:acido muela chorro diamante tallar vaso botella gabanon buril
 76161034:molde estuco yeso pincel patinar estatua retocar vaciar resina
+76161043:vinilo rotulacion aerografo plotter rotulo metacrilato pistola rotulador plantilla neon
+76161052:soplete bisel mercurio soplado esmeril vitral horno decapante cortador
 76161061:esmalte horno bizcocho pincel calca plato taza torneta coccion
 76161070:pantalla rasqueta tintas emulsion insoladora malla pistola calca
 76161089:muela bisel vaso copa tallar pulir diamante buril
@@ -1474,6 +1549,7 @@
 76181021:barco embarcacion rio pasajero chalana estribor babor remo muelle flotar
 76181030:yute suela espartena maquina coser costura
 76181049:almohadilla bolillo hilo encaje mundillo desvan entrelazar
+76181058:bolillo hilo aguja cojin mundillo patron labor pasamaneria madeja huso
 76181067:piel cuero cartera monedero bolso aguja lezna pegamento ceras remache
 76181076:hilo borla fleco cordoncillo telar pasamaneria
 76181085:peinar cardar batan lana borra hilacha maquina mazo estirar
@@ -1487,6 +1563,7 @@
 76191033:pegamento plegado encuadernacion tijeras
 76191042:parafina mecha molde cera fundidor estearina manteca candelabro
 76191051:mortero mecha polvora petardo volador mechon traca cohete
+76191060:muneca relleno trapo molde coser pegamento fieltro aguja patron
 76191079:mortero polvora mecha petardo volador traca cohete bombeta
 76211010:cilindro rodillo grabado rotativa cobre pulidora tiralineas disolvente
 76211029:prueba revelado ripp plotter pantone imprenta colorimetro
@@ -1502,7 +1579,15 @@
 76211122:fotolito revelado emulsija insoladora plancha cmyk negativo positivo
 76211131:fotolito revelado maquetacion tipografia galleta negativo positivo trazado
 76221013:torculo xilografia linograbado buril tiza
+76221022:serigrafia rotativa rodillo tinter tejido sublimacion bastidor tampografia calandra rasqueta
+76221031:transfer plastisol carrusel rasqueta tintas secador flash pantallas textil
+76221040:heidelberg troquelar sangrar troquel minerva troqueladora estampacion
+76221059:rotativa cilindro tintas soportes rollos vinilicos estampacion
+76221068:tapon tampo tampon clise silicona tintas boligrafos
+76221077:fotocopiadora encuadernar anillar plotter guillotina escaner plastificadora
+76221086:tinta grabado relieve plancha torculo estampacion
 76221095:anilox fotopolimero bobina tarrina
+76221107:rotativa talonarios troquelado plegadora tintas
 76221116:cilindro rasqueta rotativa tarrina
 76221125:fotocopiadora encuadernar espiral guillotina plastificadora talonario copisteria
 76221134:tinta mojadora caucho humectadora tintero plegadora talonario cuatricromia
@@ -1547,6 +1632,7 @@
 77051129:infusionador bolsita estuchadora dosificador tamiz secadero
 77051138:salmuera huesadora barril empacadora calabrozo manzanilla
 77061010:cuba fermentador bodega obrador manguera levadura trasiego
+77061029:cuba mosto fermentacion alambique barrica destilacion uva macerador
 77071013:barrica cuba tina despalilladora prensa sulfitar trasiego
 77081016:picadura secadero paca fermentacion despalilladora tabaquera
 77091019:cata copa olfativa barrica corcho anejamiento maridaje
@@ -1556,6 +1642,7 @@
 78121010:canto tablero liston sierra escuadradora viruta aglomerado mdf
 78121029:calibre broca taladro corchera troqueladora viruta pulido tapon
 78121038:lija orbital barniz pulidora polvo aspiracion veta cera
+78121047:fresadora tupis moldurera moldura fresar cuchillas
 78121056:fresadora programa codigo broca viruta pantografo tableros mecanizado
 78121065:trenzadora cesteria atar curvar varilla
 78121074:corchera aglomerado troqueladora prensa perforadora tapon granza
@@ -1584,6 +1671,7 @@
 78311079:bajo acortar ensanchar cremallera ajuste zurcido costura descoser dedal metro
 78311088:zorro vison astracan napa rebec esquilar curtir forro peletero cuchilla
 78311097:entretela solapa ojal hilvanar plancha sastre medida besana tiza hilvan
+78311109:horma fieltro costura ala copa
 78321018:tizada escalado despiece molderia prototipo tiza escaladora patron talle base
 78321027:napa ante vison zorro escalado despiece molderia prototipo tiza talle
 78331011:cuchilla pelo napa vison zorro pellejo desuello molderia tiza plantilla
@@ -1611,9 +1699,16 @@
 78371086:cola cemento disolvente brocha punzon maquina costura forro bota zapato
 78371095:piso suela pegamento horma martillo tenazas talonera bota zapato
 78371107:coser aguja hilo bolso cartera maleta taracear guarnicion
+78371116:lijar zapato rebajadora acabado
+78371125:patron guantes maletines cortador
+78371134:zapato coser talonera puntera
+78371143:patronaje escalado patron bolsos moldes
+78371152:patronaje escalado hormas moldes diseno
 78371161:horma martillo tenazas clavar suela bota zapato pegamento disolvente
 78371170:bolso cartera monedero tarartera coser remache broche cremallera
 78371189:plantilla talonera forro cola brocha adhesivo tijeras zapato bota
+78371198:rebajadora bofetear colas troquelar piel forro guarnicioneria pegamento marroquina coser
+78371200:horma suela badana aparar troqueladora piquete cortadora pegamento guarnicioneria pespunte
 78371219:caja envolver etiqueta limpiar cepillar embolsar carton zapato bota
 78371228:borde canto tinte pincel zapato suela bota taco brocha
 78371237:hormas plantillas cuero suelas coser pegamento horma ortopedia talones
@@ -1649,10 +1744,13 @@
 81111071:pico pala dinamita vagoneta galeria barrenar tajo cascos lumbrera
 81121012:radial muela disco marmol granito pulir corte sierra puente
 81121023:cincel mazo tallar escuadra sillar mamposteria pulidora buril
+81121034:cantera granito muela corte sierra pulidora marmol disco radial puente
 81121045:salmuera cristalizacion cosechadora salero yodada lavadero salinas
+81121056:criba machacadora tolva cinta transportadora granulometria aridos cantera molino
 81131011:testigo barrenos geotecnia pozos perforacion murete
 81131020:barrena compresor sarta tricono lodos cimentacion perforar
 81131031:martillo hincadora barrena geotermia cimentacion perforar
+81131042:sonda taladro barrenrena testigo perforadora pozos lodo broca barrena
 81131053:testigo varillas broca recuperacion barrenar sondeos
 81141014:clinker silos molino yeso ensacadora horno cementera
 81141023:betun alquitran extendedora extendedor fresadora aglomerado
@@ -1695,6 +1793,7 @@
 81311073:electrodo cuba bano bauxita bismuto zinc purificar corriente borne rectificador
 81311084:vulcanizar molde rodillo coextrusion prensar mastique vulcanizado calandria
 81311095:radiactivo plomo blindaje dosimetro guantelete decaimiento isotopo uranio contador alfa
+81311103:fertilizante urea amoniaco tolva reactor granulos ensacadora silos
 81311114:criogenico compresor compresora frio valvula nitrogeno licuar presion bombona tanque
 81311125:horno piroraices carbonizacion retortas hornillo lena trituradora tolva quema
 81311136:hilatura polimero bobinador extrusor monofilamento tobera filamento bobina estirar
@@ -1704,6 +1803,7 @@
 81311170:molino rodillo disolvente pigmento resina viscosimetro tina agitador envasadora
 81311181:reactor valvula manometro tolva tuberia caldera destilacion mezcla agitador disolvente
 81311192:valvula tolva agitador temperatura presion disolucion destilacion caldera catalizador
+81311200:petardo mecha polvorin traca polvora cohete fulminante castillo
 81321014:mezcladora tolva dosificador envasadora rotativa emulsion tensioactivo fragancia etiquetadora gel
 81321025:blister comprimidora capsuladora granuladora estuchadora excipiente comprimido jarabe mezcla valvula
 81331011:revelado empalmadora empalme acetato emulsion positivo negativo copiadora bobina moviola
@@ -1727,16 +1827,19 @@
 81421082:camara vaporizado aluminio brillo campana reflectante
 81421093:ininyectora sopladora molde matriz tolva husillo granza cierre
 81421101:extrusora boquilla tubo perfil manguera granza husillo calibrador
+81421112:inyesora molde termoplastico granza cierre fusillo tolva rebaba
 81421123:granulador molino triturador reciclado mofeta aglutinador picadora
 81421134:termoselladora ultrasonidos soldador pistola bicanula aportacion cordoncillo
 81421145:granza tolva molde matriz inyectora husillo rebaba desmoldeo
 81421156:polimero extrusora granulza inyectora termoplastico polietileno tolva mezcladora
 81421167:poliuretano molde silicona desmoldeante catalizador colada curado
+81421178:extrusora termoconformadora plancha burbuja polietileno metacrilato perfiladora
 81421189:rebarba calibre galga micrometro inyectora defectos rebaba tolerancia
 81431012:adhesivo engrudo bobina rodillo rotativa laminadora
 81431023:cizalla hendido troquel gramaje troqueladora troquelar corte
 81431034:extrusora boquilla bobina termofusible granza manga burbuja fundido
 81431045:ranuradora caja troqueladora troquelar cuchilla plegadora ondulado
+81431056:platina cortadora cartoncillo hendido matriz cuchilla cizalla
 81431067:encoladora grapadora plegadora troqueladora troquel troquelar troquelado
 81431078:bolseras pegadora troqueladora bobina troquel gramaje troquelar plegadora
 81431089:celulosa gofradora plegadora troqueladora servilleta toallita bobina
@@ -1745,6 +1848,7 @@
 81441020:autoclave secadero fungicida carretilla impregnacion
 81441031:corchera hervidoras tapones planchas granulado recortar cocido
 81441042:prensas resina aglomerado viruta mezcladora colas tableros hidrofugo prensado
+81441053:prensa tablero contrachapado chapa tronco desenrollo cola formica melamina
 81441064:sierra cinta troncos carpinteria despiece listones escuadradora aserradero maderas
 81441075:cantadora cnc tupis escuadradora seccionadora melamina prensadora
 81451014:lejia blanqueo celulosa cloro hidrosulfito reactivos torre lavado
@@ -1782,19 +1886,24 @@
 81521094:galon trenza lanzadera carrete trenzado cinta
 81521102:malla aguja bucle telar textura genero
 81521113:red malla nudo cordel pesquero cuerda trenzado
+81521124:telar carrete bobina plegador hilo hilatura
+81521135:cardadora desmotadora hilatura batan apertura mezcla borra
 81521146:cuerda torcer cabo meollar filastica cordel bobina
 81521157:lanzadera trama urdimbre bobina
 81521168:ketten aguja guia mallas telar tricot
 81521179:circular rectilinea galga hilados ovillos madejas lanzadera bobinar urdimbre
 81521180:lanzadera urdimbre bobinas hilados lanzaderas
+81521191:zurcidor descosedor remalladora plancha defecto mancha tejido hilo tijera
 81531013:guata capitoneado pespuntear rellenar costuras puntadas patrones hilvanar
 81531024:bastidor puntadas hilos picaje canillas dedal patrones
 81531035:canillas hilvanar bastidor puntadas hilos picaje dedal patrones
+81531046:pespunte ojaladora botonera costura hilo canilla aguja overlock
 81531057:zorro vison astracan marta peletero cuchilla pel pieles
 81531068:remalladora sobrehilar cuchilla puntadas bobinas hilados hilos navaja
 81531079:cuchilla punzon lezna badana napa vaqueta remacar herrajes
 81531080:apresto almidon resina calandra rodillos secar impermeabilizar
 81531091:plisadora fuelle vapor plancha moldes carton tablas arrugas
+81531101:overlock plana bies costura pespunte hilo puntada aguja
 81531110:canillas overlock remalladora hilvanar puntadas dedal patron bobinas
 81541010:sosa peroxido blanquear tintoreria calderas batan mercerizar
 81541021:cilindro tintas rapport colorista pasada rasqueta serigrafia poliester
@@ -1817,6 +1926,7 @@
 81561016:aparadora chinela empeine bota puntera contrafuerte ribete forro
 81561025:cartera bolso monedero maletin tarjetero badana fornitura
 81561034:chinela empeine puntera vira forro talon ojalillo pestana
+81561043:zapato costura maquina aguja hilo suela cuero punteo
 81561052:empeine forro puntera plantilla ojalillo talon vira ribete
 81561061:rebajar tijera sobrante cuchilla raspar desbastar
 81561070:lija esmeril rotativa raspar acabado pulidora zapato
@@ -1836,11 +1946,11 @@
 81561212:talonera trasera contrafuerte meter estirar conformador
 81561221:punta delantero estirar pinza centradora hormar presilla
 81561230:coselete blake suela costura directa hilo carretel
+81561249:troquelar cortar troquel prensa balancin piel
+81561258:contrafuerte talonera interior refuerzo meter
+81561267:tope puntera delantero interior refuerzo colocar
 81561276:desvirar fresar canto suela biselar recortar
 81561285:pistola clavar tacon fijar clavos prensar zapato
-81561267:tope puntera delantero interior refuerzo colocar
-81561258:contrafuerte talonera interior refuerzo meter
-81561249:troquelar cortar troquel prensa balancin piel
 81561294:encolar adhesivo pistola vulcanizar horma suela badana empeine coser
 81561306:lija esmeril rotativa rebaba caucho sintetico cuna puntera
 81561315:desbastar cuchilla grosor borde plantilla biselar calibre
@@ -1902,7 +2012,13 @@
 81601381:centrifuga refinadora tolva almazara extractor prensa orujo decanter
 81601392:picadora secadero fermentacion hebra tabaquera enfardadora despalilladora
 81601400:molino triturar tolva criba harina grano silo ensacadora
+81601411:botes tarros envasadora tolva azucar melaza produccion etiquetadora
+81701014:batan percha disolvente tintoreria seco manchas bombo gamuza
+81701036:colorante balsa tensoactivo bombo tintoreria matiz centrifuga bano
+81701047:calandra tunel secado centrifuga lavadora detergente suavizante tintoreria plancha
 81701058:calandra maniqui plancha toallero planchadora
+81811017:operario de produccion operario de linea operario de fabrica envasado empaquetado montaje en cadena manipulado peon de fabrica industrial
+81911013:estano lamina fundido temple cristal horno
 81911024:lija esmeril papel tronzadora
 81911035:lija esmeril muela tronzadora
 81911046:soplete crisol molde bocoy
@@ -1913,6 +2029,7 @@
 81911091:parabrisas templado laminado silicona ventanilla pulidora ventosa autoclavadora
 81911109:lente gafa graduacion montura biseladora pulido microscopio dioptria
 81911110:canto cortador ventosa mesa bascula laminar metacrilato esmeriladora
+81911121:coccion esmalte arcilla refractario temperatura vidriado barbotina
 81911132:cabina pistola pulverizar cubeta inforno temperatura bombona
 81911143:crisol colada refractario temperatura escoria cuchara basculante fundido
 81911154:tejar arcilla vagoneta secadero cargadora empacadora estrusora molde
@@ -1972,11 +2089,13 @@
 82021096:cables soldador termoretractil clemas esquema bornes multimetro alicates destornillador
 82021106:cables clemas torquimetro soldador multimetro terminales esquemas alicates destornillador
 82021115:soldador flux condensadores multimetro pinzas zocalos componentes disipador tornillos
+82021124:calibre soldador multimetro terminales esquema cableado componentes tornilleria
 82091013:cinta transportadora remaches atornillador neumatico taladro operario manipulador piezas operacion
 82091022:remaches taladro atornillador banco tuercas arandelas piezas llave tornillo
 82091031:botones cremalleras remaches piquetes costura etiquetas pegamento tijeras aguja
 82091040:grapadora clavadora palets listones tableros puntas martillo caja
 82091059:bogies vagones soldadura torquimetro remaches pasadores carriles llave neumatica
+82091068:montador de muebles cocinas ikea montaje armarios modulares estanterias encimeras electrodomesticos bisagras encimera zocalo taladro atornillador nivel silicona herrajes
 82091077:bisagras herrajes atornillador nivel tarugo llave allen tiradores estanterias
 82091086:pegamento silicona remaches atornillador grapadora pasadores juntas soportes piezas
 82091095:bisagras cola espigas listones barniz clavadora lija formon prensas
@@ -1984,9 +2103,11 @@
 82091116:robotica soldadura torquimetro sellador grapas pinzas llave neumatica silicona carretilla
 83111011:metro andcen conductor tunel via suburbano vias frenar senales
 83111020:maquinista locomotora vias convoy renfe adif
+83121014:vias agujas shunter locomotoras vagones marshalling estacion andenes
 83211010:tractor aperos labrar cultivar arar sembradora remolque abonadora cosechar
 83211021:cosechadora trilla cereal maiz tolva maquina trigal espiga picadora
 83211032:tractorista remolque aperos labranza abonar sembrar cultivar arar rotavator
+83221013:motosierra procesadora desbrozadora skidder pinza troza arboles
 83311011:adoquin adoquinar adoquines asfalto
 83311022:orugas pala cazo tierra empujar explanar retroexcavadora desmonte
 83311033:basculante portacamiones arena grava tolva descarga
@@ -2020,42 +2141,44 @@
 83321133:cuchara escoria colada chatarra puente coladas fundicion hornos cabina
 83321142:pica picador vagoneta galeria perforadora tuneladora saca bunker tiros
 83321151:barrrida barredora soplador hidrolimpiadora acera asfalto escoba balde botellero
-83331015:toro carretillero patin transpaleta unetas apilador estanteria palet
+83331015:carretillero carretilla elevadora frontal retráctil toro mecanico traspaleta electrica carga de trailers apilador conductor patin transpaleta unetas estanteria palet
 83401015:extintor manguera espuma zafarrancho contraincendios babor estribor sentina
 83401026:contramaestre marineria babor estribor cabuyeria nudos eslora manga
 83401037:muelle cabos nudos marineria proa popa eslora manga
 83401048:escotilla estiba marineria cabos limpieza muelle pintura marea mar
-84111014:taximetro carnet propina app licencia gasoil multas pasajeros recargas
-84121017:camilla sirena urgencias oxigeno desfibrilador rotativo tecnicos guardia traslado
+84111014:taxista conductor de taxi chofer privado vtc uber cabify vehiculo alquiler con taximetro carnet propina app licencia gasoil multas pasajeros recargas
+84121017:conductor de ambulancia tecnico emergencias sanitarias tes tts transporte sanitario ambulancias 112 urgencias soporte vital camilla sirena oxigeno desfibrilador rotativo tecnicos guardia traslado
 84121026:feretro corona tanatorio velatorio sepelio funeraria caja cementerio luto
-84121035:reparto de butano repartidor de butano butanero furgoneta de butano reparto a domicilio bombona de butano mensajeria paquetes furgoneta reparto ligero
+84121035:conductor de furgoneta repartidor paqueteria reparto mensajero mensajeria amazon seur dhl express 3500 kg butano butanero a domicilio bombona paquetes ligero
 84121044:volante carnet autovia gps kilometros repostar peaje multas taller
 84121053:taximetro licencia parada callejero propina bonometro emisora turno gasolinera
 84201010:tacografo ruta pasaporte aduana frontera litera pasajeros maletero peaje
+84201015:conductor de autobus chofer de autobus autocar escolar transporte de viajeros linea regular ruta emt discrecional
 84201021:linea billete parada horario expedicion pasajero bonobus torniquete asiento
 84201032:linea marquesina semaforo transbordo monedero billetaje asiento trafico
 84201043:pasajero linea horario volante tacografo asiento parada ruta
 84201054:railes catenaria via semaforo parada pasajeros carril conductor
 84311012:paquete palet transpaleta furgoneta ruta albaran factura reparto mercancias
 84321015:trailer articulado muelle tacografo lona eskinas palet gasoil
-84321024:adr cisternas peligroso paneles bultos guantes estiba homologado
+84321024:conductor de trailer tractocamion camion articulado frigorifico lona cisterna carnet c e larga distancia internacional adr cisternas peligroso paneles bultos guantes estiba homologado
 84321033:llevar un camion hormigonera a la obra conductores de camion hormigonera camion hormigonera hormigon amasadora cubilote obra cuba de hormigon hormigoneras
-84321042:reparto de butano repartidor de butano butanero camion de butano bombonas de butano reparto de bombonas reparto a domicilio conductores de camion en general camionero transporte de mercancias
-84401012:repartidores en motocicleta ciclomotor motocarro reparto de comida paqueteria comida a domicilio repartidor moto motocarro
+84321042:conductor de camion camionero rigido reparto pesado transporte mercancias por carretera chofer butano repartidor butanero bombonas a domicilio conductores en general
+84401012:repartidor de comida en moto glovo uber eats just eat reparto a domicilio delivery rapida pizzero motocarro ciclomotor repartidores motocicleta paqueteria
 91001018:plancha limpiar piso cocinar limpieza fregar comida ropa colada cuidar
 91001029:dormir pernoctar cuidar interna casa cocinar planchar limpiar asistenta fondo
 92101016:bandeja comedor office platos vaso cubiertos fregar retirar recoger sala
-92101027:limpieza habitaciones hotel limpiadora pisos camarera hosteleria alojamientos kelly carro sabanas toallas camas bano polvo aspirador pasillo
+92101018:limpiar cristales de edificios altos y escaparates limpiar cristales ventanas escaparates edificios altos rasqueta pertiga cristales cristalerias limpia cristales
+92101027:camarera de pisos camarero piso limpieza habitaciones hacer camas cambio sabanas toallas carro hotel hostal hotelera limpiadora hosteleria alojamientos kelly bano polvo aspirador pasillo
 92101038:hospital clinica desinfeccion lejia quirofano pasillos habitaciones mopas fregona residuos
 92101049:valet maletas pasillo habitaciones toallas sabanas carro equipaje limpieza mozo
-92101050:fregona aspirador bayeta polvo estropajo mopas suelos cristales desengrasante
+92101050:limpiador limpiadora limpieza de oficinas portales edificios comunidades general aspirar fregar barrer locales empresa fregona aspirador bayeta polvo estropajo mopas suelos cristales desengrasante
 92211014:plancha lavadora secadora colada almidonar doblar perchas tenazas mandilon
 92211025:lenceria sabanas toallas lavadora secadora calandra plancha fundas albornoces hotel
 92221011:pistola presion manguera esponja llantas tapiceria aspirador secado badana lavadero
 92231012:cristales ventanal rasqueta pertiga ventosa rascador arnes altura cubo mojador
 92291010:cloro depuradora pastillas limpiafondos boya barredera pastilla
 93101013:fregar ollas cocina pinches pelar patatas office desperdicios vajilla cazuelas cacerolas
-93101024:fregar picar pelar lavaplatos cuchillo camara delantal freidora hornillo mise
+93101024:ayudante de cocina pinche fregaplatos office friegaplatos pelar patatas picar verdura lavar ollas tren lavado limpieza fregar lavaplatos cuchillo camara delantal freidora hornillo mise
 93201014:masa estirar pala horno mozzarella pepperoni oregano cortador bases
 94101010:mercadillo lona toldo furgoneta generador percha perchero feria genero
 94201011:cola engrudo brocha fachada papel muro columna valla pegamento cartelera
@@ -2081,12 +2204,13 @@
 95201012:pienso box heno herraje zahurda pala carretilla guano
 95201021:ganado establo ordeno pajer cabestro pesebre cencerro piara
 95301011:riego tractor almacigo abono aperos siembra jornal invernadero poda
+95301019:ayudante de mecanico aprendiz de mecanico peon de automocion taller mecanico cambio de aceite filtros mantenimiento rapido
 95411013:red anzuelo aparejo cebo espinel marea lonja marisco muelle
 95421016:piscifactoria alevin pienso tolva batea oxigeno estanque tina malla
 95431019:reclamo coto escopeta camada alimana postor rehala ojeo
 95431028:motosierra desbrozadora saca poda hacha lena cortafuegos reforestacion monte
 96011010:pico pala brocha cribar cepillo excavar yacija criba azada
-96011029:retropala zanja hormigonera asfalto compactadora viales arquetas bordillo arcen
+96011029:peon de albanil obra construccion carga y descarga sacos desescombro limpieza demolicion picar zanjas carretilla peones obras publicas retropala zanja hormigonera asfalto compactadora viales arquetas bordillo arcen
 96011038:pisa nieves esquis canon pisapistas telesilla snow park barandillas balizas
 96011047:nicho lapida cadaveres ataud cementerio sepultura fosas panteon mortaja
 96021013:radial carretilla andamio hormigon cemento ladrillo bovedilla ferralla malacate
@@ -2106,123 +2230,10 @@
 97001131:reactor garrafa disolvente tolva mezcladora granulado tambor valvula manguera
 97001140:overlock remalladora hilatura bobina carda telar patronaje zurcir ovillo
 98111015:facha estacha muelle atraque amarra bolardo eslora puerto pantalan
-98111024:carretilla transpaleta palet picking flejadora estanteria descargar furgon
+98111024:mozo de almacen mozos carga y descarga preparador pedidos picking packing radiofrecuencia pistola traspaleta estanterias recepcion mercancia logistico carretilla transpaleta palet flejadora estanteria descargar furgon
 98111033:rampa contenedor eslinga transpaleta carretilla muelle carretillero lona
 98111042:bodega muelle eslinga contenedor estacha guindola grua puerto atraque
 98111051:piano manta burbuja acolchado furgoneta embalaje carretilla escalera desarmar
 98111060:transpaleta carretilla portabebe bascula carretillero bulto lona
+98121018:reponedor reponedora reponer estanterias colocar productos supermercado hipermercado nocturno etiquetar precios carruaje caballos librea arneses calesa cochero caballeriza tiro equino
 98201011:linear facing lineal gondola balda rotacion mercadona transpaleta carton
-12221026:dossier canutillo infoperiodistas argumentario canutillos cortes noticiarios notas comunas
-21121032:tubos centrifuga pipeta frotis hemograma coagulacion reactivos suero muestras microscopio
-22201021:nudos aparejos sextante recalada derrota singladura patron canas mallas
-24211103:anticuerpos linfocitos citometria leucocitos inmunoensayo celulas hla inmunidad suero
-24211112:agar petri cultivos cepas bacilos hongos incubadora tincion colonias
-24211121:dietas macros calorias antropometria balanza menus adelgazar proteinas hidratos
-24211130:batitermografo mareografo salinidad plancton batimetria boyas corrientes bentos
-24211176:excipientes disolucion viales pipetas cromatografia ensayos reactivos farmacos dosis
-24211194:estanques alevines larvas salinidad microalgas rotiferos piensos batea oxigeno
-24211215:crispr plasmidos secuenciacion pcr clonaje vectores enzimas proteinas genetica
-24221021:tractores aperos riegos abonos plagas parcelas invernaderos rotacion hectareas
-24241018:fecundacion tractores cosechadoras abonos sulfatar poda invernaderos parcelas aperos
-24311102:prototipos cad planos tolerancias ensamblaje croquis piezas despieces moldes
-24531012:semaforos retenciones aforos peajes radares cinemometros rotondas
-26521015:briefing cunas flyers banners copys street marketing mockups rrss
-29351024:doble accion cascada arnes caida saltos plato rodaje
-29351042:figurante fondo rodaje cache dia casting
-29361018:libreto apuntador bambalinas texto patio butacas teatro ensayo
-29361045:microfono galas presentacion eventos animador tarima publico guion escenario
-31281104:laminador bobina rodillos tren metal caliente plancha fundicion extrusion
-31311023:subestacion trafo transformador alta tension redispatching scada telemando red
-31601063:piezas metrologia torquimetro calibra fallas defectos cmm linea
-33121028:gammacamara isotopos pet tac radiotrazador radiactivo dosis scintigrafia
-34051021:hipotecaria valoracion metros cuadrados catastro peritaje mercado tasacion
-37321019:atrezo decorado atrezzista atrezzo decoracion atrezista utileria atreccista
-37321046:jardin verde cesped paisajismo riego botanica pradera plantas vivero
-37321055:feria stand moqueta eventos expositor melamina carpas rotulos
-37321064:atrezzo escenografia tramoya bambalinas telon escenografico decorado
-37321073:maqueta escala balsa carton cutter plano maquetacion maquetas miniatura
-37331012:archivador legajo expediente clasificar carpeta estanteria digitalizar escanear rotular caja
-37331021:catalogacion tebeo monografia signatura tebeoteca hemeroteca prestamo tecleo tebeos
-37331030:vitrina comisario restauracion inventario pinacoteca montador peana peanas restaurador
-37391010:vestuario taquilla toalla percha perchero lavanderia vestidor guardarropa lavadora toallas
-37391029:atrezzo utileria atrecista decorado utilero decorados atrecistas atrezzista atrezo
-37391047:escaleta patio butacas escenario bambalinas apuntador apuntadora
-41211034:camara frigorifica transpaleta palet escandallo camaras albaran caducidad congelacion
-52201176:muneca peluche puzzle lego juguete barbie consola pista
-58121021:postizo maquillaje caracterizacion peluca latex protesis aerografo
-58911020:doncella criada sirvienta colada plancha vajilla argenteria mucama
-58931026:zologico jaula pienso terrario felino cetreria veterinario safari primate
-59421021:vigilante torno vitrina sala pinacoteca exposiciones pinacotecas
-59421030:caseta garita ladron guindilla perimetral valla vallas candado perimetrales
-59421049:parque columpio fuente pipican jardin estanque rotonda bancos tobogan
-61101102:patata zanahoria remolacha cebolla yuca cosechadora azada tubercu bieldo melgas
-62021023:rebano ovejas cabras pastor perro esquilar cencerro prado establo pasto
-64231020:puente marineria estrobo babor estribor derrota aparejo guardia maniobra marea
-71321013:ventanas persianas climalit silicona escuadra troqueladora taladro remache guillotina
-71321024:atornillador silicona herraje manilla bisagra anclaje nivel taladro escuadra
-72501041:caldera radiador purgar termostato gasoil butano multitubular manometro llave tuberia
-73121060:electrodo tig mig mag radial escoria bisel careta puente grua cordon
-73231053:plasma cizalla sierra oxicorte viruta broca cnc esmeriladora disco taladro
-74031021:perforadora sonda carretilla compresor manguera barreno tolva polvorin martillo neumatico
-74031218:bobina lanzadera crochet lanzaderas hilatura tension aguja telar
-74031254:llave inglesa torquimetro pie rey cala rosca rodamiento junta torica extractor muela
-76161043:vinilo rotulacion aerografo plotter rotulo metacrilato pistola rotulador plantilla neon
-76161052:soplete bisel mercurio soplado esmeril vitral horno decapante cortador
-76181058:bolillo hilo aguja cojin mundillo patron labor pasamaneria madeja huso
-76191060:muneca relleno trapo molde coser pegamento fieltro aguja patron
-76221022:serigrafia rotativa rodillo tinter tejido sublimacion bastidor tampografia calandra rasqueta
-76221031:transfer plastisol carrusel rasqueta tintas secador flash pantallas textil
-76221040:heidelberg troquelar sangrar troquel minerva troqueladora estampacion
-76221059:rotativa cilindro tintas soportes rollos vinilicos estampacion
-76221068:tapon tampo tampon clise silicona tintas boligrafos
-76221077:fotocopiadora encuadernar anillar plotter guillotina escaner plastificadora
-76221086:tinta grabado relieve plancha torculo estampacion
-76221107:rotativa talonarios troquelado plegadora tintas
-77061029:cuba mosto fermentacion alambique barrica destilacion uva macerador
-78121047:fresadora tupis moldurera moldura fresar cuchillas
-78311109:horma fieltro costura ala copa
-78371116:lijar zapato rebajadora acabado
-78371125:patron guantes maletines cortador
-78371134:zapato coser talonera puntera
-78371143:patronaje escalado patron bolsos moldes
-78371152:patronaje escalado hormas moldes diseno
-78371198:rebajadora bofetear colas troquelar piel forro guarnicioneria pegamento marroquina coser
-78371200:horma suela badana aparar troqueladora piquete cortadora pegamento guarnicioneria pespunte
-81121034:cantera granito muela corte sierra pulidora marmol disco radial puente
-81121056:criba machacadora tolva cinta transportadora granulometria aridos cantera molino
-81131042:sonda taladro barrenrena testigo perforadora pozos lodo broca barrena
-81311103:fertilizante urea amoniaco tolva reactor granulos ensacadora silos
-81311200:petardo mecha polvorin traca polvora cohete fulminante castillo
-81421112:inyesora molde termoplastico granza cierre fusillo tolva rebaba
-81421178:extrusora termoconformadora plancha burbuja polietileno metacrilato perfiladora
-81431056:platina cortadora cartoncillo hendido matriz cuchilla cizalla
-81441053:prensa tablero contrachapado chapa tronco desenrollo cola formica melamina
-81521124:telar carrete bobina plegador hilo hilatura
-81521135:cardadora desmotadora hilatura batan apertura mezcla borra
-81521191:zurcidor descosedor remalladora plancha defecto mancha tejido hilo tijera
-81531046:pespunte ojaladora botonera costura hilo canilla aguja overlock
-81531101:overlock plana bies costura pespunte hilo puntada aguja
-81561043:zapato costura maquina aguja hilo suela cuero punteo
-81601411:botes tarros envasadora tolva azucar melaza produccion etiquetadora
-81701014:batan percha disolvente tintoreria seco manchas bombo gamuza
-81701036:colorante balsa tensoactivo bombo tintoreria matiz centrifuga bano
-81701047:calandra tunel secado centrifuga lavadora detergente suavizante tintoreria plancha
-81911013:estano lamina fundido temple cristal horno
-81911121:coccion esmalte arcilla refractario temperatura vidriado barbotina
-82021124:calibre soldador multimetro terminales esquema cableado componentes tornilleria
-82091068:bisagras encimera zocalo taladro atornillador nivel silicona herrajes
-83121014:vias agujas shunter locomotoras vagones marshalling estacion andenes
-83221013:motosierra procesadora desbrozadora skidder pinza troza arboles
-98121018:carruaje caballos librea arneses calesa cochero caballeriza tiro equino
-92101018:limpiar cristales de edificios altos y escaparates limpiar cristales ventanas escaparates edificios altos rasqueta pertiga cristales cristalerias limpia cristales
-22301017:profesores de ensenanza secundaria dar clases instituto eso bachillerato docente secundaria
-52201026:vender ropa tienda de ropa comercio textil prendas boutique dependienta de ropa centro comercial cobrar en tienda
-52201017:vender ropa y cobrar en una tienda de un centro comercial vender ropa tienda comercio ropa prendas cobrar dependienta dependiente de ropa tienda de ropa boutique modas dependientes de comercio
-57101022:cuidar ninos pequenos bebes familia canguro ninera au pair domicilio cuidar menores por las mañanas tardes casa particular
-33151017:hacer masajes terapeuticos masajista quiromasajista descargar la espalda contracturas masaje quiromasaje espalda cervicales lumbar
-21431023:fisioterapeuta masajes terapeuticos rehabilitacion contracturas fisioterapia descargar espalda centro de salud clinica
-95301019:ayudante de mecanico aprendiz de mecanico peon de automocion taller mecanico cambio de aceite filtros mantenimiento rapido
-21211083:enfermeros de atencion primaria enfermera ambulatorio vacunas curas centro de salud inyecciones atencion primaria
-24121016:tasadores agricolas tasador tasar fincas rusticas terrenos parcelas valoracion rustica peritaje rustico valoracion de fincas
-52201099:dependientes de pescaderia pescadero pescaderia plaza de abastos puesto de pescado limpiar pescado escamar despachar pescado marisco
-44111015:recepcionistas telefonistas secretaria recepcionista citas telefono clinica recepcion mostrador atender llamadas
