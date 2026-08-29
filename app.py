@@ -993,7 +993,7 @@ REGLAS
 8. PREGUNTA Y OPCIONES (DESAMBIGUACIÓN):
    - Rellena "pregunta" y "opciones" solo si hay duda para afinar o desempatar entre las ocupaciones candidatas (por funciones, entorno, sector o especialidad). Si no hay duda, deja "pregunta": "" y "opciones": [].
    - La pregunta debe plantear una elección clara y directa (máximo 15 palabras).
-   - El campo "opciones" DEBE contener una lista con entre 2 y 3 alternativas concisas y concretas (ej. ["Atención en caja y mostrador", "Cocina y plancha", "Reparto a domicilio"], ["Casas particulares", "Residencias / Centros"], o ["Sí", "No"]). NUNCA dejes "opciones" vacío si hay "pregunta".
+   - El campo "opciones" DEBE contener entre 2 y 3 alternativas directas, concisas y limpias sobre la función o entorno (ej. ["Trámites de personal y nóminas", "Facturación y contabilidad"], ["Atención en barra y mesas", "Elaboración en cocina", "Reparto a domicilio"], ["Casas particulares", "Residencias o centros"]). Evita fórmulas redundantes tipo "Sí (algo)" o palabras repetidas. NUNCA dejes "opciones" vacío si hay "pregunta".
 9. Si ninguna de las candidatas describe con precisión la actividad, rellena "otros_terminos" con entre 6 y 10 palabras sueltas de la CNO.
 
 EJEMPLO DE RESPUESTA:
@@ -1314,6 +1314,16 @@ def verifica(lista):
 
 def limpia_opcion(texto):
     t = texto.strip().strip("¿?¡!.,;").strip()
+
+    # Desempaquetar fórmulas "Sí (texto)" / "No (texto)"
+    m_parentesis = re.match(r'^(?:s[íi]|no)\s*\((.+?)\)$', t, flags=re.IGNORECASE)
+    if m_parentesis and len(m_parentesis.group(1).strip()) > 2:
+        t = m_parentesis.group(1).strip()
+
+    # Eliminar repeticiones accidentales tipo "nóminas y nóminas" o "palabra palabra"
+    t = re.sub(r'\b(\w{3,})\s+(?:y|e|o|u)\s+\1\b', r'\1', t, flags=re.IGNORECASE)
+    t = re.sub(r'\b(\w{3,})\s+\1\b', r'\1', t, flags=re.IGNORECASE)
+
     for _ in range(4):
         t = re.sub(
             r"^(?:la|el|los|las|un|una|unos|unas|en|a|al|del|de|para|con|por|su|sus)\s+",
