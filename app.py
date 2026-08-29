@@ -991,13 +991,13 @@ REGLAS
    - Tareas operativas de conducción o manejo de maquinaria (carretilla, autobús, camión) corresponden a CONDUCTORES-OPERADORES (grupo 8), no a técnicos de gestión.
    - Domicilio particular frente a institución, centro o residencia.
 8. PREGUNTA Y OPCIONES (DESAMBIGUACIÓN):
-   - Rellena "pregunta" y "opciones" solo si hay duda para afinar o desempatar entre las ocupaciones candidatas (por funciones, entorno, sector o especialidad). Si no hay duda, deja "pregunta": "" y "opciones": [].
+   - Rellena "pregunta" y "opciones" SIEMPRE que la consulta sea genérica y existan especialidades oficiales relevantes en la lista de candidatas (ej. peluquería: Unisex vs Señoras vs Caballeros y barbería; camareros: Barra vs Sala vs Pisos; conducción: Camión vs Autobús vs Reparto ligero; limpieza: Oficinas vs Domicilios vs Hospitales). Si la descripción ya es totalmente específica e inequívoca, deja "pregunta": "" y "opciones": [].
    - La pregunta debe plantear una elección clara y directa (máximo 15 palabras).
-   - El campo "opciones" DEBE contener entre 2 y 3 alternativas directas, concisas y limpias sobre la función o entorno (ej. ["Trámites de personal y nóminas", "Facturación y contabilidad"], ["Atención en barra y mesas", "Elaboración en cocina", "Reparto a domicilio"], ["Casas particulares", "Residencias o centros"]). Evita fórmulas redundantes tipo "Sí (algo)" o palabras repetidas. NUNCA dejes "opciones" vacío si hay "pregunta".
+   - El campo "opciones" DEBE contener entre 2 y 3 alternativas directas, concisas y limpias (ej. ["Peluquería unisex", "Peluquería de señoras", "Caballeros y barbería"], ["Trámites de personal y nóminas", "Facturación y contabilidad"], ["Atención en barra y mostrador", "Servicio en mesas y sala", "Cocina"]). Evita fórmulas redundantes tipo "Sí (algo)" o palabras repetidas. NUNCA dejes "opciones" vacío si hay "pregunta".
 9. Si ninguna de las candidatas describe con precisión la actividad, rellena "otros_terminos" con entre 6 y 10 palabras sueltas de la CNO.
 
 EJEMPLO DE RESPUESTA:
-{"ocupaciones":[{"codigo":"51201027","denominacion":"CAMAREROS DE BARRA Y/O DEPENDIENTES DE CAFETERÍA","nivel":"00","motivo":"Atención en mostrador y servicio de comida rápida."},{"codigo":"93101024","denominacion":"PINCHES DE COCINA","nivel":"00","motivo":"Elaboración y preparación de alimentos en restauración."}],"pregunta":"¿A qué tarea dedicaba la mayor parte de su jornada?","opciones":["Atención en caja y mostrador","Preparación de comida en cocina","Reparto a domicilio"],"otros_terminos":""}
+{"ocupaciones":[{"codigo":"58111037","denominacion":"PELUQUEROS UNISEX","nivel":"00","motivo":"Corte y peinado general."},{"codigo":"58111028","denominacion":"PELUQUEROS DE SEÑORAS","nivel":"00","motivo":"Peluquería y estética femenina."},{"codigo":"58111019","denominacion":"PELUQUEROS DE CABALLEROS","nivel":"00","motivo":"Barbería y corte masculino."}],"pregunta":"¿A qué tipo de clientela o especialidad se orienta el servicio?","opciones":["Peluquería unisex","Peluquería de señoras","Caballeros y barbería"],"otros_terminos":""}
 """
 
 
