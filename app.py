@@ -65,23 +65,20 @@ PROVEEDORES = {
         "clave": "GEMINI_API_KEY",
         "modelos": [
             "gemini-2.5-flash",
-            "gemini-2.5-flash-lite",
             "gemini-2.0-flash",
             "gemini-1.5-flash",
         ],
     },
     "mistral": {
-        # Los topes del plan gratuito son POR MODELO, no por cuenta, y se
-        # diferencian mucho entre si. Medido en el panel de Mistral el
-        # 26/08/2026: ministral-3b 1.300.000 tokens/min y 12,5 peticiones/s;
-        # ministral-8b 625.000 y 3,13; mistral-small 50.000 y 0,83. Con unos
-        # 2.300 tokens por consulta, small se atasca a las 21 consultas por
-        # minuto y 3b aguanta mas de quinientas. Por eso 3b va primero.
+        # Los topes del plan gratuito son POR MODELO, no por cuenta.
+        # Ministral 3B aguanta gran volumen y latencia baja; small/large van detrás como respaldo.
         "clave": "MISTRAL_API_KEY",
         "modelos": [
-            "ministral-3b-2512",
-            "ministral-8b-2512",
-            "mistral-small-2603",
+            "ministral-3b-latest",
+            "ministral-8b-latest",
+            "mistral-small-latest",
+            "codestral-latest",
+            "mistral-large-latest",
         ],
         "url": "https://api.mistral.ai/v1",
     },
