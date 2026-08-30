@@ -62,6 +62,10 @@ PROVEEDOR = "gemini"   # el de fábrica. El panel de mantenimiento puede cambiar
 
 PROVEEDORES = {
     "gemini": {
+        # El cupo diario del plan gratuito es POR MODELO y se renueva a
+        # medianoche del PACIFICO, no a medianoche de aqui: en España son
+        # las 09:00 en invierno y las 10:00 en verano. Antes de esa hora,
+        # un "hoy ya deberia haberse renovado" todavia es ayer para Google.
         "clave": "GEMINI_API_KEY",
         "modelos": [
             "gemini-2.5-flash",
@@ -104,6 +108,9 @@ ORDEN = ["gemini", "mistral", "openrouter"]
 CASCADA = "cascada"   # el selector de mantenimiento usa este valor para decir
                       # "recorre el orden"; cualquier otro fija un proveedor.
 
+CADUCIDAD_CASTIGO = 3600   # segundos que dura apartar un proveedor o degradar
+                           # un modelo. Ver _castigo_vivo.
+
 # El proveedor no puede ser una constante de modulo: la cascada cambia de uno a
 # otro en caliente y el panel de mantenimiento tiene que poder fijar uno para
 # poder medir. Todo lo que dependa de el pasa por estas funciones.
@@ -119,6 +126,50 @@ def tiene_clave(prov):
     return bool(os.environ.get(nombre))
 
 
+def _castigo_vivo(registro, prov):
+    """¿Sigue en pie el castigo de ESE proveedor, o ya ha caducado?
+
+    Apartar a un proveedor sin fecha era una condena perpetua. El cupo se
+    renueva -el diario de Gemini a medianoche del Pacifico, el de por minuto
+    en sesenta segundos- pero session_state no se entera de que ha pasado el
+    dia: una pestaña abierta desde ayer seguia dando a Gemini por muerto y
+    respondia Ministral 3B para siempre, que es justo lo que se veia.
+
+    Con caducidad se vuelve a probar el bueno cada hora. Equivocarse cuesta
+    una llamada perdida por hora; no caducar costaba quedarse en el peor
+    modelo sin que nadie se enterase.
+    """
+    marca = st.session_state.get(registro, {}).get(prov)
+    if marca is None:
+        return False
+    if time.time() - marca > CADUCIDAD_CASTIGO:
+        st.session_state[registro].pop(prov, None)
+        return False
+    return True
+
+
+def quemados():
+    """Los apartados que TODAVIA lo estan, ya purgados los que han caducado."""
+    return {p for p in list(st.session_state.get("agotados", {}))
+            if _castigo_vivo("agotados", p)}
+
+
+def degradados():
+    """Proveedor -> modelo de respaldo en el que sigue clavado ahora mismo.
+
+    La degradacion dentro de un proveedor es tan invisible como el apartado y
+    engaña mas: el nombre del proveedor sigue siendo el bueno y lo unico que
+    cambia es el modelo, que nadie mira.
+    """
+    fuera = {}
+    for prov in list(st.session_state.get("modelo_ok", {})):
+        i = _idx_modelo(prov)   # purga de paso lo que ya haya caducado
+        if i:
+            lista = PROVEEDORES[prov]["modelos"]
+            fuera[prov] = lista[min(i, len(lista) - 1)]
+    return fuera
+
+
 def orden_proveedores():
     """Proveedores a intentar, en orden, para esta consulta.
 
@@ -130,11 +181,11 @@ def orden_proveedores():
     if elegido in PROVEEDORES:
         return [elegido]
     vivos = [p for p in ORDEN if tiene_clave(p)]
-    quemados = st.session_state.get("agotados", set())
+    apartados = quemados()
     # Si estan todos quemados se vuelve a intentar con todos: mas vale una
     # llamada perdida que dejar de afinar el resto de la sesion por un error
     # mal leido.
-    return [p for p in vivos if p not in quemados] or vivos
+    return [p for p in vivos if p not in apartados] or vivos
 
 
 def proveedor_actual():
@@ -164,11 +215,26 @@ def _idx_modelo(prov):
     la cascada entrase en Mistral apuntando a un modelo que quiza ni existe en
     su lista.
     """
+    if not _castigo_vivo("modelo_desde", prov):
+        # La degradacion caduca igual que el apartado: si se bajo a un modelo
+        # peor porque el bueno no tenia cupo, hay que volver a subir cuando el
+        # cupo vuelva. Sin esto, un 429 de las siete de la mañana dejaba la
+        # sesion en gemini-1.5-flash hasta que alguien recargase la pagina.
+        st.session_state.setdefault("modelo_ok", {}).pop(prov, None)
+        return 0
     return st.session_state.setdefault("modelo_ok", {}).get(prov, 0)
 
 
 def _fija_modelo(prov, i):
     st.session_state.setdefault("modelo_ok", {})[prov] = i
+    desde = st.session_state.setdefault("modelo_desde", {})
+    if i:
+        # setdefault, no asignacion: la hora es la de la PRIMERA degradacion.
+        # Refrescarla en cada consulta seria no caducar nunca.
+        desde.setdefault(prov, time.time())
+    else:
+        # El primero de la cadena no es una degradacion: nada que caducar.
+        desde.pop(prov, None)
 
 
 def _apunta_uso(prov, modelo):
@@ -186,7 +252,9 @@ def _quema(prov, e):
     tope por minuto con el cupo agotado nos dejaria sin el mejor proveedor
     durante horas por un tropiezo de sesenta segundos."""
     if sin_cuota(e) and not por_minuto(e):
-        st.session_state.setdefault("agotados", set()).add(prov)
+        # setdefault por lo mismo que en _fija_modelo: la condena no se alarga
+        # cada vez que se vuelve a tropezar con el mismo proveedor.
+        st.session_state.setdefault("agotados", {}).setdefault(prov, time.time())
 
 
 def modelo_actual():
@@ -2681,6 +2749,7 @@ st.session_state.setdefault("usar_ia", True)
 st.session_state.setdefault("cache", {})
 st.session_state.setdefault("lexico", {})
 st.session_state.setdefault("modelo_ok", {})   # indice de relevo POR proveedor
+st.session_state.setdefault("modelo_desde", {})  # cuando se degrado cada uno
 st.session_state.setdefault("respuesta", None)
 st.session_state.setdefault("masiva_abierta", False)
 # Nunca debe quedarse echado entre recargas: si la prueba se corta a medias,
@@ -2691,7 +2760,7 @@ st.session_state.setdefault("refuerzos_por_guardar", [])
 st.session_state.setdefault("ultima", "")
 st.session_state.setdefault("consulta", "")
 st.session_state.setdefault("proveedor", CASCADA)
-st.session_state.setdefault("agotados", set())
+st.session_state.setdefault("agotados", {})   # proveedor -> hora en que se aparto
 st.session_state.setdefault("uso_proveedor", {})
 
 # Clave del popover de ajustes. Con `on_change="rerun"` el popover lleva su
@@ -2725,10 +2794,11 @@ def _limpia_memoria_ia():
     haria que la comparacion midiese en parte al proveedor anterior.
     """
     st.session_state["modelo_ok"] = {}
+    st.session_state["modelo_desde"] = {}
     st.session_state["cfg"] = 0
     st.session_state["cache"] = {}
     st.session_state["interpretaciones"] = {}
-    st.session_state["agotados"] = set()
+    st.session_state["agotados"] = {}
     st.session_state["uso_proveedor"] = {}
 
 
@@ -2761,8 +2831,15 @@ def _vacia_memoria():
 
 
 def _reintenta_apartados():
-    """Devuelve al ruedo los proveedores marcados como sin cupo."""
-    st.session_state["agotados"] = set()
+    """Devuelve al ruedo lo apartado sin esperar a que caduque solo.
+
+    Toca tambien la degradacion de modelo: un proveedor puede volver del
+    apartado y seguir clavado en su tercer modelo, con lo que responderia el
+    peor de los suyos y pareceria que el boton no ha hecho nada.
+    """
+    st.session_state["agotados"] = {}
+    st.session_state["modelo_desde"] = {}
+    st.session_state["modelo_ok"] = {}
 
 
 def _medicion_limpia():
@@ -2902,9 +2979,10 @@ def panel_ajustes():
         t4.button(
             "Reintentar apartados", on_click=_reintenta_apartados,
             use_container_width=True,
-            disabled=not st.session_state.get("agotados"),
-            help="Devuelve al ruedo los proveedores marcados como sin cupo del "
-                 "día. Útil si se apartó uno por error.",
+            disabled=not (quemados() or degradados()),
+            help="Devuelve al ruedo los proveedores apartados por falta de cupo "
+                 "y deshace la degradación de modelo, sin esperar a que caduque "
+                 "sola dentro de una hora.",
         )
 
         st.divider()
@@ -2933,9 +3011,18 @@ def panel_ajustes():
         sin_clave = [p for p in ORDEN if not tiene_clave(p)]
         if sin_clave:
             st.caption("Sin clave en los Secrets, se saltan: " + ", ".join(sin_clave))
-        quemados = st.session_state.get("agotados", set())
-        if quemados:
-            st.caption("Apartados por cupo diario agotado: " + ", ".join(sorted(quemados)))
+        apartados = quemados()
+        if apartados:
+            st.caption(
+                "Apartados por cupo agotado (se reintentan solos como mucho "
+                "dentro de una hora): " + ", ".join(sorted(apartados))
+            )
+        bajados = degradados()
+        if bajados:
+            st.caption(
+                "Degradados a un modelo de respaldo: "
+                + ", ".join(f"{p} → {m}" for p, m in sorted(bajados.items()))
+            )
 
         # El contador es el instrumento para detectar que un proveedor lleva
         # dias caido sin que se note. Como metrica se lee de un vistazo; como
