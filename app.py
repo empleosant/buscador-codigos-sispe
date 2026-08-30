@@ -613,13 +613,85 @@ div[data-testid="stExpander"] summary{ font-size:.8rem; color:var(--suave); padd
   50%{ transform:translateY(-6px); }
 }
 .bienvenida{
-  text-align:center; padding:clamp(2.5rem, 8vh, 5rem) 1rem clamp(1rem, 3vh, 2rem);
+  text-align:center; padding:clamp(1.4rem, 5vh, 3rem) 1rem clamp(1rem, 3vh, 2rem);
   animation:fadeIn var(--lento) var(--entrada);
 }
-.bienvenida-icono{
-  font-size:clamp(2.8rem, 4vw, 3.6rem); color:var(--linea);
-  animation:flotar 3s ease-in-out infinite; margin-bottom:.6rem;
-  user-select:none;
+
+/* ---------- La fila de oficios de la portada ----------
+   Aqui habia un "◉" flotando. Ocupaba el sitio sin decir nada, y el sitio es
+   la banda ancha y vacia que se ve nada mas abrir. Ahora son cinco bustos de
+   oficio que se van relevando: la portada dice de un vistazo de que va la
+   herramienta, en la misma escala de grises que todo lo demas y sin un detalle
+   de mas. Es decoracion, no informacion: va con aria-hidden y lo que hay que
+   leer lo sigue diciendo el texto de debajo.
+
+   Todo es CSS, sin un solo guion. Cinco huecos, tres oficios por hueco, y cada
+   capa lleva un animation-delay NEGATIVO: asi al abrir la pagina cada una ya
+   esta colocada en su punto del ciclo, en vez de arrancar los quince a la vez
+   desde el mismo fotograma. El desfase entre huecos es lo que hace que la fila
+   no parpadee entera de golpe, que es lo que la volveria un cartel luminoso. */
+.hero-fila{
+  display:flex; justify-content:center; align-items:center;
+  gap:clamp(.45rem, 1.7vw, 1.25rem);
+  margin-bottom:clamp(.9rem, 2.4vh, 1.5rem);
+  --hero-base:clamp(58px, 8.4vw, 104px);
+  /* Cuatro grises y en este orden: el circulo es el mas claro, la cara va
+     por encima, la ropa por encima de la cara y la marca del oficio la mas
+     oscura de todas. La primera version los tenia demasiado juntos y a
+     tamaño de portada no se distinguia la cabeza del fondo. */
+  --av-fondo:#E6ECF2;
+  --av-piel:#CBD7E3;
+  --av-cuerpo:#A6B4C4;
+  --av-marca:#68788A;
+}
+/* Los de los extremos van mas pequeños y mas apagados. No es un adorno: es lo
+   que convierte cinco circulos sueltos en una fila con centro. */
+.hero-hueco{
+  position:relative; flex:0 0 auto; aspect-ratio:1;
+  width:calc(var(--hero-base) * var(--e, 1));
+  opacity:var(--o, 1);
+  animation:flotar 5s ease-in-out infinite;
+  animation-delay:var(--f, 0s);
+}
+.hero-of{
+  position:absolute; inset:0; width:100%; height:100%; opacity:0;
+  animation:releva var(--vuelta, 8.4s) var(--entrada) infinite;
+  /* Cinturon y tirantes. El recorte de verdad lo hace el clipPath de dentro
+     del SVG; esto es por si algun dia Streamlit decide limpiar atributos al
+     pintar el HTML. Si el clipPath sobrevive, esto no hace nada; si no,
+     los hombros no se salen del circulo igualmente. */
+  border-radius:50%; overflow:hidden;
+}
+/* Sale por abajo, aguanta, se va por arriba. El tramo invisible del medio es
+   donde cada capa vuelve a su sitio de partida sin que se vea el salto. */
+@keyframes releva{
+  0%, 26%   { opacity:1; transform:translateY(0) scale(1); }
+  33%, 63%  { opacity:0; transform:translateY(-10px) scale(.88); }
+  70%, 93%  { opacity:0; transform:translateY(10px) scale(.88); }
+  100%      { opacity:1; transform:translateY(0) scale(1); }
+}
+.av-fondo{ fill:var(--av-fondo); }
+.av-cuerpo{ fill:var(--av-cuerpo); }
+.av-piel{ fill:var(--av-piel); }
+.av-marca{ fill:var(--av-marca); }
+.av-sombra{ fill:var(--av-marca); opacity:.58; }
+.av-linea{
+  fill:none; stroke:var(--av-marca); stroke-width:4.5;
+  stroke-linecap:round; stroke-linejoin:round;
+}
+/* En el movil no caben cinco sin quedar de sello de correos. Se van los dos de
+   los extremos, que son justo los mas apagados. */
+@media (max-width:640px){
+  .hero-fila{ --hero-base:clamp(64px, 21vw, 96px); }
+  .hero-hueco:first-child, .hero-hueco:last-child{ display:none; }
+}
+/* La guarda general de movimiento reducido deja toda animacion en su ultimo
+   fotograma, y el ultimo de "releva" es opacity:1: los tres oficios de cada
+   hueco se verian apilados uno sobre otro. Quien pide menos movimiento se
+   lleva una fila quieta de cinco, que es lo que tenia que llevarse. */
+@media (prefers-reduced-motion:reduce){
+  .hero-of{ opacity:0 !important; transform:none !important; }
+  .hero-of:first-of-type{ opacity:1 !important; }
 }
 .bienvenida-texto{
   font-size:clamp(.88rem, 1vw, .96rem); color:var(--tenue);
@@ -715,7 +787,10 @@ div[data-testid="stExpander"] summary{ font-size:.8rem; color:var(--suave); padd
   }
   .pie-firma{ border-top-color:rgba(255,255,255,.08); }
   .consulta-box{ border-bottom-color:#E0E0E0; }
-  .bienvenida-icono{ color:#2D3748; }
+  .hero-fila{
+    --av-fondo:#1F2733; --av-cuerpo:#333E4D;
+    --av-piel:#46525F; --av-marca:#7D8A99;
+  }
 }
 
 /* ---------- Pantallas estrechas (móvil) ----------
@@ -2892,6 +2967,139 @@ def _fuera_de_fabrica():
         dif.append("IA desactivada")
     return dif
 
+# ---------------------------------------------------------------------------
+# LOS OFICIOS DE LA PORTADA
+# ---------------------------------------------------------------------------
+# Quince bustos, todos con el mismo cuerpo y una sola marca que los distingue:
+# el gorro, el casco, las tijeras, el estetoscopio. Nada mas. Cada rasgo de mas
+# es un rasgo que hay que reconocer, y esto se ve de refilon mientras alguien
+# escribe en el buscador; no es una ilustracion que nadie vaya a mirar dos
+# veces. Por eso son siluetas planas en cuatro grises y no dibujos.
+#
+# El busto se recorta contra el circulo (clip-path): los hombros son mas anchos
+# que el marco a esa altura, como en cualquier avatar redondo, y sin recorte se
+# saldrian por los lados.
+
+_BUSTO = (
+    '<rect x="52" y="60" width="16" height="22" rx="5" class="av-piel"/>'
+    '<path d="M18 120a42 42 0 0 1 84 0Z" class="av-cuerpo"/>'
+    '<circle cx="60" cy="54" r="21" class="av-piel"/>'
+)
+
+# El ORDEN importa: los huecos reparten esta lista de cinco en cinco, asi que
+# los cinco primeros son los que se ven al abrir la pagina.
+OFICIOS = [
+    ("limpieza",                       # pañuelo a la cabeza
+     '<circle cx="60" cy="54" r="21" class="av-marca"/>'
+     '<path d="M40 60a20 20 0 0 0 40 0Z" class="av-piel"/>'
+     '<circle cx="79" cy="57" r="5" class="av-marca"/>'),
+    ("construccion",                   # casco con cresta y ala
+     '<path d="M41 42a19 19 0 0 1 38 0Z" class="av-marca"/>'
+     '<rect x="57" y="24" width="6" height="18" rx="3" class="av-sombra"/>'
+     '<rect x="28" y="40" width="64" height="7" rx="3.5" class="av-marca"/>'),
+    ("cocina",                         # gorro
+     '<circle cx="47" cy="33" r="11" class="av-marca"/>'
+     '<circle cx="60" cy="27" r="13" class="av-marca"/>'
+     '<circle cx="73" cy="33" r="11" class="av-marca"/>'
+     '<rect x="42" y="36" width="36" height="11" rx="3" class="av-sombra"/>'),
+    ("sanidad",                        # estetoscopio
+     '<path d="M46 78v8a14 14 0 0 0 28 0v-8" class="av-linea"/>'
+     '<path d="M60 100v6" class="av-linea"/>'
+     '<circle cx="60" cy="111" r="6.5" class="av-marca"/>'),
+    ("conduccion",                     # gorra de visera
+     '<path d="M41 44a19 19 0 0 1 38 0Z" class="av-marca"/>'
+     '<path d="M58 44h32a4 4 0 0 1 0 8H58Z" class="av-sombra"/>'),
+
+    ("administracion",                 # gafas y corbata
+     '<rect x="42" y="49" width="16" height="12" rx="5" class="av-marca"/>'
+     '<rect x="62" y="49" width="16" height="12" rx="5" class="av-marca"/>'
+     '<rect x="57" y="53" width="6" height="4" class="av-marca"/>'
+     '<path d="M60 80l-6 7 6 22 6-22Z" class="av-sombra"/>'),
+    ("hosteleria",                     # pajarita
+     '<path d="M60 87 44 79v17ZM60 87l16-8v17Z" class="av-marca"/>'
+     '<rect x="55" y="82" width="10" height="10" rx="3" class="av-sombra"/>'),
+    ("agricultura",                    # sombrero de ala ancha
+     '<path d="M44 45a16 16 0 0 1 32 0Z" class="av-marca"/>'
+     '<ellipse cx="60" cy="45" rx="35" ry="7" class="av-marca"/>'),
+    ("teleoperador",                   # auriculares con micro
+     '<path d="M38 54a22 22 0 0 1 44 0" class="av-linea"/>'
+     '<rect x="31" y="50" width="12" height="19" rx="6" class="av-marca"/>'
+     '<rect x="77" y="50" width="12" height="19" rx="6" class="av-marca"/>'
+     '<path d="M77 67c0 9-7 14-13 14" class="av-linea"/>'
+     '<circle cx="62" cy="81" r="4.5" class="av-marca"/>'),
+    ("peluqueria",                     # tijeras
+     '<path d="M52 98 70 78M68 98 50 78" class="av-linea"/>'
+     '<circle cx="52" cy="105" r="6.5" class="av-linea"/>'
+     '<circle cx="68" cy="105" r="6.5" class="av-linea"/>'
+     '<circle cx="60" cy="88" r="3.5" class="av-marca"/>'),
+
+    ("comercio",                       # bolsa de la compra
+     '<path d="M53 88v-5a7 7 0 0 1 14 0v5" class="av-linea"/>'
+     '<path d="M45 88h30v32H45Z" class="av-marca"/>'),
+    ("almacen",                        # chaleco reflectante
+     '<path d="M44 83c-8 6-12 21-12 37h56c0-16-4-31-12-37l-16 13Z" class="av-marca"/>'
+     '<rect x="28" y="100" width="64" height="7" class="av-piel"/>'
+     '<rect x="28" y="112" width="64" height="7" class="av-piel"/>'),
+    ("mantenimiento",                  # martillo, ladeado
+     '<g transform="rotate(-27 60 98)">'
+     '<rect x="42" y="80" width="31" height="13" rx="3" class="av-marca"/>'
+     '<rect x="55" y="90" width="9" height="32" rx="3" class="av-sombra"/>'
+     '</g>'),
+    ("docencia",                       # libro abierto
+     '<path d="M60 91 39 83v29l21 8Z" class="av-marca"/>'
+     '<path d="M60 91 81 83v29l-21 8Z" class="av-piel"/>'
+     '<path d="M60 91v29" class="av-linea"/>'),
+    ("reparto",                        # casco de moto
+     '<circle cx="60" cy="52" r="24" class="av-marca"/>'
+     '<rect x="44" y="47" width="32" height="15" rx="7.5" class="av-piel"/>'),
+]
+
+HERO_HUECOS = 5        # circulos en la fila
+HERO_TURNO = 2.8       # segundos que aguanta cada oficio en su hueco
+HERO_DESFASE = 0.62    # ... de retraso de un hueco al siguiente
+HERO_ESCALAS = (0.66, 0.84, 1.0, 0.84, 0.66)
+HERO_TINTES = (0.6, 0.82, 1.0, 0.82, 0.6)
+
+
+def _avatar(clave, marca, retraso):
+    tapa = f"hc-{clave}"
+    return (
+        f'<svg class="hero-of" viewBox="0 0 120 120" focusable="false"'
+        f' style="animation-delay:{retraso:.2f}s">'
+        f'<defs><clipPath id="{tapa}"><circle cx="60" cy="60" r="60"/></clipPath></defs>'
+        f'<circle cx="60" cy="60" r="60" class="av-fondo"/>'
+        f'<g clip-path="url(#{tapa})">{_BUSTO}{marca}</g>'
+        f'</svg>'
+    )
+
+
+def hero_oficios():
+    """La fila de oficios que se releva sola en la portada.
+
+    Se reparte la lista de cinco en cinco, no de tres en tres: asi el hueco 0
+    se queda con los oficios 0, 5 y 10, y en pantalla nunca coinciden dos
+    iguales a la vez. El retraso es negativo a proposito; el porque esta en el
+    comentario de .hero-fila, en la hoja de estilo.
+    """
+    por_hueco = len(OFICIOS) // HERO_HUECOS
+    huecos = []
+    for hueco in range(HERO_HUECOS):
+        capas = [
+            _avatar(*OFICIOS[capa * HERO_HUECOS + hueco],
+                    retraso=-(capa * HERO_TURNO + hueco * HERO_DESFASE))
+            for capa in range(por_hueco)
+        ]
+        huecos.append(
+            f'<div class="hero-hueco" style="--e:{HERO_ESCALAS[hueco]};'
+            f'--o:{HERO_TINTES[hueco]};--f:{-hueco * 0.9:.2f}s">'
+            + "".join(capas) + "</div>"
+        )
+    return (
+        f'<div class="hero-fila" style="--vuelta:{HERO_TURNO * por_hueco}s"'
+        f' aria-hidden="true">' + "".join(huecos) + "</div>"
+    )
+
+
 EJEMPLOS = [
     "Una persona que limpia habitaciones de hotel",
     "Una persona que conduce autobuses",
@@ -3540,8 +3748,8 @@ elif st.session_state["actual"]:
 else:
     st.markdown(
         '<div class="bienvenida">'
-        '<div class="bienvenida-icono">◉</div>'
-        '<div class="bienvenida-texto">'
+        + hero_oficios()
+        + '<div class="bienvenida-texto">'
         'Escribe el <b>puesto de trabajo</b> o describe <b>lo que hacía la persona</b>'
         '</div></div>',
         unsafe_allow_html=True,
