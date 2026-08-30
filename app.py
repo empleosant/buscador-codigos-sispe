@@ -1794,9 +1794,9 @@ body{
      retraso es de 225 ms: por encima de ahi empieza a notarse como lentitud
      y deja de compensar. */
   animation-delay:calc(var(--i, 0) * var(--paso));
-  /* La tarjeta entera copia el codigo al pulsarla, pero llevaba
-     cursor:default: quien no pasaba por encima del boton Copiar no se
-     enteraba nunca de que podia pulsar en cualquier parte. */
+  /* La tarjeta entera copia el codigo al pulsarla, y desde que no hay boton
+     es el unico gesto que hay: tiene que verse que es pulsable. La pista de
+     al lado del codigo lo dice ademas con palabras. */
   cursor:pointer;
 }
 .tarjeta:hover{
@@ -1826,20 +1826,26 @@ body{
   font-size:clamp(1.05rem, 1.18vw, 1.2rem); font-weight:700;
   letter-spacing:.04em; color:var(--negro); font-family:'JetBrains Mono',monospace;
 }
-
-.copiar{
-  font-family:'Libre Franklin',sans-serif; font-size:clamp(0.68rem, 0.74vw, 0.74rem);
-  font-weight:600; color:var(--texto); background:var(--papel);
-  border:1px solid var(--linea-fuerte);
-  border-radius:4px; padding:.22rem .65rem; cursor:pointer;
-  transition:background var(--rapido) var(--salida), color var(--rapido) var(--salida),
-              border-color var(--rapido) var(--salida), transform var(--rapido) var(--salida);
-  white-space:nowrap;
-  box-shadow:0 1px 2px rgba(0,0,0,0.03);
+/* La pista vive pegada al codigo, que es justo lo que se copia, y solo asoma
+   al pasar por encima. Antes habia ademas un boton "Copiar" en la esquina:
+   dos invitaciones a hacer lo mismo en una tarjeta que ya copiaba entera al
+   pulsarla. Sobraba el boton, no la pista.
+   Este hueco es tambien donde se confirma: al copiar dice "Copiado" en verde,
+   asi que el aviso sale donde la persona ya estaba mirando. */
+.pista{
+  font-size:.62rem; font-weight:600; color:var(--suave); white-space:nowrap;
+  opacity:0;
+  transition:opacity var(--rapido) var(--salida), color var(--rapido) var(--salida);
 }
-.copiar:hover{ background:var(--negro); color:var(--papel); border-color:var(--negro); transform:translateY(-1px); }
-.copiar:active{ transform:scale(0.95); }
-.copiar.hecho{ background:#16A34A !important; border-color:#16A34A !important; color:#fff !important; box-shadow:0 2px 6px rgba(22,163,74,0.25); }
+.tarjeta:hover .pista, .tarjeta:focus-visible .pista{ opacity:1; }
+.pista.hecho{ opacity:1; color:#16A34A; font-weight:700; }
+.pista.fallo{ opacity:1; color:var(--rojo); font-weight:700; }
+/* Sin raton no hay "pasar por encima": en el movil la pista se queda puesta o
+   la tarjeta no dice en ninguna parte que se pueda pulsar. */
+@media (hover:none){ .pista{ opacity:.7; } }
+/* El foco va por dentro: la tarjeta lleva overflow:hidden por el ripple y un
+   contorno por fuera se quedaria cortado. */
+.tarjeta:focus-visible{ outline:2px solid var(--rojo); outline-offset:-2px; }
 
 .denominacion{
   font-size:clamp(0.85rem, 0.94vw, 0.92rem); font-weight:600;
@@ -1859,13 +1865,6 @@ body{
   padding:.14rem .42rem; border-radius:3px; background:var(--gris); color:var(--suave);
 }
 .etiqueta.recomendada{ background:linear-gradient(135deg, var(--rojo) 0%, #B90E26 100%); color:#fff; box-shadow:0 1px 3px rgba(209,18,46,0.25); }
-/* Solo aparece al pasar por encima: dice lo que hace la tarjeta sin ocupar
-   sitio permanente en una rejilla que es apretada a proposito. */
-.pista{
-  font-size:.62rem; font-weight:600; color:var(--suave);
-  opacity:0; transition:opacity var(--medio) var(--entrada); margin-left:auto;
-}
-.tarjeta:hover .pista{ opacity:1; }
 .etiqueta.mando{ background:#FFF7ED; color:#C2410C; border:1px solid #FFEDD5; }
 .etiqueta.directa{ background:#EFF6FF; color:#2563EB; border:1px solid #DBEAFE; }
 
@@ -1882,14 +1881,15 @@ body{
 
 /* Modo oscuro de las tarjetas.
    Los tokens los emite TOKENS_OSCURO al principio de esta hoja, asi que
-   .tarjeta y .copiar ya cambian solos: usan var(--papel) y var(--linea-fuerte).
+   .tarjeta ya cambia sola: usa var(--papel) y var(--linea-fuerte).
    Aqui abajo queda unicamente lo que NO es un token, es decir, los matices que
    solo tienen sentido sobre fondo oscuro. */
 @media (prefers-color-scheme:dark){
   .tarjeta.top{ background:#1E1E2A; box-shadow:0 2px 8px rgba(232,56,79,0.1); }
   .tarjeta.relleno{ background:#151920; }
-  .copiar:hover{ background:var(--texto); color:#111318; }
   .etiqueta{ background:#2D3748; color:var(--suave); }
+  .pista.hecho{ color:#4ADE80; }
+  .pista.fallo{ color:#F87171; }
   .etiqueta.directa{ background:#1E293B; color:#60A5FA; border-color:#1E3A5F; }
   .ripple-efecto{ background:rgba(232,56,79,0.15); }
 }
@@ -1921,22 +1921,54 @@ GUION_INTERACTIVO = """
 // marco oscilaba entre los dos sin parar y en el movil se veia como un scroll
 // que no se detenia nunca.
 
-function copiarTexto(texto, boton){
-  navigator.clipboard.writeText(texto).then(() => {
-    boton.textContent = 'Copiado';
-    boton.classList.add('hecho');
-    setTimeout(() => { boton.textContent = 'Copiar'; boton.classList.remove('hecho'); }, 1400);
-  }).catch(() => {
-    const caja = document.createElement('textarea');
-    caja.value = texto;
-    document.body.appendChild(caja);
-    caja.select();
-    document.execCommand('copy');
-    document.body.removeChild(caja);
-    boton.textContent = 'Copiado';
-    boton.classList.add('hecho');
-    setTimeout(() => { boton.textContent = 'Copiar'; boton.classList.remove('hecho'); }, 1400);
-  });
+// El aviso lo da la pista que hay junto al codigo. Antes lo daba el boton
+// "Copiar" cambiando su propio texto; al quitarlo, la confirmacion se queda
+// igual de cerca de lo que se acaba de copiar.
+//
+// Y avisa TAMBIEN cuando NO se ha podido copiar. En una herramienta cuyo unico
+// fin es pegar el codigo en otro sitio, decir "Copiado" con el portapapeles
+// vacio es peor que no decir nada: se pega lo de antes y nadie mira lo pegado.
+function avisaCopiado(pista, bien){
+  if (!pista) return;
+  pista.textContent = bien ? '✓ Copiado' : 'No se ha podido copiar';
+  pista.classList.remove('hecho', 'fallo');
+  pista.classList.add(bien ? 'hecho' : 'fallo');
+  clearTimeout(pista._vuelta);
+  pista._vuelta = setTimeout(() => {
+    pista.textContent = 'Pulsa para copiar';
+    pista.classList.remove('hecho', 'fallo');
+  }, bien ? 1400 : 2600);
+}
+
+// El camino de toda la vida, para navegadores viejos y para cuando el moderno
+// dice que no. La caja se saca de la pantalla: si se deja donde cae, entra en
+// la maquetacion y el marco de Streamlit se pone a recalcular el alto.
+function copiaALaAntigua(texto, pista){
+  const caja = document.createElement('textarea');
+  caja.value = texto;
+  caja.setAttribute('readonly', '');
+  caja.style.position = 'fixed';
+  caja.style.left = '-9999px';
+  document.body.appendChild(caja);
+  caja.select();
+  let bien = false;
+  try { bien = document.execCommand('copy'); } catch (e) { bien = false; }
+  document.body.removeChild(caja);
+  avisaCopiado(pista, bien);
+}
+
+function copiarTexto(texto, pista){
+  // navigator.clipboard NO existe fuera de un contexto seguro (un http a
+  // secas, o el archivo abierto a pelo desde el disco). Leerlo sin comprobar
+  // levantaba un TypeError sincrono, que ni siquiera entra en el .catch de al
+  // lado: no se copiaba nada y encima no se avisaba de nada.
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(texto)
+      .then(() => avisaCopiado(pista, true))
+      .catch(() => copiaALaAntigua(texto, pista));
+    return;
+  }
+  copiaALaAntigua(texto, pista);
 }
 
 var ultimoAlto = 0;
@@ -1963,26 +1995,30 @@ function pideAlto(){
   requestAnimationFrame(function(){ pedido = false; alto(); });
 }
 
-document.querySelectorAll('.copiar').forEach(b => {
-  b.addEventListener('click', (e) => {
-    e.stopPropagation();
-    copiarTexto(b.dataset.cod, b);
-  });
-});
+// Copiar una tarjeta. El ripple sale donde se ha pulsado y, cuando no hay
+// raton de por medio (teclado o atajo numerico), en el centro.
+function copiaTarjeta(t, e){
+  const rect = t.getBoundingClientRect();
+  const ripple = document.createElement('span');
+  ripple.className = 'ripple-efecto';
+  const x = (e && e.clientX) ? e.clientX - rect.left : rect.width / 2;
+  const y = (e && e.clientY) ? e.clientY - rect.top : rect.height / 2;
+  ripple.style.left = (x - 30) + 'px';
+  ripple.style.top = (y - 30) + 'px';
+  t.appendChild(ripple);
+  setTimeout(() => ripple.remove(), 500);
+  copiarTexto(t.dataset.cod, t.querySelector('.pista'));
+}
 
 document.querySelectorAll('.tarjeta').forEach(t => {
-  t.addEventListener('click', (e) => {
-    // Ripple visual
-    const rect = t.getBoundingClientRect();
-    const ripple = document.createElement('span');
-    ripple.className = 'ripple-efecto';
-    ripple.style.left = (e.clientX - rect.left - 30) + 'px';
-    ripple.style.top = (e.clientY - rect.top - 30) + 'px';
-    t.appendChild(ripple);
-    setTimeout(() => ripple.remove(), 500);
-    // Copiar
-    const btn = t.querySelector('.copiar');
-    if (btn) btn.click();
+  t.addEventListener('click', (e) => copiaTarjeta(t, e));
+  // La tarjeta es ya el unico control, asi que tiene que responder al teclado
+  // como respondia el boton: se llega con el tabulador y se activa con Intro o
+  // con espacio. Al espacio hay que pararle los pies o ademas hace scroll.
+  t.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    e.preventDefault();
+    copiaTarjeta(t);
   });
 });
 
@@ -1996,9 +2032,9 @@ function atajoCopiar(e){
   if (!['1','2','3','4','5','6'].includes(e.key)) return;
   var etiqueta = e.target && e.target.tagName;
   if (etiqueta === 'INPUT' || etiqueta === 'TEXTAREA') return;
-  var botones = document.querySelectorAll('.copiar');
-  var boton = botones[parseInt(e.key, 10) - 1];
-  if (boton) { e.preventDefault(); boton.click(); }
+  var tarjetas = document.querySelectorAll('.tarjeta');
+  var tarjeta = tarjetas[parseInt(e.key, 10) - 1];
+  if (tarjeta) { e.preventDefault(); copiaTarjeta(tarjeta); }
 }
 
 window.addEventListener('keydown', atajoCopiar);
@@ -2059,21 +2095,21 @@ def pinta_tarjetas(ocupaciones):
 
         # --i alimenta el animation-delay de la entrada escalonada.
         trozos.append(
-            f'<div class="{clase}" style="--i:{i - 1}">'
+            f'<div class="{clase}" style="--i:{i - 1}" data-cod="{o["codigo"]}"'
+            f'     role="button" tabindex="0"'
+            f'     aria-label="Copiar el código {o["codigo"]}">'
             f'  <div>'
             f'    <div class="fila">'
             f'      <div class="identificador">'
             f'        <span class="orden">{i:02d}</span>'
             f'        <span class="codigo">{o["codigo"]}</span>'
+            f'        <span class="pista">Pulsa para copiar</span>'
             f'      </div>'
-            f'      <button class="copiar" data-cod="{o["codigo"]}">Copiar</button>'
             f'    </div>'
             f'    <div class="denominacion">{o["denominacion"]}</div>'
             f'    {motivo_html}'
             f'  </div>'
-            f'  <div class="etiquetas-fila">{"".join(etiquetas_html)}'
-            f'    <span class="pista">Pulsa para copiar</span>'
-            f'  </div>'
+            f'  <div class="etiquetas-fila">{"".join(etiquetas_html)}</div>'
             f'</div>'
         )
 
