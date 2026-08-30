@@ -809,10 +809,29 @@ div[class*="st-key-ej_"] button:hover{
 # ---------------------------------------------------------------------------
 
 def normaliza(t):
+    """Deja el texto en la forma con la que se compara todo: sin acentos, en
+    minusculas, los separadores convertidos en espacio y UN solo espacio entre
+    palabras.
+
+    Lo ultimo hace falta porque no todo se compara palabra a palabra. Hay dos
+    sitios que miran la cadena entera: las claves de varias palabras del
+    diccionario, que se buscan con `clave in q`, y el bonus por coincidencia
+    exacta, que compara la consulta con la denominacion.
+
+    Sin colapsar los espacios, escribir dos seguidos cambiaba la respuesta. Con
+    «teleoperadora de atencion al cliente» la clave «atencion al cliente» casaba
+    y salia primero EMPLEADOS DEL AREA DE ATENCION AL CLIENTE; con espacios de
+    mas dejaba de casar y salia TELEOPERADORES. La misma consulta y dos
+    respuestas distintas, segun como de rapido escriba quien pregunta.
+
+    Los guiones, barras y guiones bajos ya se colapsaban porque el patron de
+    arriba lleva un +. A los espacios les faltaba lo mismo.
+    """
     t = re.sub(r"[/\\_\-]+", " ", t)
-    return "".join(
+    t = "".join(
         c for c in unicodedata.normalize("NFD", t) if unicodedata.category(c) != "Mn"
-    ).lower().strip()
+    )
+    return re.sub(r"\s+", " ", t).lower().strip()
 
 
 VOCABULARIO = "vocabulario.json"
