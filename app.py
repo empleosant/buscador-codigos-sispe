@@ -1661,8 +1661,14 @@ def _interpreta_una(prov, texto):
     if prov == "gemini":
         cfg = dict(
             system_instruction=INTERPRETE,
-            max_output_tokens=256,
+            max_output_tokens=512,
             response_mime_type="application/json",
+            # Sin esto el modelo razona antes de contestar y son segundos por
+            # consulta. Traducir la frase a vocabulario oficial no lo necesita.
+            # Ademas los tokens de razonamiento cuentan contra el tope: con 256
+            # podia gastarselos pensando y devolver vacio, y entonces la
+            # busqueda se hacia con el reparto en bruto de palabras.
+            thinking_config=types.ThinkingConfig(thinking_level="MINIMAL"),
         )
         r = c.models.generate_content(
             model=modelo, contents=texto,
