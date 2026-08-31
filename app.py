@@ -1523,6 +1523,9 @@ def _configuraciones():
         system_instruction=INSTRUCCIONES,
         max_output_tokens=700,
         response_mime_type="application/json",
+        # Sin esto el modelo razona antes de responder y son segundos por
+        # consulta. Elegir entre 24 candidatos ya dados no lo necesita.
+        thinking_config=types.ThinkingConfig(thinking_level="MINIMAL"),
     )]
 
 
