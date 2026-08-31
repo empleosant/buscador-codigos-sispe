@@ -66,11 +66,21 @@ PROVEEDORES = {
         # medianoche del PACIFICO, no a medianoche de aqui: en España son
         # las 09:00 en invierno y las 10:00 en verano. Antes de esa hora,
         # un "hoy ya deberia haberse renovado" todavia es ayer para Google.
+        #
+        # 31/08/2026: los tres modelos anteriores (2.5-flash, 2.0-flash y
+        # 1.5-flash) devolvian 404 NOT_FOUND. Google los ha cerrado para
+        # claves nuevas antes de la fecha anunciada, asi que la rama entera
+        # de Gemini estaba caida y todo se resolvia con Mistral sin avisar.
+        #
+        # Solo Flash-Lite. Los Flash completos (3.7, 3.6, 3.5) tienen 20
+        # peticiones al DIA en el tramo gratuito: no llegan ni a media
+        # mañana, y como cada consulta gasta dos llamadas se agotan en diez
+        # busquedas. Los Lite dan 500 al dia y 15 por minuto cada uno, y el
+        # cupo es por modelo, asi que encadenar los dos son ~1.000 diarias.
         "clave": "GEMINI_API_KEY",
         "modelos": [
-            "gemini-2.5-flash",
-            "gemini-2.0-flash",
-            "gemini-1.5-flash",
+            "gemini-3.5-flash-lite",
+            "gemini-3.1-flash-lite",
         ],
     },
     "mistral": {
