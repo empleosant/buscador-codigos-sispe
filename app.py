@@ -50,9 +50,21 @@ ENCAJE_MINIMO = 0.40  # cuánto del nombre de la ocupación debe explicar la
 VENTAJA_CLARA = 3.0   # cuántas veces debe superar el 1º del buscador al 2º
                       # para que mande él en lugar del modelo (sube para que
                       # mande menos, baja para que mande más)
-ESPERA_MAXIMA = 30   # segundos por intento. A 45 una llamada atascada te dejaba
-                     # mirando la pantalla; a 12 se cortaban llamadas que iban a
-                     # terminar bien y caias al catalogo sin afinar.
+ESPERA_MAXIMA = 8    # segundos POR INTENTO. Medido el 01/09/2026: cuando la
+                     # llamada va bien, el primer trozo llega en 0,5-0,6 s y la
+                     # consulta entera se resuelve en 2-2,6 s. Lo que se veia
+                     # como "lentitud" no era eso: era una llamada suelta que se
+                     # atasca, y con el corte en 30 s la persona esperaba media
+                     # minuto a que el reloj venciera antes de que la cascada
+                     # relevara al modelo siguiente (caso medido: 29,1 s, de los
+                     # cuales 21,6 fueron el intento colgado). A 8 s hay margen
+                     # de sobra sobre los 2,6 s reales y el relevo es rapido.
+ESPERA_TOTAL = 30    # segundos para la consulta ENTERA, relevos incluidos. Es
+                     # un tope distinto del de arriba y no se puede unificar:
+                     # con un solo numero, el tiempo gastado en el intento que
+                     # se atasco contaba contra el intento bueno y mataba una
+                     # respuesta que ya venia en camino. Con 30 s casi paso: la
+                     # consulta medida termino en 29,1.
 
 # ---------------------------------------------------------------------------
 # PROVEEDOR DE IA
@@ -898,7 +910,7 @@ div[data-testid="stExpander"] summary{ font-size:.8rem; color:var(--suave); padd
 }
 
 /* ---------- Barra de espera ----------
-   La anterior avanzaba contra ESPERA_MAXIMA (30 s), pero la cascada contesta
+   La anterior avanzaba contra ESPERA_MAXIMA (entonces 30 s), pero la cascada contesta
    entre 2 y 4,6 s: recorría del 10 % al 17 % y saltaba al final, que se lee
    como atascada. Esta no promete un porcentaje que nadie sabe. */
 .barra-espera{
@@ -2379,7 +2391,7 @@ def pinta_resultado(payload, estado=None, interactivo=False, consulta=""):
 
     if estado:
         # La barra ya no dice un porcentaje. La anterior avanzaba contra
-        # ESPERA_MAXIMA (30 s) mientras la cascada contesta en 2 a 4,6 s: se
+        # ESPERA_MAXIMA (entonces 30 s) mientras la cascada contesta en 2 a 4,6 s: se
         # quedaba en el 17 % y saltaba al final, que se lee como atascada.
         st.markdown(
             f'<div class="pensando"><span class="pensando-icono">◉</span>{estado}</div>'
@@ -2766,9 +2778,9 @@ def resuelve(texto, zona, usar_ia=True, contexto="", busqueda=None):
                     (f"{etiqueta} · primer trozo", primero)
                 )
             bruto += trozo
-            if time.perf_counter() - arranque > ESPERA_MAXIMA:
+            if time.perf_counter() - arranque > ESPERA_TOTAL:
                 raise TimeoutError(
-                    f"El modelo ha tardado más de {ESPERA_MAXIMA} segundos."
+                    f"El modelo ha tardado más de {ESPERA_TOTAL} segundos."
                 )
         return interpreta(bruto)
 
