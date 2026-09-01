@@ -51,7 +51,17 @@ ENCAJE_MINIMO = 0.40  # cuánto del nombre de la ocupación debe explicar la
 VENTAJA_CLARA = 3.0   # cuántas veces debe superar el 1º del buscador al 2º
                       # para que mande él en lugar del modelo (sube para que
                       # mande menos, baja para que mande más)
-ESPERA_MAXIMA = 8    # segundos POR INTENTO. Medido el 01/09/2026: cuando la
+ESPERA_MAXIMA = 8    # segundos de silencio que aguanta el TRANSPORTE. OJO: no
+                     # es el tope de un intento, aunque durante meses se creyo
+                     # que si. Es lo que acaba en httpx, y el plazo de httpx
+                     # mide el tiempo SIN RECIBIR DATOS, no lo que dura la
+                     # respuesta. El tope de verdad de un intento es
+                     # PLAZO_INTENTO, que lo impone _con_plazo con un reloj
+                     # nuestro. Esto se queda como segunda linea, para el caso
+                     # de una conexion que se queda muda del todo.
+                     #
+                     # Lo de abajo sigue siendo cierto y por eso se conserva:
+                     # cuando la
                      # llamada va bien, el primer trozo llega en 0,5-0,6 s y la
                      # consulta entera se resuelve en 2-2,6 s. Lo que se veia
                      # como "lentitud" no era eso: era una llamada suelta que se
@@ -60,6 +70,27 @@ ESPERA_MAXIMA = 8    # segundos POR INTENTO. Medido el 01/09/2026: cuando la
                      # relevara al modelo siguiente (caso medido: 29,1 s, de los
                      # cuales 21,6 fueron el intento colgado). A 8 s hay margen
                      # de sobra sobre los 2,6 s reales y el relevo es rapido.
+PLAZO_INTENTO = 4    # segundos de reloj para UN intento contra el modelo. Es
+                     # el que impone _con_plazo, y desde el 01/09/2026 es el
+                     # unico que corta de verdad: ESPERA_MAXIMA se lo queda
+                     # httpx, que solo mide el tiempo SIN RECIBIR DATOS.
+                     #
+                     # Cuatro y no ocho, medido esa misma noche sobre todas las
+                     # respuestas sanas de la tanda: el afinado nunca paso de
+                     # 2,6 s (1,1 · 1,2 · 1,3 · 1,4 · 2,0 · 2,0 · 2,6 · 0,6) y
+                     # el paso 1 no paso de 3,1 s. Con el corte en 8, tres de
+                     # cada cuatro consultas relevaban y cada relevo se comia
+                     # ocho segundos enteros de espera antes de pasar al
+                     # siguiente modelo. Bajarlo a 4 no habria matado ni una
+                     # sola de las respuestas buenas medidas y parte por la
+                     # mitad lo que cuesta cada relevo.
+                     #
+                     # Si algun dia las respuestas sanas empiezan a pasar de
+                     # 3 s, este numero se queda corto y hay que subirlo: se ve
+                     # en la columna `relevos` del CSV, en cuanto empiecen a
+                     # salir TimeoutError con el modelo bueno respondiendo bien
+                     # justo despues.
+
 ESPERA_TOTAL = 30    # segundos para la consulta ENTERA, relevos incluidos. Es
                      # un tope distinto del de arriba y no se puede unificar:
                      # con un solo numero, el tiempo gastado en el intento que
@@ -1671,7 +1702,7 @@ def _flujo_gemini(cli, prompt, prov="gemini"):
                     lambda: cli.models.generate_content(
                         model=modelos[m], contents=prompt, config=cfg_afinado,
                     ),
-                    ESPERA_MAXIMA,
+                    PLAZO_INTENTO,
                 )
                 _fija_modelo(prov, m)
                 st.session_state["cfg"] = i
@@ -1819,7 +1850,7 @@ def _interpreta_una(prov, texto):
             lambda: c.models.generate_content(
                 model=modelo, contents=texto, config=cfg_interprete,
             ),
-            ESPERA_MAXIMA,
+            PLAZO_INTENTO,
         )
         bruto = (getattr(r, "text", "") or "").strip()
     else:
@@ -1832,7 +1863,7 @@ def _interpreta_una(prov, texto):
                 temperature=0,
                 response_format={"type": "json_object"},
             ),
-            ESPERA_MAXIMA,
+            PLAZO_INTENTO,
         )
         bruto = (r.choices[0].message.content or "").strip()
     _apunta_uso(prov, modelo)
