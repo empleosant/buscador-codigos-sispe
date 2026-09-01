@@ -2489,7 +2489,9 @@ def pinta_resultado(payload, estado=None, interactivo=False, consulta=""):
         nombre_m = " ".join(p.capitalize() for p in partes if not p.isdigit() and len(p) > 1)
         if not nombre_m:
             nombre_m = modelo.split("-")[0].capitalize()
-        total_s = sum(t for _, t in tiempos) if tiempos else 0
+        # Sin filtrar, la fila nueva de "primer trozo" se sumaria al tramo que
+        # ya la incluye y el chip enseñaria casi el doble de lo que tardo.
+        total_s = sum(t for e, t in tiempos if "primer trozo" not in e)
         tiempo_txt = f" · {total_s:.1f}s" if total_s > 0 else ""
         st.markdown(
             f'<div style="text-align:center">'
@@ -2531,6 +2533,27 @@ class cronometra:
         segundos = time.perf_counter() - self.t0
         st.session_state.setdefault("tiempos", []).append((self.etiqueta, segundos))
         return False
+
+
+def _medida():
+    """Los números de la última consulta, listos para escribir en un CSV.
+
+    Estaban solo en el panel, y eso obligaba a copiarlos a mano de la pantalla
+    para poder compararlos. Aquí se recogen una vez y los usan tanto la
+    descarga de sesión como la prueba masiva.
+    """
+    tiempos = st.session_state.get("tiempos", [])
+    primero = next((t for e, t in tiempos if "primer trozo" in e), None)
+    # El "primer trozo" esta DENTRO del tramo que lo contiene: sumarlo seria
+    # contar dos veces los mismos segundos.
+    total = sum(t for e, t in tiempos if "primer trozo" not in e)
+    pens = st.session_state.get("pensamiento") or {}
+    return {
+        "modelo": st.session_state.get("ultimo_modelo", ""),
+        "primer_trozo": f"{primero:.1f}" if primero is not None else "",
+        "total": f"{total:.1f}" if tiempos else "",
+        "pensados": pens.get("pensados", ""),
+    }
 
 
 def _basica(encontrados, motivo=""):
@@ -2591,6 +2614,9 @@ def resuelve(texto, zona, usar_ia=True, contexto="", busqueda=None):
     literales = encontrados[:2]
     _raices_consulta = raices_de(busqueda or texto)
     st.session_state["tiempos"] = []
+    # Se vacia junto con los tiempos. Si no, una consulta que falla se lleva
+    # al CSV los tokens de la anterior y la tabla miente sin que se note.
+    st.session_state["pensamiento"] = None
     # Hay IA si esta pedida y algun proveedor de la cascada tiene clave
     hay_ia = bool(usar_ia and orden_proveedores() and cliente())
 
@@ -3220,7 +3246,10 @@ def panel_ajustes():
         if st.session_state["registro"]:
             buffer = io.StringIO()
             escritor = csv.writer(buffer, delimiter=";")
-            escritor.writerow(["consulta", "codigos"])
+            escritor.writerow([
+                "consulta", "codigos", "modelo", "primer_trozo",
+                "total", "pensados", "fallo",
+            ])
             for fila in st.session_state["registro"]:
                 escritor.writerow(fila)
             st.download_button(
@@ -3697,6 +3726,7 @@ def pantalla_masiva():
                 "error": error,
                 "segundos": round(tardanza, 1),
                 "detalle_tiempos": " | ".join(f"{n}:{t:.1f}" for n, t in tiempos),
+                "pensados": (st.session_state.get("pensamiento") or {}).get("pensados", ""),
             })
 
             # Solo hay que dar aire si la consulta ha gastado peticiones. Las
@@ -3831,9 +3861,15 @@ elif entrada:
         contexto=contexto, busqueda=busqueda,
     )
     st.session_state["actual"] = (rotulo or entrada, payload)
+    medida = _medida()
     st.session_state["registro"].append((
         rotulo or entrada,
         " | ".join(o["codigo"] for o in payload.get("ocupaciones", [])),
+        medida["modelo"],
+        medida["primer_trozo"],
+        medida["total"],
+        medida["pensados"],
+        str(payload.get("fallo", ""))[:200],
     ))
     st.rerun()
 
