@@ -7,6 +7,7 @@ import os
 import re
 import csv
 import time
+import threading
 import io
 import json
 import math
@@ -1549,6 +1550,52 @@ def cliente():
     return _cliente(proveedor_actual())
 
 
+def _con_plazo(hacer, segundos):
+    """Ejecuta `hacer()` y se rinde a los `segundos`, conteste o no.
+
+    ESPERA_MAXIMA nunca ha acotado lo que creiamos. El SDK lo convierte bien de
+    milisegundos a segundos y se lo pasa a httpx, pero el plazo de httpx es el
+    tiempo maximo SIN RECIBIR DATOS, no lo que dura la respuesta: httpx no
+    tiene ningun parametro de tiempo total. Un modelo que tarda veinte segundos
+    en contestar, mientras mantenga viva la conexion, no lo dispara jamas.
+
+    Medido el 01/09/2026, con el plazo puesto en 8: dos llamadas que acabaron
+    BIEN tardaron 19,3 s y 22,6 s, y en toda la tanda no salto ni un solo error
+    de tipo timeout. Todos los relevos decian ServerError, que es Google
+    respondiendo. El corte no habia funcionado ni una vez, y por eso quitar el
+    streaming no arreglo la cola: era este el fallo de fondo, no aquel.
+
+    Un hilo es la unica forma de rendirse: una llamada HTTP bloqueada no se
+    puede cancelar desde fuera. El hilo abandonado termina por su cuenta y su
+    respuesta se tira; va como demonio para que no retenga al servidor.
+
+    Dentro del hilo NO se toca nada de Streamlit. session_state no es para
+    hilos secundarios: aqui solo se hace la llamada, y apuntar el uso, fijar el
+    modelo y anotar el relevo se quedan fuera, donde estaban.
+    """
+    caja = {}
+
+    def envuelve():
+        try:
+            caja["valor"] = hacer()
+        except BaseException as e:  # noqa: BLE001
+            # Se guarda y se relanza fuera, para que llegue al mismo `except`
+            # de siempre con su tipo intacto: de eso dependen por_minuto() y
+            # sin_cuota() para decidir si se espera, se releva o se aparta.
+            caja["error"] = e
+
+    hilo = threading.Thread(target=envuelve, daemon=True)
+    hilo.start()
+    hilo.join(segundos)
+    if hilo.is_alive():
+        # Ni "quota" ni "429" en el texto: sin_cuota() mira la cadena y esto no
+        # es un problema de cupo, es una llamada que no vuelve.
+        raise TimeoutError(f"Sin respuesta del modelo en {segundos} s.")
+    if "error" in caja:
+        raise caja["error"]
+    return caja.get("valor")
+
+
 INSTRUCCIONES = """Eres un técnico de codificación de ocupaciones.
 
 Recibes la descripción de un puesto y una lista cerrada de ocupaciones candidatas.
@@ -1616,9 +1663,15 @@ def _flujo_gemini(cli, prompt, prov="gemini"):
                 # acumula los trozos en una cadena y no pinta ni uno hasta que
                 # termina. Se pierde una entrega progresiva que nadie veia y se
                 # gana un corte que si funciona y un fallo que si releva.
-                r = cli.models.generate_content(
-                    model=modelos[m], contents=prompt,
-                    config=types.GenerateContentConfig(**opciones[i]),
+                # El reloj lo ponemos nosotros: el de HttpOptions no acota
+                # el total. Ver _con_plazo. Solo va dentro la llamada; todo lo
+                # que toca session_state se queda aqui fuera.
+                cfg_afinado = types.GenerateContentConfig(**opciones[i])
+                r = _con_plazo(
+                    lambda: cli.models.generate_content(
+                        model=modelos[m], contents=prompt, config=cfg_afinado,
+                    ),
+                    ESPERA_MAXIMA,
                 )
                 _fija_modelo(prov, m)
                 st.session_state["cfg"] = i
@@ -1761,19 +1814,25 @@ def _interpreta_una(prov, texto):
             # busqueda se hacia con el reparto en bruto de palabras.
             thinking_config=types.ThinkingConfig(thinking_level="MINIMAL"),
         )
-        r = c.models.generate_content(
-            model=modelo, contents=texto,
-            config=types.GenerateContentConfig(**cfg),
+        cfg_interprete = types.GenerateContentConfig(**cfg)
+        r = _con_plazo(
+            lambda: c.models.generate_content(
+                model=modelo, contents=texto, config=cfg_interprete,
+            ),
+            ESPERA_MAXIMA,
         )
         bruto = (getattr(r, "text", "") or "").strip()
     else:
-        r = c.chat.completions.create(
-            model=modelo,
-            messages=[{"role": "system", "content": INTERPRETE},
-                      {"role": "user", "content": texto}],
-            max_tokens=256,
-            temperature=0,
-            response_format={"type": "json_object"},
+        r = _con_plazo(
+            lambda: c.chat.completions.create(
+                model=modelo,
+                messages=[{"role": "system", "content": INTERPRETE},
+                          {"role": "user", "content": texto}],
+                max_tokens=256,
+                temperature=0,
+                response_format={"type": "json_object"},
+            ),
+            ESPERA_MAXIMA,
         )
         bruto = (r.choices[0].message.content or "").strip()
     _apunta_uso(prov, modelo)
