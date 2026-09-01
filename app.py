@@ -2981,6 +2981,7 @@ def resuelve(texto, zona, usar_ia=True, contexto="", busqueda=None):
         # arranca rapido y luego gotea. Son causas distintas y arreglos
         # distintos, asi que se anota tambien cuando llega el primer trozo.
         primero = None
+        trozos = 0
         for trozo in flujo_modelo(texto + contexto, candidatos):
             if primero is None:
                 primero = time.perf_counter() - arranque
@@ -2988,7 +2989,20 @@ def resuelve(texto, zona, usar_ia=True, contexto="", busqueda=None):
                     (f"{etiqueta} · primer trozo", primero)
                 )
             bruto += trozo
-            if time.perf_counter() - arranque > ESPERA_TOTAL:
+            trozos += 1
+            # El tope total solo puede cortar una respuesta que AUN esta
+            # llegando, y eso son dos trozos o mas.
+            #
+            # Con un trozo unico -el camino de Gemini desde que se quito el
+            # streaming- esta comprobacion corria DESPUES de tener la respuesta
+            # entera en la mano, asi que ya no cortaba nada: lo unico que podia
+            # hacer era tirar a la basura una respuesta buena que hubiera
+            # tardado 31 s y ensenarle a la persona el aviso de que no se ha
+            # podido afinar. Peor que inutil.
+            #
+            # Contra un stream que sigue goteando pasado el plazo -Mistral- si
+            # tiene sentido, y ahi se mantiene tal cual.
+            if trozos > 1 and time.perf_counter() - arranque > ESPERA_TOTAL:
                 raise TimeoutError(
                     f"El modelo ha tardado más de {ESPERA_TOTAL} segundos."
                 )
