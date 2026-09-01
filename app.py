@@ -130,8 +130,23 @@ ORDEN = ["gemini", "mistral", "openrouter"]
 CASCADA = "cascada"   # el selector de mantenimiento usa este valor para decir
                       # "recorre el orden"; cualquier otro fija un proveedor.
 
-CADUCIDAD_CASTIGO = 3600   # segundos que dura apartar un proveedor o degradar
-                           # un modelo. Ver _castigo_vivo.
+CADUCIDAD_CASTIGO = 3600   # segundos que dura APARTAR UN PROVEEDOR. Solo se
+                           # aparta por cupo del dia agotado (ver _quema), y un
+                           # cupo diario no vuelve en cinco minutos: la hora es
+                           # la espera correcta. Ver _castigo_vivo.
+
+CADUCIDAD_DEGRADACION = 300   # segundos que dura BAJAR DE MODELO dentro de un
+                              # proveedor. Mucho menos que apartarlo, y por una
+                              # razon medida: el 01/09/2026 gemini-3.5-flash-lite
+                              # fallo UNA vez, en 0,2 s, con un ServerError de
+                              # Google, y esa hora de castigo dejo las siete
+                              # consultas siguientes en gemini-3.1-flash-lite.
+                              # Degradar no se decide por cupo -eso ya lo hace
+                              # _quema- sino por cualquier tropiezo, y la mayoria
+                              # son 5xx que pasan solos. Reintentar el bueno
+                              # cuesta un intento perdido cada cinco minutos;
+                              # no reintentarlo costaba una hora en el peor
+                              # modelo por dos decimas de mala suerte.
 
 # El proveedor no puede ser una constante de modulo: la cascada cambia de uno a
 # otro en caliente y el panel de mantenimiento tiene que poder fijar uno para
@@ -146,6 +161,9 @@ def tiene_clave(prov):
     except Exception:  # noqa: BLE001
         pass                       # sin archivo de secrets, st.secrets revienta
     return bool(os.environ.get(nombre))
+
+
+LIMITES_CASTIGO = {"modelo_desde": CADUCIDAD_DEGRADACION}
 
 
 def _castigo_vivo(registro, prov):
@@ -164,7 +182,11 @@ def _castigo_vivo(registro, prov):
     marca = st.session_state.get(registro, {}).get(prov)
     if marca is None:
         return False
-    if time.time() - marca > CADUCIDAD_CASTIGO:
+    # Cada registro tiene su propio plazo: apartar un proveedor es cosa del
+    # cupo del dia y dura una hora; bajar de modelo casi siempre es un 5xx de
+    # paso y no merece mas que unos minutos.
+    limite = LIMITES_CASTIGO.get(registro, CADUCIDAD_CASTIGO)
+    if time.time() - marca > limite:
         st.session_state[registro].pop(prov, None)
         return False
     return True
