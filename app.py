@@ -1776,10 +1776,28 @@ def interpreta_consulta(texto):
     # candidatos que el primero, y pareceria peor de lo que es.
     bruto = None
     for prov in orden_proveedores():
+        t_intento = time.perf_counter()
         try:
             bruto = _interpreta_una(prov, texto)
             break
         except Exception as e:  # noqa: BLE001
+            # El paso 1 no dejaba rastro de sus intentos fallidos. Todo lo que
+            # se gastaba aqui -intento colgado incluido- se sumaba al tramo
+            # "1. Interpretar el oficio", y desde fuera una llamada lenta y un
+            # intento muerto mas un relevo se ven exactamente igual.
+            #
+            # Medido el 01/09/2026: "monta placa de pladur" gasto 5,2 s en este
+            # paso sin una sola linea en `relevos`. Con ese numero no se puede
+            # decidir el plazo por intento: si son 5,2 s de llamada sana,
+            # bajarlo la mata; si son 4 s de intento muerto mas 1 s de relevo,
+            # bajarlo es justo lo que hay que hacer. Se anota para saberlo.
+            #
+            # Van marcados con "paso1:" para no mezclarlos con los del
+            # afinado, que ya escriben en la misma lista.
+            st.session_state.setdefault("relevos", []).append(
+                f"paso1:{prov}:{time.perf_counter() - t_intento:.1f}s:"
+                f"{type(e).__name__}"
+            )
             _quema(prov, e)
             continue
     if bruto is None:
