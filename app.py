@@ -1552,35 +1552,48 @@ def _flujo_gemini(cli, prompt, prov="gemini"):
     for m in range(_idx_modelo(prov), len(modelos)):
         for i in range(st.session_state.get("cfg", 0), len(opciones)):
             emitido = False
+            t_intento = time.perf_counter()
             try:
-                flujo = cli.models.generate_content_stream(
+                # Llamada NORMAL, no en streaming. Medido el 01/09/2026: con
+                # `generate_content_stream` el plazo de `HttpOptions` no se
+                # aplicaba y una llamada atascada tardaba 30,7 s en dar el
+                # primer trozo con el corte puesto en 8. Ademas, si el stream
+                # arrancaba y se caia a mitad (503 a los 21,5 s), `emitido` ya
+                # estaba puesto y el `raise` de abajo mataba la consulta sin
+                # dejar relevar al modelo siguiente.
+                # Aqui el streaming no aportaba nada: quien consume esto
+                # acumula los trozos en una cadena y no pinta ni uno hasta que
+                # termina. Se pierde una entrega progresiva que nadie veia y se
+                # gana un corte que si funciona y un fallo que si releva.
+                r = cli.models.generate_content(
                     model=modelos[m], contents=prompt,
                     config=types.GenerateContentConfig(**opciones[i]),
                 )
-                for trozo in flujo:
-                    if not emitido:
-                        _fija_modelo(prov, m)
-                        st.session_state["cfg"] = i
-                        _apunta_uso(prov, modelos[m])
-                        emitido = True
-                    # Solo observa. El recuento de tokens PENSADOS es lo unico
-                    # que dice si thinking_level="MINIMAL" lo esta aplicando el
-                    # modelo de verdad o lo esta ignorando en silencio. Llega en
-                    # el ultimo trozo del stream, asi que se sobrescribe hasta
-                    # que deja de haber trozos.
-                    uso = getattr(trozo, "usage_metadata", None)
-                    if uso is not None:
-                        st.session_state["pensamiento"] = {
-                            "entrada": getattr(uso, "prompt_token_count", None),
-                            "pensados": getattr(uso, "thoughts_token_count", None),
-                            "salida": getattr(uso, "candidates_token_count", None),
-                        }
-                    if getattr(trozo, "text", None):
-                        yield trozo.text
+                _fija_modelo(prov, m)
+                st.session_state["cfg"] = i
+                _apunta_uso(prov, modelos[m])
+                uso = getattr(r, "usage_metadata", None)
+                if uso is not None:
+                    st.session_state["pensamiento"] = {
+                        "entrada": getattr(uso, "prompt_token_count", None),
+                        "pensados": getattr(uso, "thoughts_token_count", None),
+                        "salida": getattr(uso, "candidates_token_count", None),
+                    }
+                emitido = True
+                yield (getattr(r, "text", "") or "")
                 return
             except Exception as e:  # noqa: BLE001
                 if emitido:
                     raise
+                # Lo que cuesta un intento fallido no se veia en ningun sitio:
+                # el cronometro solo cuenta el tramo entero, asi que 29 s de
+                # espera parecian "el modelo va lento" cuando eran 21 s de
+                # intento colgado mas 2 s del modelo de relevo. Aqui queda
+                # anotado modelo por modelo.
+                st.session_state.setdefault("relevos", []).append(
+                    f"{modelos[m]}:{time.perf_counter() - t_intento:.1f}s:"
+                    f"{type(e).__name__}"
+                )
                 ultimo = e
                 if por_minuto(e):
                     if espera < len(PAUSAS_429):
@@ -2565,6 +2578,7 @@ def _medida():
         "primer_trozo": f"{primero:.1f}" if primero is not None else "",
         "total": f"{total:.1f}" if tiempos else "",
         "pensados": pens.get("pensados", ""),
+        "relevos": " | ".join(st.session_state.get("relevos", [])),
     }
 
 
@@ -2626,9 +2640,11 @@ def resuelve(texto, zona, usar_ia=True, contexto="", busqueda=None):
     literales = encontrados[:2]
     _raices_consulta = raices_de(busqueda or texto)
     st.session_state["tiempos"] = []
-    # Se vacia junto con los tiempos. Si no, una consulta que falla se lleva
-    # al CSV los tokens de la anterior y la tabla miente sin que se note.
+    # Se vacian junto con los tiempos. Si no, una consulta que falla se lleva
+    # al CSV los tokens y los relevos de la anterior, y la tabla miente sin
+    # que se note.
     st.session_state["pensamiento"] = None
+    st.session_state["relevos"] = []
     # Hay IA si esta pedida y algun proveedor de la cascada tiene clave
     hay_ia = bool(usar_ia and orden_proveedores() and cliente())
 
@@ -3260,7 +3276,7 @@ def panel_ajustes():
             escritor = csv.writer(buffer, delimiter=";")
             escritor.writerow([
                 "consulta", "codigos", "modelo", "primer_trozo",
-                "total", "pensados", "fallo",
+                "total", "pensados", "relevos", "fallo",
             ])
             for fila in st.session_state["registro"]:
                 escritor.writerow(fila)
@@ -3739,6 +3755,7 @@ def pantalla_masiva():
                 "segundos": round(tardanza, 1),
                 "detalle_tiempos": " | ".join(f"{n}:{t:.1f}" for n, t in tiempos),
                 "pensados": (st.session_state.get("pensamiento") or {}).get("pensados", ""),
+                "relevos": " | ".join(st.session_state.get("relevos", [])),
             })
 
             # Solo hay que dar aire si la consulta ha gastado peticiones. Las
@@ -3881,6 +3898,7 @@ elif entrada:
         medida["primer_trozo"],
         medida["total"],
         medida["pensados"],
+        medida["relevos"],
         str(payload.get("fallo", ""))[:200],
     ))
     st.rerun()
