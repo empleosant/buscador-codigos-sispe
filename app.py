@@ -1766,32 +1766,50 @@ def _flujo_openai(cli, prompt, prov):
     espera = 0
     while m < len(modelos):
         emitido = False
+        t_intento = time.perf_counter()
         try:
-            flujo = cli.chat.completions.create(
-                model=modelos[m],
-                messages=[
-                    {"role": "system", "content": INSTRUCCIONES},
-                    {"role": "user", "content": prompt},
-                ],
-                max_tokens=2048,
-                temperature=0,
-                response_format={"type": "json_object"},
-                stream=True,
+            # Sin streaming y con el reloj puesto, igual que el camino de
+            # Gemini desde el 01/09/2026 y por los mismos dos motivos.
+            #
+            # Uno: aqui el streaming tampoco aportaba nada. Quien consume esto
+            # acumula los trozos en una cadena y no pinta ni uno hasta que
+            # termina, asi que se entregaba a plazos algo que nadie veia llegar.
+            #
+            # Dos, y es el grave: en cuanto llegaba el primer trozo se ponia
+            # `emitido`, y a partir de ahi un corte a mitad de respuesta subia
+            # por el `raise` de abajo y mataba la consulta SIN dejar relevar al
+            # modelo siguiente. Un fallo tardio valia por un fallo definitivo.
+            #
+            # El plazo del cliente de Mistral se queda en ESPERA_MAXIMA: es de
+            # httpx y solo mide silencio. El tope real lo pone _con_plazo.
+            r = _con_plazo(
+                lambda: cli.chat.completions.create(
+                    model=modelos[m],
+                    messages=[
+                        {"role": "system", "content": INSTRUCCIONES},
+                        {"role": "user", "content": prompt},
+                    ],
+                    max_tokens=2048,
+                    temperature=0,
+                    response_format={"type": "json_object"},
+                ),
+                PLAZO_INTENTO,
             )
-            for trozo in flujo:
-                if not trozo.choices:
-                    continue
-                texto = trozo.choices[0].delta.content
-                if texto:
-                    if not emitido:
-                        _fija_modelo(prov, m)
-                        _apunta_uso(prov, modelos[m])
-                        emitido = True
-                    yield texto
+            _fija_modelo(prov, m)
+            _apunta_uso(prov, modelos[m])
+            emitido = True
+            yield (r.choices[0].message.content or "")
             return
         except Exception as e:  # noqa: BLE001
             if emitido:
                 raise
+            # Esta rama no anotaba nada: un fallo de Mistral era invisible en
+            # el CSV y sus intentos perdidos se sumaban al tramo sin explicar
+            # de donde salian. Mismo formato que Gemini.
+            st.session_state.setdefault("relevos", []).append(
+                f"{modelos[m]}:{time.perf_counter() - t_intento:.1f}s:"
+                f"{type(e).__name__}"
+            )
             ultimo = e
             if por_minuto(e):
                 if espera < len(PAUSAS_429):
