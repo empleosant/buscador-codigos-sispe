@@ -849,18 +849,47 @@ div[data-testid="stExpander"] summary{ font-size:.8rem; color:var(--suave); padd
 
 /* ---------- Pantallas estrechas (móvil) ----------
    La herramienta se usa también desde el teléfono. Aquí no se rediseña nada:
-   se le quita apretura al espacio, se deja que las columnas de la cabecera se
-   apilen y se impide que un código de ocho cifras o una denominación larga
+   se le quita apretura al espacio, se aprieta la cabecera en un solo renglón
+   y se impide que un código de ocho cifras o una denominación larga
    desborden a lo ancho, que es lo que rompe la lectura en vertical. */
 @media (max-width:760px){
   .block-container{ padding:0 .6rem .4rem !important; }
 
   .st-key-cabecera{ padding:.7rem .8rem; }
+
+  /* Todo en un renglon: campo, lupa y ajustes. Al dejarlas apilarse, la
+     cabecera se comia media pantalla antes de ensenar un solo resultado.
+     Los !important no son adorno: Streamlit fija el ancho de cada stColumn
+     con su propia regla flex y sin ellos gana ella. Un primer intento sin
+     ponerlos dejo el boton en vertical y encima hizo crecer la cabecera. */
   .st-key-cabecera [data-testid="stHorizontalBlock"]{
-    flex-wrap:wrap; gap:.4rem;
+    flex-wrap:nowrap !important; gap:.4rem;
   }
   .st-key-cabecera [data-testid="stColumn"]{
     min-width:0;
+  }
+  .st-key-cabecera [data-testid="stColumn"]:nth-child(1){
+    flex:1 1 auto !important; width:auto !important;
+  }
+  .st-key-cabecera [data-testid="stColumn"]:nth-child(2){
+    flex:0 0 3.4rem !important; width:3.4rem !important;
+  }
+  .st-key-cabecera [data-testid="stColumn"]:nth-child(3){
+    flex:0 0 auto !important; width:auto !important;
+  }
+
+  /* El boton se queda en una lupa: la palabra "Buscar" no cabe en ese renglon
+     sin partirse en dos lineas. Se tapa el texto con font-size:0 y se pinta el
+     simbolo en ::after, con su tamano propio.
+
+     La etiqueta de Python sigue diciendo "Buscar" A PROPOSITO: es lo que lee
+     un lector de pantalla, y una lupa no se lee. Esto es cosa del CSS y solo
+     de pantallas estrechas; en escritorio el boton sigue con su palabra. */
+  .st-key-buscar button p{
+    font-size:0 !important; line-height:0 !important;
+  }
+  .st-key-buscar button p::after{
+    content:'🔍'; font-size:1.05rem; line-height:1;
   }
 
   .consulta-box{ padding:.5rem .6rem; }
