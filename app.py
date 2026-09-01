@@ -1997,6 +1997,27 @@ def interpreta(bruto):
                 datos = json.loads(bloque.group())
             except Exception:  # noqa: BLE001
                 datos = {}
+    # El modelo contesta a veces con el ARRAY de ocupaciones a pelo, sin el
+    # objeto que lo envuelve. json.loads lo traga tan contento y devuelve una
+    # lista; como una lista no vacia es verdadera, se colaba entera por el
+    # `if not datos` de aqui abajo y reventaba en el `datos.get()` siguiente
+    # con AttributeError: 'list' object has no attribute 'get'.
+    #
+    # Medido el 01/09/2026 pulsando "Autobus interurbano" sobre "una persona
+    # que conduce autobuses": relevos VACIO y total 1,0 s. No era lentitud ni
+    # cuota, que es donde se estuvo buscando: el modelo respondia rapido y
+    # bien y la respuesta se caia al abrirla. Sale mas en la via de
+    # desambiguacion porque el prompt lleva la aclaracion pegada y ahi el
+    # modelo devuelve la lista sola mas a menudo.
+    #
+    # Se envuelve y sigue el camino de siempre. Cualquier otra forma que no
+    # sea un objeto (un numero, una cadena) se trata como respuesta vacia y
+    # cae al rescate de objetos parciales, que para eso esta.
+    if isinstance(datos, list):
+        datos = {"ocupaciones": datos}
+    elif not isinstance(datos, dict):
+        datos = {}
+
     if not datos:
         ocupaciones, descartadas = verifica(objetos_parciales(texto))
         return {"ocupaciones": ocupaciones, "pregunta": "", "opciones": [], "descartadas": descartadas}
