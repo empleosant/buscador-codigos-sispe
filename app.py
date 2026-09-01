@@ -1551,6 +1551,18 @@ def _flujo_gemini(cli, prompt, prov="gemini"):
                         st.session_state["cfg"] = i
                         _apunta_uso(prov, modelos[m])
                         emitido = True
+                    # Solo observa. El recuento de tokens PENSADOS es lo unico
+                    # que dice si thinking_level="MINIMAL" lo esta aplicando el
+                    # modelo de verdad o lo esta ignorando en silencio. Llega en
+                    # el ultimo trozo del stream, asi que se sobrescribe hasta
+                    # que deja de haber trozos.
+                    uso = getattr(trozo, "usage_metadata", None)
+                    if uso is not None:
+                        st.session_state["pensamiento"] = {
+                            "entrada": getattr(uso, "prompt_token_count", None),
+                            "pensados": getattr(uso, "thoughts_token_count", None),
+                            "salida": getattr(uso, "candidates_token_count", None),
+                        }
                     if getattr(trozo, "text", None):
                         yield trozo.text
                 return
@@ -1695,6 +1707,12 @@ def _interpreta_una(prov, texto):
 def interpreta_consulta(texto):
     clave = normaliza(texto)
     memoria = st.session_state.setdefault("interpretaciones", {})
+    # Repetir la misma consulta en la misma sesion NO vuelve a llamar al
+    # modelo: sale de aqui en microsegundos. El panel marcaba entonces
+    # "1. Interpretar el oficio: 0.0 s", que parece una llamada rapidisima y
+    # es una lectura de diccionario. Confundir las dos cosas ya llevo una vez
+    # a buscar la lentitud donde no estaba, asi que queda dicho en el panel.
+    st.session_state["interprete_en_memoria"] = clave in memoria
     if clave in memoria:
         return memoria[clave]
 
@@ -2710,7 +2728,17 @@ def resuelve(texto, zona, usar_ia=True, contexto="", busqueda=None):
             pinta_resultado({}, estado=etiqueta)
         bruto = ""
         arranque = time.perf_counter()
+        # Hasta ahora solo se medía el total, y con eso no se distingue el
+        # modelo que tarda en ARRANCAR (piensa, o esta encolado) del que
+        # arranca rapido y luego gotea. Son causas distintas y arreglos
+        # distintos, asi que se anota tambien cuando llega el primer trozo.
+        primero = None
         for trozo in flujo_modelo(texto + contexto, candidatos):
+            if primero is None:
+                primero = time.perf_counter() - arranque
+                st.session_state.setdefault("tiempos", []).append(
+                    (f"{etiqueta} · primer trozo", primero)
+                )
             bruto += trozo
             if time.perf_counter() - arranque > ESPERA_MAXIMA:
                 raise TimeoutError(
@@ -3213,7 +3241,22 @@ def panel_ajustes():
             st.caption("Última consulta, segundo a segundo:")
             for etiqueta, seg in tiempos:
                 st.caption(f"· {etiqueta}: **{seg:.1f} s**")
-            st.caption(f"· Total esperando al modelo: **{sum(t for _, t in tiempos):.1f} s**")
+            # Las filas de "primer trozo" van DENTRO del tramo que las
+            # contiene: sumarlas contaria dos veces los mismos segundos.
+            total = sum(t for e, t in tiempos if "primer trozo" not in e)
+            st.caption(f"· Total esperando al modelo: **{total:.1f} s**")
+            if st.session_state.get("interprete_en_memoria"):
+                st.caption(
+                    "· El paso 1 salió de la memoria de la sesión: "
+                    "ese tiempo no es una llamada al modelo."
+                )
+
+        pens = st.session_state.get("pensamiento")
+        if pens:
+            st.caption(
+                f"· Tokens — entrada: **{pens['entrada']}**, "
+                f"pensados: **{pens['pensados']}**, salida: **{pens['salida']}**"
+            )
 
         tocado = _fuera_de_fabrica()
         if tocado:
