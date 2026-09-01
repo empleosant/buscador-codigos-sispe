@@ -2212,7 +2212,16 @@ var ultimoAlto = 0;
 var pedido = false;
 
 function alto(){
-  var h = document.documentElement.scrollHeight;
+  // NO se mide el documento. El cuerpo de este marco lleva overflow:hidden y
+  // eso se propaga al viewport: documentElement.scrollHeight se queda clavado
+  // en el alto de salida que le dio Streamlit y no crece nunca, por mucho que
+  // crezca el contenido. En escritorio no se notaba porque la estimacion de
+  // Python acierta con dos columnas; en el movil la rejilla pasa a una sola
+  // columna, el contenido mide casi el doble y las tarjetas salian cortadas
+  // por abajo. Se mide la rejilla, que es lo que si crece.
+  var caja = document.querySelector('.rejilla') || document.querySelector('.rejilla-hueso');
+  var h = caja ? caja.offsetTop + caja.offsetHeight
+               : document.documentElement.scrollHeight;
   // Solo se avisa si el cambio es REAL. Sin este guardia, el propio
   // redimensionado del marco vuelve a disparar al observador y se entra en
   // bucle. Dos pixeles de margen absorben los redondeos del navegador.
@@ -2289,6 +2298,11 @@ try {
 
 const observador = new ResizeObserver(pideAlto);
 observador.observe(document.body);
+// El cuerpo no cambia de alto cuando crece la rejilla -lo impide su propio
+// overflow:hidden-, asi que hay que vigilar tambien a la rejilla o el
+// observador no se entera de nada de lo que pasa dentro.
+const rejillaVigilada = document.querySelector('.rejilla') || document.querySelector('.rejilla-hueso');
+if (rejillaVigilada) observador.observe(rejillaVigilada);
 window.addEventListener('load', pideAlto);
 window.addEventListener('resize', pideAlto);
 // Las tipografias se cargan desde fuera y al llegar cambian el alto del texto.
