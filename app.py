@@ -1228,9 +1228,24 @@ def _peticion(url, token, datos=None, metodo="GET"):
         return json.loads(r.read().decode("utf-8"))
 
 
-def _descarga_gist(archivo):
-    """Va a GitHub y trae el archivo tal y como esta AHORA. Sin cache."""
-    gist, token = _credenciales()
+# ---------------------------------------------------------------------------
+# La capa del Gist va en dos pisos, y la separacion es deliberada.
+#
+# Las funciones acabadas en "_con" reciben gist y token y NO tocan nada de
+# Streamlit: ni st.secrets, ni st.cache_data, ni session_state. Solo hacen
+# HTTP. Son las unicas que pueden correr en el hilo de segundo plano que
+# guarda al terminar la busqueda: session_state no es para hilos, y
+# st.secrets y la cache tampoco lo son del todo; funcionaban por suerte y la
+# regla escrita en _con_plazo -"dentro del hilo NO se toca nada de
+# Streamlit"- se estaba incumpliendo aqui.
+#
+# Las de arriba, sin sufijo, resuelven credenciales y limpian la cache, y son
+# las que se llaman desde el hilo principal.
+# ---------------------------------------------------------------------------
+
+def _descarga_gist_con(gist, token, archivo):
+    """Va a GitHub y trae el archivo tal y como esta AHORA. Sin cache, sin
+    Streamlit: vale dentro de un hilo."""
     if not gist:
         return {}
     try:
@@ -1239,6 +1254,11 @@ def _descarga_gist(archivo):
         return {str(k): str(v) for k, v in json.loads(contenido).items()}
     except Exception:  # noqa: BLE001
         return {}
+
+
+def _descarga_gist(archivo):
+    gist, token = _credenciales()
+    return _descarga_gist_con(gist, token, archivo)
 
 
 @st.cache_data(ttl=300, show_spinner=False)
@@ -1251,8 +1271,8 @@ def _lee_gist(archivo):
     return _descarga_gist(archivo)
 
 
-def _escribe_gist(archivo, datos):
-    gist, token = _credenciales()
+def _escribe_gist_con(gist, token, archivo, datos):
+    """Solo HTTP. No limpia la cache: eso es cosa del hilo principal."""
     _peticion(
         f"https://api.github.com/gists/{gist}", token,
         datos={"files": {archivo: {
@@ -1260,6 +1280,11 @@ def _escribe_gist(archivo, datos):
         }}},
         metodo="PATCH",
     )
+
+
+def _escribe_gist(archivo, datos):
+    gist, token = _credenciales()
+    _escribe_gist_con(gist, token, archivo, datos)
     _lee_gist.clear()
 
 
@@ -1271,8 +1296,8 @@ def refuerzos_compartidos():
     return _lee_gist(ARCHIVO_REFUERZOS)
 
 
-def guarda_termino(clave, valor):
-    gist, _ = _credenciales()
+def _guarda_termino_con(gist, token, clave, valor):
+    """Sin Streamlit: vale dentro de un hilo."""
     if not gist:
         return False
     try:
@@ -1282,35 +1307,49 @@ def guarda_termino(clave, valor):
         # suyo, se anadia lo nuestro y se escribia todo encima. Lo suyo
         # desaparecia sin que nadie lo viera. Con varios puestos usando la
         # herramienta a la vez, pasaba.
-        actual = dict(_descarga_gist(ARCHIVO_GIST))
+        actual = dict(_descarga_gist_con(gist, token, ARCHIVO_GIST))
         if actual.get(clave) == valor:
             return True
         actual[clave] = valor
-        _escribe_gist(ARCHIVO_GIST, actual)
+        _escribe_gist_con(gist, token, ARCHIVO_GIST, actual)
         return True
     except Exception:  # noqa: BLE001
         return False
 
 
-def guarda_refuerzo(codigo, palabras):
-    gist, _ = _credenciales()
+def guarda_termino(clave, valor):
+    gist, token = _credenciales()
+    ok = _guarda_termino_con(gist, token, clave, valor)
+    _lee_gist.clear()
+    return ok
+
+
+def _guarda_refuerzo_con(gist, token, codigo, palabras):
+    """Sin Streamlit: vale dentro de un hilo. IDX es un global normal."""
     if not gist or codigo not in IDX["por_codigo"]:
         return False
     nuevas = [w for w in palabras if len(w) > 2]
     if not nuevas:
         return False
     try:
-        # Fresco, por lo mismo que en guarda_termino.
-        actual = dict(_descarga_gist(ARCHIVO_REFUERZOS))
+        # Fresco, por lo mismo que en _guarda_termino_con.
+        actual = dict(_descarga_gist_con(gist, token, ARCHIVO_REFUERZOS))
         previas = actual.get(codigo, "").split()
         fusion = list(dict.fromkeys(previas + nuevas))[:24]
         if fusion == previas:
             return True
         actual[codigo] = " ".join(fusion)
-        _escribe_gist(ARCHIVO_REFUERZOS, actual)
+        _escribe_gist_con(gist, token, ARCHIVO_REFUERZOS, actual)
         return True
     except Exception:  # noqa: BLE001
         return False
+
+
+def guarda_refuerzo(codigo, palabras):
+    gist, token = _credenciales()
+    ok = _guarda_refuerzo_con(gist, token, codigo, palabras)
+    _lee_gist.clear()
+    return ok
 
 
 def prueba_gist():
@@ -1320,7 +1359,7 @@ def prueba_gist():
 
     marca = f"_prueba_{int(time.time())}"
     try:
-        actual = dict(lexico_compartido())
+        actual = dict(_descarga_gist_con(gist, token, ARCHIVO_GIST))
         antes = len(actual)
         actual[marca] = "comprobacion"
         _peticion(
@@ -3373,6 +3412,16 @@ def resuelve(texto, zona, usar_ia=True, contexto="", busqueda=None):
     return payload
 
 
+# Va aqui, ANTES del corte, aunque sea cosa de la interfaz: pinta_resultado
+# lo lee y esta dentro del motor. Definido despues del corte, cualquier prueba
+# que llame a pinta_resultado revienta con NameError, y no es hipotetico:
+# paso el 02/09 montando una prueba. En las pruebas no hay query_params y el
+# except lo deja en False, que es lo que toca.
+try:
+    MANTENIMIENTO = st.query_params.get("mantenimiento") == "1"
+except Exception:  # noqa: BLE001
+    MANTENIMIENTO = False
+
 # === FIN DEL MOTOR ===
 # No muevas esta línea ni la borres: las pruebas (evaluar.py, estres.py)
 # cargan app.py hasta aquí para probar el buscador sin dibujar pantalla.
@@ -3381,11 +3430,6 @@ def resuelve(texto, zona, usar_ia=True, contexto="", busqueda=None):
 # ---------------------------------------------------------------------------
 # INTERFAZ
 # ---------------------------------------------------------------------------
-
-try:
-    MANTENIMIENTO = st.query_params.get("mantenimiento") == "1"
-except Exception:  # noqa: BLE001
-    MANTENIMIENTO = False
 
 st.session_state.setdefault("actual", None)
 st.session_state.setdefault("registro", [])
@@ -4531,17 +4575,29 @@ if MANTENIMIENTO and (_pendientes or _refuerzos):
     _pendientes, _refuerzos = [], []
 
 if _pendientes or _refuerzos:
-    def _ejecuta_segundo_plano(pendientes, refuerzos):
-        for clave, valor in pendientes:
-            guarda_termino(clave, valor)
-        for codigo, palabras in refuerzos:
-            guarda_refuerzo(codigo, palabras)
-    
-    threading.Thread(
-        target=_ejecuta_segundo_plano,
-        args=(_pendientes, _refuerzos),
-        daemon=True
-    ).start()
+    # Las credenciales se resuelven AQUI, en el hilo principal, y el hilo
+    # recibe solo cadenas. Dentro no se toca nada de Streamlit: ni st.secrets,
+    # ni la cache, ni session_state. Ver la cabecera de la capa del Gist.
+    _gist, _token = _credenciales()
+    if _gist:
+        def _ejecuta_segundo_plano(gist, token, pendientes, refuerzos):
+            for clave, valor in pendientes:
+                _guarda_termino_con(gist, token, clave, valor)
+            for codigo, palabras in refuerzos:
+                _guarda_refuerzo_con(gist, token, codigo, palabras)
+
+        threading.Thread(
+            target=_ejecuta_segundo_plano,
+            args=(_gist, _token, _pendientes, _refuerzos),
+            daemon=True,
+        ).start()
+        # La cache se limpia aqui, antes de que el hilo termine, y a proposito:
+        # limpiarla desde el hilo era justo lo que no se puede hacer. La
+        # siguiente busqueda de la persona llega segundos despues, cuando las
+        # dos peticiones a GitHub ya han vuelto casi siempre; y si alguna vez
+        # llega antes, lo guardado se ve a los cinco minutos, que es lo mismo
+        # que pasaba antes de cualquier arreglo.
+        _lee_gist.clear()
 
 # ---------------------------------------------------------------------------
 # FIRMA
