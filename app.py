@@ -46,7 +46,7 @@ N_CANDIDATOS = 24    # cuántas ocupaciones ve el modelo. Medido el 25/08/2026
                      # unos 500 tokens: irrelevante frente al tope de 250.000
                      # por minuto. Si al medir con la prueba masiva empeora,
                      # vuelve a 16.
-UNA_LLAMADA = True   # ¿una sola llamada al modelo por consulta, o dos?
+UNA_LLAMADA = False  # ¿una sola llamada al modelo por consulta, o dos?
                      #
                      # Habia dos viajes SECUENCIALES: el paso 1 traducia la
                      # frase de la calle a vocabulario oficial (INTERPRETE) y
@@ -1697,19 +1697,44 @@ REGLAS
      · "¿Cuidabas a la persona en su casa o en una residencia?"
    - La pregunta debe ser breve, directa y fácil de entender.
    - El campo "opciones" DEBE contener un máximo de 3 alternativas y un mínimo de 1 alternativa breve (máximo 6 palabras por opción), escritas en tono natural: ["Pelo de hombre", "Pelo de mujer", "Unisex"]. Evita textos largos. NUNCA dejes "opciones" vacío si hay "pregunta".
-9. "otros_terminos": rellénalo SIEMPRE que ninguna de las candidatas describa con precisión la actividad real, con entre 6 y 10 palabras sueltas del vocabulario OFICIAL de la CNO (los términos con los que el catálogo nombraría ese oficio, no las palabras que ha usado la persona). Es la vía para rescatar una consulta escrita en lenguaje de la calle: con esas palabras se vuelve a buscar en el catálogo y se te consulta otra vez con candidatos mejores.
-   - Rellenarlo NO te exime de la regla 3: devuelve igualmente las 3-5 candidatas menos malas, y además los términos.
-   - Si la descripción mezcla dos funciones distintas ("cobro en caja y repongo", "conduzco y reparto"), incluye términos oficiales de LAS DOS.
-   - Déjalo vacío solo cuando alguna candidata describa el puesto de verdad. Ante la duda, rellénalo: no cuesta nada y es lo único que puede traer a la lista una ocupación que no esté ya en ella.
+9. Si ninguna de las candidatas describe con precisión la actividad, rellena "otros_terminos" con entre 6 y 10 palabras sueltas de la CNO.
 
 EJEMPLO DE RESPUESTA:
 {"ocupaciones":[{"codigo":"58111037","denominacion":"PELUQUEROS UNISEX","nivel":"00","motivo":"Corte y peinado general."},{"codigo":"58111028","denominacion":"PELUQUEROS DE SEÑORAS","nivel":"00","motivo":"Peluquería y estética femenina."},{"codigo":"58111019","denominacion":"PELUQUEROS DE CABALLEROS","nivel":"00","motivo":"Barbería y corte masculino."}],"pregunta":"¿Cortabas pelo a hombres, a mujeres o a todo tipo de clientes?","opciones":["Pelo de hombre y barbería","Pelo de mujer","De todo, unisex"],"otros_terminos":""}
 """
 
 
+# Anexo que se pega a INSTRUCCIONES SOLO en el modo de una llamada.
+#
+# Sin paso 1, "otros_terminos" deja de ser una valvula rara y pasa a ser la
+# unica via por la que puede entrar en la lista una ocupacion que el buscador
+# no encontro con las palabras de la calle. Ahi la regla 9 a secas se queda
+# corta, y ademas choca con la 3 ("devuelve SIEMPRE entre 3 y 5"): el modelo
+# entiende que tiene que elegir de lo que hay y se calla los terminos.
+#
+# Va aparte y no dentro de INSTRUCCIONES para que el modo de dos llamadas sea
+# EXACTAMENTE el de siempre, hasta la ultima coma del prompt. Si no, la tanda
+# de comparacion mediria dos cambios a la vez -una llamada menos y un prompt
+# distinto- y un empeoramiento no se sabria de cual de los dos viene.
+REFUERZO_UNA_LLAMADA = """
+
+AMPLIACIÓN DE LA REGLA 9 (importante en esta configuración)
+Aquí no hay un paso previo que traduzca la frase a vocabulario oficial: "otros_terminos" es lo único que puede rescatar una consulta escrita en lenguaje de la calle. Con esas palabras se vuelve a buscar en el catálogo y se te consulta otra vez con candidatos mejores.
+- Rellénalo SIEMPRE que ninguna candidata describa con precisión la actividad real, con entre 6 y 10 palabras del vocabulario OFICIAL de la CNO: los términos con los que el catálogo nombraría ese oficio, no las palabras que ha usado la persona.
+- Rellenarlo NO te exime de la regla 3: devuelve igualmente las 3-5 candidatas menos malas, y además los términos.
+- Si la descripción mezcla dos funciones distintas ("cobro en caja y repongo", "conduzco y reparto"), incluye términos oficiales de LAS DOS.
+- Déjalo vacío solo cuando alguna candidata describa el puesto de verdad. Ante la duda, rellénalo: no cuesta nada y es lo único que puede traer a la lista una ocupación que no esté ya en ella.
+"""
+
+
+def instrucciones():
+    """El prompt del modelo que elige, segun el modo de llamada."""
+    return INSTRUCCIONES + (REFUERZO_UNA_LLAMADA if una_llamada() else "")
+
+
 def _configuraciones():
     return [dict(
-        system_instruction=INSTRUCCIONES,
+        system_instruction=instrucciones(),
         max_output_tokens=700,
         response_mime_type="application/json",
         # Sin esto el modelo razona antes de responder y son segundos por
@@ -1834,7 +1859,7 @@ def _flujo_openai(cli, prompt, prov):
                 lambda: cli.chat.completions.create(
                     model=modelos[m],
                     messages=[
-                        {"role": "system", "content": INSTRUCCIONES},
+                        {"role": "system", "content": instrucciones()},
                         {"role": "user", "content": prompt},
                     ],
                     max_tokens=2048,
