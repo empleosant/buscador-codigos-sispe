@@ -84,7 +84,24 @@ ENCAJE_MINIMO = 0.40  # cuánto del nombre de la ocupación debe explicar la
 VENTAJA_CLARA = 3.0   # cuántas veces debe superar el 1º del buscador al 2º
                       # para que mande él en lugar del modelo (sube para que
                       # mande menos, baja para que mande más)
-ESPERA_MAXIMA = 8    # segundos de silencio que aguanta el TRANSPORTE. OJO: no
+ESPERA_MAXIMA = 10   # segundos de silencio que aguanta el TRANSPORTE.
+                     #
+                     # DIEZ Y NI UNO MENOS. Medido el 02/09/2026: el SDK de
+                     # Google (google-genai 2.21) ya no se guarda este plazo
+                     # para httpx, lo manda tambien al SERVIDOR como cabecero
+                     # X-Server-Timeout, y Google rechaza con 400 cualquier
+                     # plazo menor de 10 s: "Manually set deadline 8s is too
+                     # short. Minimum allowed deadline is 10s". Con el 8 que
+                     # se puso el 01/09, TODAS las llamadas a Gemini fallaban
+                     # con ClientError en medio segundo y la cascada relevaba a
+                     # Mistral. Con un SDK mas viejo no se notaba, porque ese
+                     # no mandaba el cabecero; en cuanto se reinstalan las
+                     # dependencias, se nota.
+                     #
+                     # Subirlo no cambia nada del corte real: lo sigue haciendo
+                     # PLAZO_INTENTO, con reloj propio y por debajo de esto.
+                     #
+                     # OJO: no
                      # es el tope de un intento, aunque durante meses se creyo
                      # que si. Es lo que acaba en httpx, y el plazo de httpx
                      # mide el tiempo SIN RECIBIR DATOS, no lo que dura la
