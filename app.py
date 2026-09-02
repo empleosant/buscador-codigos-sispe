@@ -2017,14 +2017,46 @@ def interpreta_consulta(texto):
     if not isinstance(crudas, list):
         crudas = [datos] if datos.get("terminos") else []
 
+    def _texto(v):
+        """Lo que venga -> una cadena. El modelo no siempre manda una."""
+        if isinstance(v, (list, tuple)):
+            return " ".join(str(x) for x in v)
+        return str(v if v is not None else "")
+
     lecturas = []
-    for l in crudas[:3]:
-        terminos = " ".join(
-            re.findall(r"[a-zñáéíóúü]+", normaliza(str(l.get("terminos", ""))))[:12]
-        )
-        if terminos:
-            grupos = tuple(re.findall(r"[1-9]", str(l.get("grupos", ""))))[:2]
-            lecturas.append((terminos, grupos))
+    # El bucle entero va protegido. Cualquier forma que no hayamos previsto
+    # deja `lecturas` vacío y cae al rescate de abajo -las palabras sueltas de
+    # la respuesta en bruto-, que ya existía y está probado. Una consulta
+    # peor interpretada es mucho menos grave que la pantalla roja de error:
+    # esto corre en el paso 1, en TODAS las consultas del modo de dos
+    # llamadas, así que lo que reviente aquí tumba la herramienta entera.
+    try:
+        for l in crudas[:3]:
+            # Medido el 02/09/2026 con "Una persona que limpia habitaciones de
+            # hotel": el modelo devolvió las lecturas como CADENAS sueltas
+            # -{"lecturas": ["camarero de piso", "limpieza"]}- en vez de como
+            # objetos con "terminos" y "grupos". Una lista de cadenas pasa el
+            # isinstance de arriba tan tranquila, y entonces l.get() reventaba
+            # con AttributeError: 'str' object has no attribute 'get'.
+            #
+            # Es el mismo fallo que el del 01/09 en interpreta(), en la otra
+            # punta: allí mandaba la lista sin el objeto que la envuelve, aquí
+            # manda el objeto pero con cadenas dentro. Los dos salen del mismo
+            # sitio -el modelo se salta la forma pedida- y los dos se arreglan
+            # igual: aceptar lo que manda y darle la forma que necesitamos.
+            if isinstance(l, str):
+                l = {"terminos": l}
+            elif not isinstance(l, dict):
+                continue
+
+            terminos = " ".join(
+                re.findall(r"[a-zñáéíóúü]+", normaliza(_texto(l.get("terminos"))))[:12]
+            )
+            if terminos:
+                grupos = tuple(re.findall(r"[1-9]", _texto(l.get("grupos"))))[:2]
+                lecturas.append((terminos, grupos))
+    except Exception:  # noqa: BLE001
+        lecturas = []
 
     if not lecturas:
         suelto = " ".join(re.findall(r"[a-zñáéíóúü]+", normaliza(bruto))[:14])
