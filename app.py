@@ -8,6 +8,7 @@ import re
 import csv
 import time
 import threading
+import html
 import io
 import json
 import math
@@ -1202,8 +1203,17 @@ ARCHIVO_REFUERZOS = "refuerzos.json"
 
 
 def _credenciales():
-    gist = st.secrets.get("GIST_ID") or os.environ.get("GIST_ID")
-    token = st.secrets.get("GITHUB_TOKEN") or os.environ.get("GITHUB_TOKEN")
+    # Sin archivo de secrets -en local, o en un despliegue nuevo- st.secrets
+    # revienta al primer .get(), igual que en tiene_clave(), y por el mismo
+    # motivo aqui se cae a las variables de entorno en vez de a la pantalla
+    # roja. En Streamlit Cloud hay Secrets y esto no se nota.
+    try:
+        gist = st.secrets.get("GIST_ID")
+        token = st.secrets.get("GITHUB_TOKEN")
+    except Exception:  # noqa: BLE001
+        gist = token = None
+    gist = gist or os.environ.get("GIST_ID")
+    token = token or os.environ.get("GITHUB_TOKEN")
     return (gist, token) if gist and token else (None, None)
 
 
@@ -1218,10 +1228,8 @@ def _peticion(url, token, datos=None, metodo="GET"):
         return json.loads(r.read().decode("utf-8"))
 
 
-@st.cache_data(ttl=300, show_spinner=False)
-def _lee_gist(archivo):
-    # Sale a GitHub. Se relee cada 5 minutos, asi que de vez en cuando una
-    # busqueda paga este viaje sin que se note de donde viene.
+def _descarga_gist(archivo):
+    """Va a GitHub y trae el archivo tal y como esta AHORA. Sin cache."""
     gist, token = _credenciales()
     if not gist:
         return {}
@@ -1231,6 +1239,16 @@ def _lee_gist(archivo):
         return {str(k): str(v) for k, v in json.loads(contenido).items()}
     except Exception:  # noqa: BLE001
         return {}
+
+
+@st.cache_data(ttl=300, show_spinner=False)
+def _lee_gist(archivo):
+    # Sale a GitHub. Se relee cada 5 minutos, asi que de vez en cuando una
+    # busqueda paga este viaje sin que se note de donde viene.
+    #
+    # Esta es la lectura para BUSCAR. Para ESCRIBIR se usa _descarga_gist,
+    # sin cache: ver guarda_termino y guarda_refuerzo.
+    return _descarga_gist(archivo)
 
 
 def _escribe_gist(archivo, datos):
@@ -1258,7 +1276,13 @@ def guarda_termino(clave, valor):
     if not gist:
         return False
     try:
-        actual = dict(lexico_compartido())
+        # Se lee FRESCO, no de la cache. Guardar es leer-modificar-escribir el
+        # archivo ENTERO, y la cache puede tener hasta cinco minutos: si un
+        # companero guardo algo hace dos, aqui se leia la copia vieja sin lo
+        # suyo, se anadia lo nuestro y se escribia todo encima. Lo suyo
+        # desaparecia sin que nadie lo viera. Con varios puestos usando la
+        # herramienta a la vez, pasaba.
+        actual = dict(_descarga_gist(ARCHIVO_GIST))
         if actual.get(clave) == valor:
             return True
         actual[clave] = valor
@@ -1276,7 +1300,8 @@ def guarda_refuerzo(codigo, palabras):
     if not nuevas:
         return False
     try:
-        actual = dict(refuerzos_compartidos())
+        # Fresco, por lo mismo que en guarda_termino.
+        actual = dict(_descarga_gist(ARCHIVO_REFUERZOS))
         previas = actual.get(codigo, "").split()
         fusion = list(dict.fromkeys(previas + nuevas))[:24]
         if fusion == previas:
@@ -2661,7 +2686,11 @@ def pinta_tarjetas(ocupaciones):
             f'<span class="{etiqueta_clase}">Nivel {o["nivel"]} &middot; {o["nivel_texto"]}</span>'
         )
 
-        motivo_html = f'<div class="motivo">{o["motivo"]}</div>' if o.get("motivo") else ""
+        # Todo lo que viene del modelo o de la persona se escapa antes de
+        # entrar en HTML. Sin esto, un "&" o un "<" en el motivo rompia la
+        # tarjeta, y un texto con etiquetas dentro se ejecutaba tal cual.
+        motivo_html = (f'<div class="motivo">{html.escape(o["motivo"])}</div>'
+                       if o.get("motivo") else "")
 
         # --i alimenta el animation-delay de la entrada escalonada.
         trozos.append(
@@ -2792,7 +2821,7 @@ def pinta_resultado(payload, estado=None, interactivo=False, consulta=""):
         with caja:
             st.markdown(
                 '<div class="pregunta-titulo">Necesito un detalle más</div>'
-                f'<div class="pregunta-texto">{payload["pregunta"]}</div>',
+                f'<div class="pregunta-texto">{html.escape(payload["pregunta"])}</div>',
                 unsafe_allow_html=True,
             )
             if interactivo:
@@ -2814,7 +2843,8 @@ def pinta_resultado(payload, estado=None, interactivo=False, consulta=""):
     if payload.get("interpretado") and MANTENIMIENTO:
         origen, destino = payload["interpretado"]
         st.markdown(
-            f'<div class="nota">Interpretado <b>{origen}</b> como: {destino}</div>',
+            f'<div class="nota">Interpretado <b>{html.escape(str(origen))}</b> '
+            f'como: {html.escape(str(destino))}</div>',
             unsafe_allow_html=True,
         )
 
@@ -4408,7 +4438,11 @@ if MANTENIMIENTO and st.session_state["masiva_abierta"]:
 
 elif entrada:
     st.markdown(
-        f'<div class="consulta-box"><div class="consulta-texto">{rotulo or entrada}</div></div>',
+        # La consulta la escribe la persona y va a HTML: se escapa. Sin esto,
+        # "peón < 3 años" cortaba el texto en el "<" y una consulta con
+        # etiquetas dentro se pintaba como etiquetas, no como texto.
+        f'<div class="consulta-box"><div class="consulta-texto">'
+        f'{html.escape(rotulo or entrada)}</div></div>',
         unsafe_allow_html=True,
     )
     zona = st.empty()
@@ -4434,7 +4468,8 @@ elif entrada:
 elif st.session_state["actual"]:
     consulta, payload = st.session_state["actual"]
     st.markdown(
-        f'<div class="consulta-box"><div class="consulta-texto">{consulta}</div></div>',
+        f'<div class="consulta-box"><div class="consulta-texto">'
+        f'{html.escape(consulta)}</div></div>',
         unsafe_allow_html=True,
     )
     pinta_resultado(payload, interactivo=True, consulta=consulta)
