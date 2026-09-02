@@ -163,6 +163,26 @@ vacío, que ya está en `.gitignore`.
 
 ---
 
+## En mantenimiento no se aprende
+
+Un refuerzo se guarda cada vez que el modelo elige un primero distinto del que
+ponía el catálogo, y `busca()` lo lee **para todo el mundo**, sumando 14 puntos
+por palabra coincidente. Es de los pesos que mueven el orden de resultados.
+
+En uso normal eso es lo que se quiere y no ha cambiado. Pero en mantenimiento
+se trastea a propósito —modelos que no son el de producción, modos de llamada,
+consultas raras— y lo que un modelo pequeño elija mal ahí no puede acabar en el
+vocabulario de la oficina. Desde el 2 de septiembre, ni las búsquedas sueltas ni
+la prueba masiva escriben en el Gist compartido cuando se entra con
+`?mantenimiento=1`.
+
+El corte está en el punto de **escritura**, no donde se generan los refuerzos,
+para que dé igual cuántos caminos los produzcan.
+
+**Para enseñarle algo a la herramienta, hazlo desde el buscador normal.**
+
+---
+
 ## Lo siguiente
 
 1. **La prueba masiva.** Decide la fusión y, de paso, si `PLAZO_INTENTO` se
