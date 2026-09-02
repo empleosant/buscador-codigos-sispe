@@ -3658,6 +3658,16 @@ def panel_ajustes():
             )
             return
 
+        # Que no se aprenda aquí no puede ser invisible: si no se dice, quien
+        # trastea da por hecho que la herramienta está aprendiendo de sus
+        # pruebas, y quien quiera enseñarle algo de verdad lo hará desde esta
+        # pantalla sin que sirva de nada.
+        st.caption(
+            "En mantenimiento **no se aprende**: ni las búsquedas sueltas ni la "
+            "prueba masiva escriben en el vocabulario compartido. Para enseñarle "
+            "algo a la herramienta, hazlo desde el buscador normal."
+        )
+
         tiempos = st.session_state.get("tiempos", [])
         if tiempos:
             st.caption("Última consulta, segundo a segundo:")
@@ -4416,6 +4426,26 @@ import threading
 
 _pendientes = st.session_state.pop("por_guardar", [])
 _refuerzos = st.session_state.pop("refuerzos_por_guardar", [])
+
+# EN MANTENIMIENTO NO SE APRENDE. Se vacían y no se escribe nada.
+#
+# Un refuerzo se guarda cada vez que el modelo elige un primero distinto del
+# que ponía el catálogo, y `busca()` lo lee para TODO EL MUNDO sumando 14
+# puntos por palabra coincidente: es de los pesos que mueven el orden de
+# resultados. En uso normal eso es exactamente lo que se quiere, y sigue igual.
+#
+# Pero en mantenimiento se trastea a propósito: se fija un modelo que no es el
+# de producción, se prueban modos de llamada, se lanzan consultas raras a ver
+# qué pasa. Lo que un modelo pequeño elija mal ahí no puede acabar en el
+# vocabulario de la oficina. La prueba masiva ya se protegía sola por esto
+# mismo; las búsquedas sueltas del modo mantenimiento no, y son justo con las
+# que se trastea antes de lanzar una tanda.
+#
+# Va en el punto de ESCRITURA y no donde se generan los refuerzos: así da
+# igual cuántos caminos los produzcan -búsqueda normal, desambiguación, lo que
+# venga después-, porque todos pasan por aquí.
+if MANTENIMIENTO and (_pendientes or _refuerzos):
+    _pendientes, _refuerzos = [], []
 
 if _pendientes or _refuerzos:
     def _ejecuta_segundo_plano(pendientes, refuerzos):
