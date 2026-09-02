@@ -2145,6 +2145,22 @@ def verifica(lista):
     limpias, descartadas = [], 0
     vistos = set()
     for o in lista or []:
+        # Misma historia que en interpreta_consulta: el modelo se salta a veces
+        # la forma pedida y manda los códigos a pelo,
+        #
+        #     {"ocupaciones": ["92101027", "84201043"]}
+        #
+        # en vez de objetos con codigo, nivel y motivo. Aquí duele más que en
+        # ningún otro sitio: es por donde entran los códigos que la persona va
+        # a grabar. Una cadena se toma como el código; lo que no sea ni cadena
+        # ni objeto se descarta como se descarta cualquier basura.
+        #
+        # El nivel y el motivo se quedan en su valor de fábrica, que es lo
+        # honesto: el modelo no los ha dado.
+        if isinstance(o, (str, int)):
+            o = {"codigo": str(o)}
+        elif not isinstance(o, dict):
+            continue
         codigo = str(o.get("codigo", "")).strip()
         if codigo in vistos:
             continue
