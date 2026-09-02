@@ -46,6 +46,38 @@ N_CANDIDATOS = 24    # cuántas ocupaciones ve el modelo. Medido el 25/08/2026
                      # unos 500 tokens: irrelevante frente al tope de 250.000
                      # por minuto. Si al medir con la prueba masiva empeora,
                      # vuelve a 16.
+UNA_LLAMADA = False  # ¿una sola llamada al modelo por consulta, o dos?
+                     #
+                     # Habia dos viajes SECUENCIALES: el paso 1 traducia la
+                     # frase de la calle a vocabulario oficial (INTERPRETE) y
+                     # con esa traduccion se rebuscaba en el catalogo para
+                     # darle mejores candidatos al paso 2, que es el que elige
+                     # (INSTRUCCIONES). Secuenciales de verdad: el segundo no
+                     # puede empezar hasta que el primero contesta, porque los
+                     # candidatos salen de su respuesta.
+                     #
+                     # Que el paso 1 exista se justificaba en que el buscador
+                     # literal no encontraba la ocupacion buena. Pero eso hoy
+                     # no es lo que dicen los numeros: evaluar.py mide la
+                     # cobertura SIN IA -busca() sobre el texto tal cual se
+                     # escribio- y el codigo correcto entra en la lista de 24
+                     # candidatos en los 40 casos de 40. Si ya esta dentro, el
+                     # paso 1 no lo mete: solo reordena, y se cobra una llamada
+                     # entera por hacerlo.
+                     #
+                     # Ademas la red para cuando los candidatos NO sirven ya
+                     # estaba puesta y probada: "otros_terminos" (regla 9), que
+                     # es exactamente lo mismo que hacia el paso 1 -devolver
+                     # vocabulario oficial- pero solo cuando hace falta y sin
+                     # pagarlo en las consultas que van bien.
+                     #
+                     # Asi que la consulta corriente pasa de dos llamadas a
+                     # una, y la dificil de tres a dos.
+                     #
+                     # Se deja en un interruptor y no cableado a proposito:
+                     # esto SOLO lo decide la prueba masiva, comparando las dos
+                     # tandas con la misma semilla. El modo va escrito en cada
+                     # fila del CSV. Si el acierto baja, se vuelve a False.
 ENCAJE_MINIMO = 0.40  # cuánto del nombre de la ocupación debe explicar la
                       # consulta para fiarse de ella sin preguntar a la IA
 VENTAJA_CLARA = 3.0   # cuántas veces debe superar el 1º del buscador al 2º
@@ -61,9 +93,11 @@ ESPERA_MAXIMA = 8    # segundos de silencio que aguanta el TRANSPORTE. OJO: no
                      # de una conexion que se queda muda del todo.
                      #
                      # Lo de abajo sigue siendo cierto y por eso se conserva:
-                     # cuando la
-                     # llamada va bien, el primer trozo llega en 0,5-0,6 s y la
-                     # consulta entera se resuelve en 2-2,6 s. Lo que se veia
+                     # cuando la llamada va bien, la consulta entera se
+                     # resuelve en 2-2,6 s. (El 0,5-0,6 s que ponia aqui era el
+                     # primer trozo, y se midio cuando habia streaming; ya no
+                     # hay nada comparable que medir: la respuesta llega
+                     # entera de una vez.) Lo que se veia
                      # como "lentitud" no era eso: era una llamada suelta que se
                      # atasca, y con el corte en 30 s la persona esperaba media
                      # minuto a que el reloj venciera antes de que la cascada
@@ -97,6 +131,17 @@ ESPERA_TOTAL = 30    # segundos para la consulta ENTERA, relevos incluidos. Es
                      # se atasco contaba contra el intento bueno y mataba una
                      # respuesta que ya venia en camino. Con 30 s casi paso: la
                      # consulta medida termino en 29,1.
+
+# Rotulo de la fila que mide, DENTRO de un tramo, lo que se fue en esperar al
+# modelo. El tramo que la contiene ya incluye esos segundos, asi que todo el
+# que suma tiempos tiene que descontarla o los cuenta dos veces.
+#
+# Va aqui, en una constante, y no escrito a mano en cada sitio: se compara por
+# subcadena contra la etiqueta, y estaba repetido literal en cuatro puntos
+# -el chip, _medida, el panel y el propio bucle que la escribe-. Cambiar el
+# texto en tres de los cuatro no rompe nada de forma visible: simplemente los
+# totales empiezan a salir del doble de lo que son.
+SUBTRAMO = "respuesta del modelo"
 
 # ---------------------------------------------------------------------------
 # PROVEEDOR DE IA
@@ -1659,9 +1704,37 @@ EJEMPLO DE RESPUESTA:
 """
 
 
+# Anexo que se pega a INSTRUCCIONES SOLO en el modo de una llamada.
+#
+# Sin paso 1, "otros_terminos" deja de ser una valvula rara y pasa a ser la
+# unica via por la que puede entrar en la lista una ocupacion que el buscador
+# no encontro con las palabras de la calle. Ahi la regla 9 a secas se queda
+# corta, y ademas choca con la 3 ("devuelve SIEMPRE entre 3 y 5"): el modelo
+# entiende que tiene que elegir de lo que hay y se calla los terminos.
+#
+# Va aparte y no dentro de INSTRUCCIONES para que el modo de dos llamadas sea
+# EXACTAMENTE el de siempre, hasta la ultima coma del prompt. Si no, la tanda
+# de comparacion mediria dos cambios a la vez -una llamada menos y un prompt
+# distinto- y un empeoramiento no se sabria de cual de los dos viene.
+REFUERZO_UNA_LLAMADA = """
+
+AMPLIACIÓN DE LA REGLA 9 (importante en esta configuración)
+Aquí no hay un paso previo que traduzca la frase a vocabulario oficial: "otros_terminos" es lo único que puede rescatar una consulta escrita en lenguaje de la calle. Con esas palabras se vuelve a buscar en el catálogo y se te consulta otra vez con candidatos mejores.
+- Rellénalo SIEMPRE que ninguna candidata describa con precisión la actividad real, con entre 6 y 10 palabras del vocabulario OFICIAL de la CNO: los términos con los que el catálogo nombraría ese oficio, no las palabras que ha usado la persona.
+- Rellenarlo NO te exime de la regla 3: devuelve igualmente las 3-5 candidatas menos malas, y además los términos.
+- Si la descripción mezcla dos funciones distintas ("cobro en caja y repongo", "conduzco y reparto"), incluye términos oficiales de LAS DOS.
+- Déjalo vacío solo cuando alguna candidata describa el puesto de verdad. Ante la duda, rellénalo: no cuesta nada y es lo único que puede traer a la lista una ocupación que no esté ya en ella.
+"""
+
+
+def instrucciones():
+    """El prompt del modelo que elige, segun el modo de llamada."""
+    return INSTRUCCIONES + (REFUERZO_UNA_LLAMADA if una_llamada() else "")
+
+
 def _configuraciones():
     return [dict(
-        system_instruction=INSTRUCCIONES,
+        system_instruction=instrucciones(),
         max_output_tokens=700,
         response_mime_type="application/json",
         # Sin esto el modelo razona antes de responder y son segundos por
@@ -1786,7 +1859,7 @@ def _flujo_openai(cli, prompt, prov):
                 lambda: cli.chat.completions.create(
                     model=modelos[m],
                     messages=[
-                        {"role": "system", "content": INSTRUCCIONES},
+                        {"role": "system", "content": instrucciones()},
                         {"role": "user", "content": prompt},
                     ],
                     max_tokens=2048,
@@ -2726,9 +2799,9 @@ def pinta_resultado(payload, estado=None, interactivo=False, consulta=""):
         nombre_m = " ".join(p.capitalize() for p in partes if not p.isdigit() and len(p) > 1)
         if not nombre_m:
             nombre_m = modelo.split("-")[0].capitalize()
-        # Sin filtrar, la fila nueva de "primer trozo" se sumaria al tramo que
-        # ya la incluye y el chip enseñaria casi el doble de lo que tardo.
-        total_s = sum(t for e, t in tiempos if "primer trozo" not in e)
+        # Sin filtrar, la fila de "respuesta del modelo" se sumaria al tramo
+        # que ya la incluye y el chip enseñaria casi el doble de lo que tardo.
+        total_s = sum(t for e, t in tiempos if SUBTRAMO not in e)
         tiempo_txt = f" · {total_s:.1f}s" if total_s > 0 else ""
         st.markdown(
             f'<div style="text-align:center">'
@@ -2780,14 +2853,14 @@ def _medida():
     descarga de sesión como la prueba masiva.
     """
     tiempos = st.session_state.get("tiempos", [])
-    primero = next((t for e, t in tiempos if "primer trozo" in e), None)
-    # El "primer trozo" esta DENTRO del tramo que lo contiene: sumarlo seria
-    # contar dos veces los mismos segundos.
-    total = sum(t for e, t in tiempos if "primer trozo" not in e)
+    espera = next((t for e, t in tiempos if SUBTRAMO in e), None)
+    # La "respuesta del modelo" esta DENTRO del tramo que la contiene: sumarla
+    # seria contar dos veces los mismos segundos.
+    total = sum(t for e, t in tiempos if SUBTRAMO not in e)
     pens = st.session_state.get("pensamiento") or {}
     return {
         "modelo": st.session_state.get("ultimo_modelo", ""),
-        "primer_trozo": f"{primero:.1f}" if primero is not None else "",
+        "respuesta_modelo": f"{espera:.1f}" if espera is not None else "",
         "total": f"{total:.1f}" if tiempos else "",
         "pensados": pens.get("pensados", ""),
         "relevos": " | ".join(st.session_state.get("relevos", [])),
@@ -2824,6 +2897,18 @@ def n_candidatos():
     """
     valor = st.session_state.get("n_candidatos")
     return int(valor) if valor else N_CANDIDATOS
+
+
+def una_llamada():
+    """¿Se resuelve esta consulta con una sola llamada al modelo?
+
+    De fábrica lo que diga UNA_LLAMADA. El panel de mantenimiento lo cambia
+    para la sesión, igual que el número de candidatos, para poder lanzar la
+    misma tanda de las dos maneras y comparar. Fuera de mantenimiento nadie
+    toca esa casilla.
+    """
+    valor = st.session_state.get("una_llamada")
+    return UNA_LLAMADA if valor is None else bool(valor)
 
 
 def resuelve(texto, zona, usar_ia=True, contexto="", busqueda=None):
@@ -2870,7 +2955,14 @@ def resuelve(texto, zona, usar_ia=True, contexto="", busqueda=None):
     # El numero de candidatos y el proveedor forman parte de la clave: sin
     # ellos, dos corridas con ajustes distintos en la misma sesion se
     # devolvian resultados la una a la otra (visto en la prueba 24 vs 32).
-    clave = f"{normaliza(texto + contexto)}|{tope_ia}|{proveedor_actual()}"
+    #
+    # El modo de llamada va por lo mismo y es peor si falta: la tanda de una
+    # llamada y la de dos se lanzan SEGUIDAS y sobre las MISMAS consultas, que
+    # es justo la forma de compararlas. Sin el modo en la clave, la segunda
+    # tanda sale entera del cache de la primera y las dos columnas del CSV dan
+    # identicas: la comparacion diria "no cambia nada" pase lo que pase.
+    clave = (f"{normaliza(texto + contexto)}|{tope_ia}|{proveedor_actual()}"
+             f"|{'1' if una_llamada() else '2'}")
     if clave in memoria:
         with zona.container():
             pinta_resultado(memoria[clave])
@@ -2945,10 +3037,25 @@ def resuelve(texto, zona, usar_ia=True, contexto="", busqueda=None):
         pinta_resultado({}, estado="Afinando el resultado")
 
     interpretado, aviso = None, ""
-    with zona.container():
-        pinta_resultado({}, estado="Interpretando el oficio")
-    with cronometra("1. Interpretar el oficio"):
-        lecturas = interpreta_consulta(texto)
+    # PASO 1, y solo si estamos en el modo de dos llamadas.
+    #
+    # Con una_llamada() la consulta va derecha al modelo que elige, con los
+    # candidatos que saco el buscador de lo que se escribio. Si esos candidatos
+    # no sirven, el propio modelo devuelve "otros_terminos" y ahi abajo se
+    # rebusca y se le vuelve a preguntar: la interpretacion sigue existiendo,
+    # pero solo se paga cuando hace falta. Ver UNA_LLAMADA.
+    if not una_llamada():
+        with zona.container():
+            pinta_resultado({}, estado="Interpretando el oficio")
+        with cronometra("1. Interpretar el oficio"):
+            lecturas = interpreta_consulta(texto)
+    else:
+        lecturas = []
+        # El panel lee esta marca para avisar de que el paso 1 salio de la
+        # memoria de la sesion y su 0,0 s no es una llamada rapida. Sin
+        # limpiarla, en modo de una llamada se queda la de la consulta ANTERIOR
+        # y el panel avisa de un paso que ni siquiera ha corrido.
+        st.session_state["interprete_en_memoria"] = False
     if lecturas:
         fundido, vistos = [], {}
         for orden, (terminos, grupos) in enumerate(lecturas):
@@ -2994,41 +3101,55 @@ def resuelve(texto, zona, usar_ia=True, contexto="", busqueda=None):
             pinta_resultado({}, estado=etiqueta)
         bruto = ""
         arranque = time.perf_counter()
-        # Hasta ahora solo se medía el total, y con eso no se distingue el
-        # modelo que tarda en ARRANCAR (piensa, o esta encolado) del que
-        # arranca rapido y luego gotea. Son causas distintas y arreglos
-        # distintos, asi que se anota tambien cuando llega el primer trozo.
-        primero = None
-        trozos = 0
-        for trozo in flujo_modelo(texto + contexto, candidatos):
-            if primero is None:
-                primero = time.perf_counter() - arranque
+        # El tramo entero ("2. Afinar el resultado") incluye la espera al
+        # modelo Y el procesado local de lo que devuelve. Con un solo numero no
+        # se distingue el modelo lento del parseo lento, asi que se anota
+        # aparte lo que se va en esperar. Cuando habia streaming esta medida
+        # era el primer trozo -lo que tardaba en ARRANCAR-; hoy que la
+        # respuesta llega entera de una vez, es la llamada completa.
+        espera = None
+        entregas = 0
+        for pedazo in flujo_modelo(texto + contexto, candidatos):
+            if espera is None:
+                espera = time.perf_counter() - arranque
                 st.session_state.setdefault("tiempos", []).append(
-                    (f"{etiqueta} · primer trozo", primero)
+                    (f"{etiqueta} · {SUBTRAMO}", espera)
                 )
-            bruto += trozo
-            trozos += 1
+            bruto += pedazo
+            entregas += 1
+            # OJO: HOY ESTA COMPROBACION NO CORTA NADA, Y ES CORRECTO QUE NO
+            # LO HAGA.
+            #
             # El tope total solo puede cortar una respuesta que AUN esta
-            # llegando, y eso son dos trozos o mas.
+            # llegando, y eso son dos entregas o mas. Desde que Mistral perdio
+            # el streaming (01/09/2026) NINGUN camino lo usa: _flujo_gemini y
+            # _flujo_openai entregan la respuesta entera de una vez, asi que
+            # `entregas` vale siempre 1 y la condicion es siempre falsa.
             #
-            # Con un trozo unico -el camino de Gemini desde que se quito el
-            # streaming- esta comprobacion corria DESPUES de tener la respuesta
-            # entera en la mano, asi que ya no cortaba nada: lo unico que podia
-            # hacer era tirar a la basura una respuesta buena que hubiera
-            # tardado 31 s y ensenarle a la persona el aviso de que no se ha
-            # podido afinar. Peor que inutil.
+            # Se deja puesta a proposito, y no por descuido. Con una entrega
+            # unica el corte corria DESPUES de tener la respuesta completa en
+            # la mano: lo unico que podia hacer era tirar a la basura una
+            # respuesta buena que hubiera tardado 31 s y ensenarle a la persona
+            # el aviso de que no se ha podido afinar. Peor que inutil. La
+            # guarda `entregas > 1` es justo lo que lo impide, y vuelve a
+            # servir sola el dia que algun proveedor recupere el streaming.
             #
-            # Contra un stream que sigue goteando pasado el plazo -Mistral- si
-            # tiene sentido, y ahi se mantiene tal cual.
-            if trozos > 1 and time.perf_counter() - arranque > ESPERA_TOTAL:
+            # Quien mire ESPERA_TOTAL buscando por que no corta: no corta aqui.
+            # El tope que corta de verdad es PLAZO_INTENTO, en _con_plazo.
+            if entregas > 1 and time.perf_counter() - arranque > ESPERA_TOTAL:
                 raise TimeoutError(
                     f"El modelo ha tardado más de {ESPERA_TOTAL} segundos."
                 )
         return interpreta(bruto)
 
+    # Los tramos van numerados para leerlos en orden en el panel y en el CSV.
+    # Sin paso 1 -modo de una llamada- afinar ES el primero: dejarlo como "2."
+    # haria buscar en la tanda un paso 1 que no existe, y al comparar los dos
+    # CSV las columnas no casarian.
+    n = 1 if una_llamada() else 2
     try:
         lista = "\n".join(f"{c}:{d}" for _, c, d in encontrados)
-        with cronometra("2. Afinar el resultado"):
+        with cronometra(f"{n}. Afinar el resultado"):
             payload = consulta_al_modelo(lista, "Afinando el resultado")
 
         if payload.get("mas_terminos"):
@@ -3039,7 +3160,7 @@ def resuelve(texto, zona, usar_ia=True, contexto="", busqueda=None):
             if ampliados:
                 encontrados = ampliados
                 interpretado = ("la descripción", payload["mas_terminos"])
-                with cronometra("3. Ampliar la búsqueda"):
+                with cronometra(f"{n + 1}. Ampliar la búsqueda"):
                     segunda = consulta_al_modelo(
                         "\n".join(f"{c}:{d}" for _, c, d in ampliados),
                         "Afinando el resultado",
@@ -3308,6 +3429,8 @@ def _de_fabrica():
     st.session_state["sel_modelo"] = AUTOMATICO
     st.session_state["modelo_fijo"] = None
     st.session_state["n_candidatos"] = N_CANDIDATOS
+    st.session_state["una_llamada"] = UNA_LLAMADA
+    st.session_state["una_llamada_interruptor"] = UNA_LLAMADA
     st.session_state["usar_ia"] = True
     st.session_state["ia_interruptor"] = True
 
@@ -3322,6 +3445,10 @@ def _fuera_de_fabrica():
     cand = st.session_state.get("n_candidatos")
     if cand and int(cand) != N_CANDIDATOS:
         dif.append(f"candidatos en {int(cand)} (de fábrica {N_CANDIDATOS})")
+    if una_llamada() != UNA_LLAMADA:
+        dif.append(
+            "una sola llamada" if una_llamada() else "dos llamadas (con paso 1)"
+        )
     if not st.session_state.get("usar_ia", True):
         dif.append("IA desactivada")
     return dif
@@ -3501,7 +3628,7 @@ def panel_ajustes():
             buffer = io.StringIO()
             escritor = csv.writer(buffer, delimiter=";")
             escritor.writerow([
-                "consulta", "codigos", "modelo", "primer_trozo",
+                "consulta", "codigos", "modelo", "respuesta_modelo",
                 "total", "pensados", "relevos", "fallo",
             ])
             for fila in st.session_state["registro"]:
@@ -3524,9 +3651,9 @@ def panel_ajustes():
             st.caption("Última consulta, segundo a segundo:")
             for etiqueta, seg in tiempos:
                 st.caption(f"· {etiqueta}: **{seg:.1f} s**")
-            # Las filas de "primer trozo" van DENTRO del tramo que las
-            # contiene: sumarlas contaria dos veces los mismos segundos.
-            total = sum(t for e, t in tiempos if "primer trozo" not in e)
+            # Las filas de "respuesta del modelo" van DENTRO del tramo que
+            # las contiene: sumarlas contaria dos veces los mismos segundos.
+            total = sum(t for e, t in tiempos if SUBTRAMO not in e)
             st.caption(f"· Total esperando al modelo: **{total:.1f} s**")
             if st.session_state.get("interprete_en_memoria"):
                 st.caption(
@@ -3896,6 +4023,30 @@ def pantalla_masiva():
                  "semilla para comparar.",
         )
 
+        # El interruptor que decide si el paso 1 corre o no. Está aquí y no en
+        # los ajustes del buscador a propósito: no es una preferencia de uso,
+        # es la variable de un experimento, y solo significa algo lanzando la
+        # misma tanda con la misma semilla de las dos maneras.
+        # La key del widget NO es "una_llamada", igual que la del interruptor
+        # de IA no es "usar_ia" y por el mismo motivo: si la clave del valor y
+        # la del widget son la misma y Streamlit purga la del widget -lo hace
+        # con los que dejan de pintarse, y este solo se pinta con la pantalla
+        # masiva abierta-, el ajuste vuelve solo al de fábrica a mitad de una
+        # tanda. El valor propio se guarda aparte, desde lo que devuelve la
+        # casilla.
+        st.session_state["una_llamada"] = st.checkbox(
+            f"Una sola llamada al modelo (de fábrica, "
+            f"{'sí' if UNA_LLAMADA else 'no'})",
+            value=una_llamada(), key="una_llamada_interruptor",
+            help="Marcado, la consulta va derecha al modelo que elige, con los "
+                 "candidatos que saca el buscador de lo escrito; si no le "
+                 "sirven, él pide más términos y se le vuelve a preguntar. "
+                 "Sin marcar, corre antes el paso 1, que traduce la frase a "
+                 "vocabulario oficial en una llamada aparte. Compara ACIERTO, "
+                 "no solo segundos: quitar el paso 1 ahorra una llamada, y lo "
+                 "que hay que ver es si se paga en aciertos.",
+        )
+
     lanzar, volver = st.columns(2, gap="small")
     arranca = lanzar.button("Lanzar", type="primary", use_container_width=True,
                             disabled=not consultas)
@@ -3955,6 +4106,10 @@ def pantalla_masiva():
                 # distintas se puedan comparar meses después sin fiarse de la
                 # memoria ni del nombre del archivo.
                 "candidatos": n_candidatos(),
+                # Igual que "candidatos": el modo queda escrito en cada fila
+                # para poder cruzar dos tandas meses después sin fiarse del
+                # nombre del archivo.
+                "una_llamada": "sí" if una_llamada() else "no",
                 "top_local": top_local,
                 "denom_local": locales[0][2] if locales else "",
                 "ventaja_local": (
@@ -4077,9 +4232,17 @@ with banda:
     st.button("Codificador de ocupaciones", key="marca", on_click=empezar_de_nuevo)
     campo, boton, ajustes = st.columns([6.4, 1.1, 0.5], gap="small")
     with campo:
+        # El placeholder NO lleva lupa. La llevaba, y en pantallas estrechas
+        # salian dos seguidas: esta y la del boton de al lado, que en movil se
+        # queda en icono porque la palabra "Buscar" no cabe en el renglon.
+        # Se quita la del campo y no la del boton: la lupa es el simbolo de la
+        # ACCION de buscar, y ahi si dice algo; dentro del campo era un adorno
+        # que ademas comia ancho al texto de ayuda, que es largo y en movil se
+        # corta. En escritorio el boton sigue con su palabra y el campo se
+        # explica solo.
         texto = st.text_input(
             "Consulta", label_visibility="collapsed", key="consulta",
-            placeholder="🔍 Describe el puesto o introduce un código de 8 cifras...",
+            placeholder="Describe el puesto o introduce un código de 8 cifras...",
         )
     with boton:
         buscar = st.button("Buscar", key="buscar", use_container_width=True)
@@ -4121,7 +4284,7 @@ elif entrada:
         rotulo or entrada,
         " | ".join(o["codigo"] for o in payload.get("ocupaciones", [])),
         medida["modelo"],
-        medida["primer_trozo"],
+        medida["respuesta_modelo"],
         medida["total"],
         medida["pensados"],
         medida["relevos"],
