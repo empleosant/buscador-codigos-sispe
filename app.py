@@ -3889,6 +3889,29 @@ def pide_puestos_habituales(cuantos):
     return limpias
 
 
+@st.cache_data(show_spinner=False)
+def _esperados_de_casos():
+    """Mapa consulta -> código correcto, leído de casos.csv.
+
+    La tanda escribía la consulta y lo que eligió el modelo, pero no CON QUÉ
+    había que comparar: `codigo_esperado` se quedaba en el archivo. Para saber
+    el acierto había que cruzar a mano las dos tandas contra casos.csv, ochenta
+    filas, que es la clase de trabajo que se hace mal a las once de la noche.
+
+    Con esto el CSV trae ya `esperado` y `acierto`, y comparar dos tandas es
+    contar dos columnas.
+    """
+    try:
+        with open("casos.csv", encoding="utf-8-sig") as f:
+            return {
+                normaliza(x["consulta"]): (x.get("codigo_esperado") or "").strip()
+                for x in csv.DictReader(f, delimiter=";")
+                if x.get("consulta")
+            }
+    except Exception:  # noqa: BLE001
+        return {}
+
+
 def pantalla_masiva():
     """Prueba de estrés con IA de verdad, para el modo mantenimiento.
 
@@ -4119,6 +4142,7 @@ def pantalla_masiva():
 
             elegidas = payload.get("ocupaciones", []) or []
             codigos = [o["codigo"] for o in elegidas]
+            _esp = _esperados_de_casos().get(normaliza(consulta), "")
             top_local = locales[0][1] if locales else ""
             interpretado = payload.get("interpretado") or ("", "")
             tiempos = st.session_state.get("tiempos", [])
@@ -4142,6 +4166,13 @@ def pantalla_masiva():
                 "interpretado_como": interpretado[1] if len(interpretado) > 1 else "",
                 "elegido_1": codigos[0] if codigos else "",
                 "denom_1": elegidas[0]["denominacion"] if elegidas else "",
+                # Vacías cuando la consulta no sale de casos.csv: las de "al
+                # azar" y las que propone la IA no tienen código correcto con
+                # el que comparar, y una columna a medias miente menos que un
+                # "no" que en realidad es un "no se sabe".
+                "esperado": _esp,
+                "acierto": ("" if not _esp else
+                            "sí" if codigos and codigos[0] == _esp else "no"),
                 "elegido_2": codigos[1] if len(codigos) > 1 else "",
                 "elegido_3": codigos[2] if len(codigos) > 2 else "",
                 "n_tarjetas": len(elegidas),
@@ -4188,6 +4219,33 @@ def pantalla_masiva():
         medio = sum(f["segundos"] for f in filas) / len(filas)
 
         st.success(f"{len(filas)} consultas lanzadas.")
+
+        # El acierto va PRIMERO y aparte, porque es lo que decide. El resto son
+        # síntomas: se miran cuando el acierto ya ha dicho algo.
+        con_esperado = [f for f in filas if f["esperado"]]
+        if con_esperado:
+            aciertos = sum(1 for f in con_esperado if f["acierto"] == "sí")
+            modo_txt = "una llamada" if una_llamada() else "dos llamadas"
+            x, y = st.columns(2)
+            x.metric(
+                f"Acierto · {modo_txt}",
+                f"{aciertos} de {len(con_esperado)}",
+                f"{100 * aciertos / len(con_esperado):.0f} %",
+                delta_color="off",
+            )
+            y.metric("Media", f"{medio:.1f} s")
+            st.caption(
+                "Compara ESTO entre las dos tandas, y solo después los segundos. "
+                "Apunta las dos cifras antes de lanzar la siguiente: el resumen "
+                "se pisa, aunque el CSV descargado no."
+            )
+        else:
+            st.caption(
+                "Estas consultas no salen de casos.csv, así que no hay código "
+                "correcto con el que comparar y no se puede medir el acierto. "
+                "Para decidir el modo de llamada, lanza las de «Escritas a mano»."
+            )
+
         a, b, c, d = st.columns(4)
         a.metric("El modelo cambia el 1º", f"{distintos}")
         b.metric("Sin afinar o con error", f"{fallidos}")
