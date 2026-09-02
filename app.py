@@ -2907,6 +2907,18 @@ def una_llamada():
     misma tanda de las dos maneras y comparar. Fuera de mantenimiento nadie
     toca esa casilla.
     """
+    # La casilla manda MIENTRAS ESTE PINTADA, y por orden de ejecucion: en la
+    # pantalla masiva el aviso de cuota se dibuja arriba y la casilla abajo, asi
+    # que en el rerun en que la marcas el valor propio todavia es el de antes y
+    # el aviso salia un ciclo por detras -decia "dos o tres llamadas" con el
+    # modo ya encendido, justo en la pantalla donde ese numero importa-.
+    #
+    # Si Streamlit purga la clave del widget -lo hace con los que dejan de
+    # pintarse, y este solo existe con la pantalla masiva abierta- se cae al
+    # valor propio, que es para lo que se guarda aparte. Y si tampoco esta,
+    # a lo que diga la constante.
+    if "una_llamada_interruptor" in st.session_state:
+        return bool(st.session_state["una_llamada_interruptor"])
     valor = st.session_state.get("una_llamada")
     return UNA_LLAMADA if valor is None else bool(valor)
 
@@ -3816,7 +3828,9 @@ def panel_ajustes():
         st.caption(
             "Lanza muchas consultas seguidas por el circuito completo, con IA "
             "incluida, y deja un registro descargable. Gasta cuota: cada "
-            "consulta son dos o tres llamadas al modelo."
+            "consulta son "
+            + ("una o dos" if una_llamada() else "dos o tres")
+            + " llamadas al modelo."
         )
 
 
@@ -3887,10 +3901,19 @@ def pantalla_masiva():
     """
     st.markdown('<div class="seccion">Prueba masiva del buscador</div>',
                 unsafe_allow_html=True)
-    st.caption(
-        "Cada consulta gasta dos o tres llamadas al modelo. Con 100 consultas "
-        "se van entre 200 y 300, así que vigila la cuota del día."
-    )
+    # El gasto depende del modo, y el aviso tiene que decir la verdad: con el
+    # paso 1 son dos llamadas por consulta (tres si el modelo pide ampliar la
+    # búsqueda) y sin él, una (dos si la pide).
+    if una_llamada():
+        st.caption(
+            "Cada consulta gasta una o dos llamadas al modelo. Con 100 consultas "
+            "se van entre 100 y 200, así que vigila la cuota del día."
+        )
+    else:
+        st.caption(
+            "Cada consulta gasta dos o tres llamadas al modelo. Con 100 consultas "
+            "se van entre 200 y 300, así que vigila la cuota del día."
+        )
 
     por_defecto = ""
     try:
