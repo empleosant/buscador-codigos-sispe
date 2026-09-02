@@ -61,9 +61,11 @@ ESPERA_MAXIMA = 8    # segundos de silencio que aguanta el TRANSPORTE. OJO: no
                      # de una conexion que se queda muda del todo.
                      #
                      # Lo de abajo sigue siendo cierto y por eso se conserva:
-                     # cuando la
-                     # llamada va bien, el primer trozo llega en 0,5-0,6 s y la
-                     # consulta entera se resuelve en 2-2,6 s. Lo que se veia
+                     # cuando la llamada va bien, la consulta entera se
+                     # resuelve en 2-2,6 s. (El 0,5-0,6 s que ponia aqui era el
+                     # primer trozo, y se midio cuando habia streaming; ya no
+                     # hay nada comparable que medir: la respuesta llega
+                     # entera de una vez.) Lo que se veia
                      # como "lentitud" no era eso: era una llamada suelta que se
                      # atasca, y con el corte en 30 s la persona esperaba media
                      # minuto a que el reloj venciera antes de que la cascada
@@ -97,6 +99,17 @@ ESPERA_TOTAL = 30    # segundos para la consulta ENTERA, relevos incluidos. Es
                      # se atasco contaba contra el intento bueno y mataba una
                      # respuesta que ya venia en camino. Con 30 s casi paso: la
                      # consulta medida termino en 29,1.
+
+# Rotulo de la fila que mide, DENTRO de un tramo, lo que se fue en esperar al
+# modelo. El tramo que la contiene ya incluye esos segundos, asi que todo el
+# que suma tiempos tiene que descontarla o los cuenta dos veces.
+#
+# Va aqui, en una constante, y no escrito a mano en cada sitio: se compara por
+# subcadena contra la etiqueta, y estaba repetido literal en cuatro puntos
+# -el chip, _medida, el panel y el propio bucle que la escribe-. Cambiar el
+# texto en tres de los cuatro no rompe nada de forma visible: simplemente los
+# totales empiezan a salir del doble de lo que son.
+SUBTRAMO = "respuesta del modelo"
 
 # ---------------------------------------------------------------------------
 # PROVEEDOR DE IA
@@ -2726,9 +2739,9 @@ def pinta_resultado(payload, estado=None, interactivo=False, consulta=""):
         nombre_m = " ".join(p.capitalize() for p in partes if not p.isdigit() and len(p) > 1)
         if not nombre_m:
             nombre_m = modelo.split("-")[0].capitalize()
-        # Sin filtrar, la fila nueva de "primer trozo" se sumaria al tramo que
-        # ya la incluye y el chip enseñaria casi el doble de lo que tardo.
-        total_s = sum(t for e, t in tiempos if "primer trozo" not in e)
+        # Sin filtrar, la fila de "respuesta del modelo" se sumaria al tramo
+        # que ya la incluye y el chip enseñaria casi el doble de lo que tardo.
+        total_s = sum(t for e, t in tiempos if SUBTRAMO not in e)
         tiempo_txt = f" · {total_s:.1f}s" if total_s > 0 else ""
         st.markdown(
             f'<div style="text-align:center">'
@@ -2780,14 +2793,14 @@ def _medida():
     descarga de sesión como la prueba masiva.
     """
     tiempos = st.session_state.get("tiempos", [])
-    primero = next((t for e, t in tiempos if "primer trozo" in e), None)
-    # El "primer trozo" esta DENTRO del tramo que lo contiene: sumarlo seria
-    # contar dos veces los mismos segundos.
-    total = sum(t for e, t in tiempos if "primer trozo" not in e)
+    espera = next((t for e, t in tiempos if SUBTRAMO in e), None)
+    # La "respuesta del modelo" esta DENTRO del tramo que la contiene: sumarla
+    # seria contar dos veces los mismos segundos.
+    total = sum(t for e, t in tiempos if SUBTRAMO not in e)
     pens = st.session_state.get("pensamiento") or {}
     return {
         "modelo": st.session_state.get("ultimo_modelo", ""),
-        "primer_trozo": f"{primero:.1f}" if primero is not None else "",
+        "respuesta_modelo": f"{espera:.1f}" if espera is not None else "",
         "total": f"{total:.1f}" if tiempos else "",
         "pensados": pens.get("pensados", ""),
         "relevos": " | ".join(st.session_state.get("relevos", [])),
@@ -2994,33 +3007,42 @@ def resuelve(texto, zona, usar_ia=True, contexto="", busqueda=None):
             pinta_resultado({}, estado=etiqueta)
         bruto = ""
         arranque = time.perf_counter()
-        # Hasta ahora solo se medía el total, y con eso no se distingue el
-        # modelo que tarda en ARRANCAR (piensa, o esta encolado) del que
-        # arranca rapido y luego gotea. Son causas distintas y arreglos
-        # distintos, asi que se anota tambien cuando llega el primer trozo.
-        primero = None
-        trozos = 0
-        for trozo in flujo_modelo(texto + contexto, candidatos):
-            if primero is None:
-                primero = time.perf_counter() - arranque
+        # El tramo entero ("2. Afinar el resultado") incluye la espera al
+        # modelo Y el procesado local de lo que devuelve. Con un solo numero no
+        # se distingue el modelo lento del parseo lento, asi que se anota
+        # aparte lo que se va en esperar. Cuando habia streaming esta medida
+        # era el primer trozo -lo que tardaba en ARRANCAR-; hoy que la
+        # respuesta llega entera de una vez, es la llamada completa.
+        espera = None
+        entregas = 0
+        for pedazo in flujo_modelo(texto + contexto, candidatos):
+            if espera is None:
+                espera = time.perf_counter() - arranque
                 st.session_state.setdefault("tiempos", []).append(
-                    (f"{etiqueta} · primer trozo", primero)
+                    (f"{etiqueta} · {SUBTRAMO}", espera)
                 )
-            bruto += trozo
-            trozos += 1
+            bruto += pedazo
+            entregas += 1
+            # OJO: HOY ESTA COMPROBACION NO CORTA NADA, Y ES CORRECTO QUE NO
+            # LO HAGA.
+            #
             # El tope total solo puede cortar una respuesta que AUN esta
-            # llegando, y eso son dos trozos o mas.
+            # llegando, y eso son dos entregas o mas. Desde que Mistral perdio
+            # el streaming (01/09/2026) NINGUN camino lo usa: _flujo_gemini y
+            # _flujo_openai entregan la respuesta entera de una vez, asi que
+            # `entregas` vale siempre 1 y la condicion es siempre falsa.
             #
-            # Con un trozo unico -el camino de Gemini desde que se quito el
-            # streaming- esta comprobacion corria DESPUES de tener la respuesta
-            # entera en la mano, asi que ya no cortaba nada: lo unico que podia
-            # hacer era tirar a la basura una respuesta buena que hubiera
-            # tardado 31 s y ensenarle a la persona el aviso de que no se ha
-            # podido afinar. Peor que inutil.
+            # Se deja puesta a proposito, y no por descuido. Con una entrega
+            # unica el corte corria DESPUES de tener la respuesta completa en
+            # la mano: lo unico que podia hacer era tirar a la basura una
+            # respuesta buena que hubiera tardado 31 s y ensenarle a la persona
+            # el aviso de que no se ha podido afinar. Peor que inutil. La
+            # guarda `entregas > 1` es justo lo que lo impide, y vuelve a
+            # servir sola el dia que algun proveedor recupere el streaming.
             #
-            # Contra un stream que sigue goteando pasado el plazo -Mistral- si
-            # tiene sentido, y ahi se mantiene tal cual.
-            if trozos > 1 and time.perf_counter() - arranque > ESPERA_TOTAL:
+            # Quien mire ESPERA_TOTAL buscando por que no corta: no corta aqui.
+            # El tope que corta de verdad es PLAZO_INTENTO, en _con_plazo.
+            if entregas > 1 and time.perf_counter() - arranque > ESPERA_TOTAL:
                 raise TimeoutError(
                     f"El modelo ha tardado más de {ESPERA_TOTAL} segundos."
                 )
@@ -3501,7 +3523,7 @@ def panel_ajustes():
             buffer = io.StringIO()
             escritor = csv.writer(buffer, delimiter=";")
             escritor.writerow([
-                "consulta", "codigos", "modelo", "primer_trozo",
+                "consulta", "codigos", "modelo", "respuesta_modelo",
                 "total", "pensados", "relevos", "fallo",
             ])
             for fila in st.session_state["registro"]:
@@ -3524,9 +3546,9 @@ def panel_ajustes():
             st.caption("Última consulta, segundo a segundo:")
             for etiqueta, seg in tiempos:
                 st.caption(f"· {etiqueta}: **{seg:.1f} s**")
-            # Las filas de "primer trozo" van DENTRO del tramo que las
-            # contiene: sumarlas contaria dos veces los mismos segundos.
-            total = sum(t for e, t in tiempos if "primer trozo" not in e)
+            # Las filas de "respuesta del modelo" van DENTRO del tramo que
+            # las contiene: sumarlas contaria dos veces los mismos segundos.
+            total = sum(t for e, t in tiempos if SUBTRAMO not in e)
             st.caption(f"· Total esperando al modelo: **{total:.1f} s**")
             if st.session_state.get("interprete_en_memoria"):
                 st.caption(
@@ -4129,7 +4151,7 @@ elif entrada:
         rotulo or entrada,
         " | ".join(o["codigo"] for o in payload.get("ocupaciones", [])),
         medida["modelo"],
-        medida["primer_trozo"],
+        medida["respuesta_modelo"],
         medida["total"],
         medida["pensados"],
         medida["relevos"],
