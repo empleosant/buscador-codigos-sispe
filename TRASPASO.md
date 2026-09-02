@@ -85,7 +85,30 @@ La red para cuando los candidatos no sirven ya estaba puesta: `otros_terminos`
 
 Consulta corriente: de dos llamadas a una. Difícil: de tres a dos.
 
-### Cómo está ahora
+### Resultado de la tanda (2 de septiembre)
+
+Las 40 consultas de `casos.csv`, Gemini fijado en `gemini-3.5-flash-lite`, una
+tanda tras otra, sin refuerzos del Gist en las dos.
+
+| | A · dos llamadas | B · una llamada |
+|---|---|---|
+| Acierto | 33 de 40 (82 %) | **34 de 40 (85 %)** |
+| Media | 2,2 s | **1,7 s** |
+| Mediana | 2,2 s | **1,4 s** |
+| Timeouts | 1 | 2 |
+| Amplían la búsqueda | 1 | 5 |
+| Piden aclaración | 11 | 7 |
+
+Solo cinco consultas cambian. B acierta tres que A falla, las tres por elección
+(pladur, organizar eventos, cuidadora en residencia). B falla dos que A acierta,
+las dos por `TimeoutError` a los 4,0 s con el proveedor fijado, no por elegir
+mal. En elección pura, 36 contra 33.
+
+**Decisión: `UNA_LLAMADA = True` y `PLAZO_INTENTO = 5`**, desde el 2 de
+septiembre. Los CSV de las dos tandas están entregados en la conversación de ese
+día.
+
+### Cómo estaba antes
 
 `UNA_LLAMADA = False`. **Apagado.** Con el interruptor apagado el motor y los
 dos prompts son idénticos letra a letra a los del 1 de septiembre, verificado
@@ -211,6 +234,9 @@ para que dé igual cuántos caminos los produzcan.
 
 ## Lo siguiente
 
-1. **La prueba masiva.** Decide la fusión y, de paso, si `PLAZO_INTENTO` se
-   queda en 4 s o sube a 5 o 6.
-2. Según el resultado, `UNA_LLAMADA = True` o se queda en `False`.
+1. ~~La prueba masiva.~~ Hecha el 2 de septiembre: una llamada encendida y
+   `PLAZO_INTENTO` en 5.
+2. Vigilar la columna `relevos` de las sesiones reales unos días: si siguen
+   saliendo `TimeoutError` con el modelo bueno respondiendo justo después,
+   subir a 6.
+3. Rotar la clave de Gemini que se usó para la tanda (quedó en el chat).

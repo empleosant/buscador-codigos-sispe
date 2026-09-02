@@ -47,7 +47,7 @@ N_CANDIDATOS = 24    # cuántas ocupaciones ve el modelo. Medido el 25/08/2026
                      # unos 500 tokens: irrelevante frente al tope de 250.000
                      # por minuto. Si al medir con la prueba masiva empeora,
                      # vuelve a 16.
-UNA_LLAMADA = False  # ¿una sola llamada al modelo por consulta, o dos?
+UNA_LLAMADA = True   # ¿una sola llamada al modelo por consulta, o dos?
                      #
                      # Habia dos viajes SECUENCIALES: el paso 1 traducia la
                      # frase de la calle a vocabulario oficial (INTERPRETE) y
@@ -79,6 +79,25 @@ UNA_LLAMADA = False  # ¿una sola llamada al modelo por consulta, o dos?
                      # esto SOLO lo decide la prueba masiva, comparando las dos
                      # tandas con la misma semilla. El modo va escrito en cada
                      # fila del CSV. Si el acierto baja, se vuelve a False.
+                     #
+                     # MEDIDO el 02/09/2026, las 40 consultas de casos.csv,
+                     # Gemini fijado en gemini-3.5-flash-lite, una tanda tras
+                     # otra y sin refuerzos del Gist en las dos:
+                     #
+                     #                    dos llamadas   una llamada
+                     #   acierto           33/40 (82 %)   34/40 (85 %)
+                     #   media             2,2 s          1,7 s
+                     #   mediana           2,2 s          1,4 s
+                     #   amplian busqueda  1              5
+                     #   piden aclaracion  11             7
+                     #
+                     # Solo cinco consultas cambian. Una llamada acierta TRES
+                     # que dos llamadas fallaba, las tres por eleccion (pladur,
+                     # organizar eventos, cuidadora en residencia). Y falla
+                     # DOS que dos llamadas acertaba, las dos por TimeoutError
+                     # a los 4,0 s, no por elegir mal: con el proveedor fijado
+                     # no habia a quien relevar. En eleccion pura, 36 contra
+                     # 33. Por eso se enciende.
 ENCAJE_MINIMO = 0.40  # cuánto del nombre de la ocupación debe explicar la
                       # consulta para fiarse de ella sin preguntar a la IA
 VENTAJA_CLARA = 3.0   # cuántas veces debe superar el 1º del buscador al 2º
@@ -122,7 +141,7 @@ ESPERA_MAXIMA = 10   # segundos de silencio que aguanta el TRANSPORTE.
                      # relevara al modelo siguiente (caso medido: 29,1 s, de los
                      # cuales 21,6 fueron el intento colgado). A 8 s hay margen
                      # de sobra sobre los 2,6 s reales y el relevo es rapido.
-PLAZO_INTENTO = 4    # segundos de reloj para UN intento contra el modelo. Es
+PLAZO_INTENTO = 5    # segundos de reloj para UN intento contra el modelo. Es
                      # el que impone _con_plazo, y desde el 01/09/2026 es el
                      # unico que corta de verdad: ESPERA_MAXIMA se lo queda
                      # httpx, que solo mide el tiempo SIN RECIBIR DATOS.
@@ -142,6 +161,17 @@ PLAZO_INTENTO = 4    # segundos de reloj para UN intento contra el modelo. Es
                      # en la columna `relevos` del CSV, en cuanto empiecen a
                      # salir TimeoutError con el modelo bueno respondiendo bien
                      # justo despues.
+                     #
+                     # Y salieron. Tanda del 02/09/2026 con el tope en 4: tres
+                     # intentos de unos 115 pasaron de 4 s (uno en el paso 1,
+                     # que relevo y acerto; dos en el afinado con Gemini
+                     # fijado, que se quedaron sin respuesta). Todas las
+                     # respuestas sanas cayeron por debajo de 3,1 s. Con 4 el
+                     # margen era de nueve decimas; con 5 sigue cortando lo
+                     # colgado de verdad y deja de cortar lo que iba a llegar.
+                     # Lo que la tanda NO dice es cuanto habrian tardado esos
+                     # tres: si eran 4,3 s, 5 los salva; si eran 20, ni 6.
+                     # Por eso 5 y no 6.
 
 ESPERA_TOTAL = 30    # segundos para la consulta ENTERA, relevos incluidos. Es
                      # un tope distinto del de arriba y no se puede unificar:
