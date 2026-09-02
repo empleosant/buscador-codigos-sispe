@@ -163,6 +163,32 @@ vacío, que ya está en `.gitignore`.
 
 ---
 
+## ESPERA_MAXIMA no puede bajar de 10: Google rechaza plazos menores
+
+Descubierto el 2 de septiembre lanzando la prueba masiva con clave real desde
+fuera de Streamlit Cloud. Con `ESPERA_MAXIMA = 8`, **todas** las llamadas a
+Gemini fallaban con `ClientError` en medio segundo:
+
+```
+400 INVALID_ARGUMENT. Manually set deadline 8s is too short.
+Minimum allowed deadline is 10s.
+```
+
+`google-genai` 2.21 manda el plazo de `HttpOptions` también al servidor, como
+cabecero `X-Server-Timeout`, y Google no admite menos de 10 s. Con un SDK más
+antiguo no se notaba: por eso la app desplegada seguía funcionando. Pero
+`requirements.txt` pide `google-genai>=2.20` sin fijar versión, así que el
+primer reinicio que reinstalara dependencias habría dejado a toda la oficina
+en Mistral sin aviso.
+
+Está en 10 desde `8612ed9`. **No lo bajes.** El corte real de un intento lo
+sigue haciendo `PLAZO_INTENTO` con reloj propio, por debajo de esto.
+
+Mejora pendiente, a decidir: fijar la versión del SDK en `requirements.txt`
+(`google-genai==2.21.0`) para que Cloud instale siempre lo mismo que se probó.
+
+---
+
 ## En mantenimiento no se aprende
 
 Un refuerzo se guarda cada vez que el modelo elige un primero distinto del que
