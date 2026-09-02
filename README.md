@@ -18,6 +18,7 @@ evaluar.py                        aciertos: 40 consultas con su código correcto
 casos.csv                         los 40 casos (referencia, se edita a mano)
 informe_evaluacion.csv            salida de --informe, regenerable, no versionado
 estres.py                         robustez: que nada se rompa por lo bajo
+TRASPASO.md                       estado del proyecto y qué toca ahora
 scripts/despertar.py              despertador (no lo usa la app)
 .github/workflows/…               programa el despertador
 ```
