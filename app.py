@@ -46,6 +46,38 @@ N_CANDIDATOS = 24    # cuántas ocupaciones ve el modelo. Medido el 25/08/2026
                      # unos 500 tokens: irrelevante frente al tope de 250.000
                      # por minuto. Si al medir con la prueba masiva empeora,
                      # vuelve a 16.
+UNA_LLAMADA = True   # ¿una sola llamada al modelo por consulta, o dos?
+                     #
+                     # Habia dos viajes SECUENCIALES: el paso 1 traducia la
+                     # frase de la calle a vocabulario oficial (INTERPRETE) y
+                     # con esa traduccion se rebuscaba en el catalogo para
+                     # darle mejores candidatos al paso 2, que es el que elige
+                     # (INSTRUCCIONES). Secuenciales de verdad: el segundo no
+                     # puede empezar hasta que el primero contesta, porque los
+                     # candidatos salen de su respuesta.
+                     #
+                     # Que el paso 1 exista se justificaba en que el buscador
+                     # literal no encontraba la ocupacion buena. Pero eso hoy
+                     # no es lo que dicen los numeros: evaluar.py mide la
+                     # cobertura SIN IA -busca() sobre el texto tal cual se
+                     # escribio- y el codigo correcto entra en la lista de 24
+                     # candidatos en los 40 casos de 40. Si ya esta dentro, el
+                     # paso 1 no lo mete: solo reordena, y se cobra una llamada
+                     # entera por hacerlo.
+                     #
+                     # Ademas la red para cuando los candidatos NO sirven ya
+                     # estaba puesta y probada: "otros_terminos" (regla 9), que
+                     # es exactamente lo mismo que hacia el paso 1 -devolver
+                     # vocabulario oficial- pero solo cuando hace falta y sin
+                     # pagarlo en las consultas que van bien.
+                     #
+                     # Asi que la consulta corriente pasa de dos llamadas a
+                     # una, y la dificil de tres a dos.
+                     #
+                     # Se deja en un interruptor y no cableado a proposito:
+                     # esto SOLO lo decide la prueba masiva, comparando las dos
+                     # tandas con la misma semilla. El modo va escrito en cada
+                     # fila del CSV. Si el acierto baja, se vuelve a False.
 ENCAJE_MINIMO = 0.40  # cuánto del nombre de la ocupación debe explicar la
                       # consulta para fiarse de ella sin preguntar a la IA
 VENTAJA_CLARA = 3.0   # cuántas veces debe superar el 1º del buscador al 2º
@@ -1665,7 +1697,10 @@ REGLAS
      · "¿Cuidabas a la persona en su casa o en una residencia?"
    - La pregunta debe ser breve, directa y fácil de entender.
    - El campo "opciones" DEBE contener un máximo de 3 alternativas y un mínimo de 1 alternativa breve (máximo 6 palabras por opción), escritas en tono natural: ["Pelo de hombre", "Pelo de mujer", "Unisex"]. Evita textos largos. NUNCA dejes "opciones" vacío si hay "pregunta".
-9. Si ninguna de las candidatas describe con precisión la actividad, rellena "otros_terminos" con entre 6 y 10 palabras sueltas de la CNO.
+9. "otros_terminos": rellénalo SIEMPRE que ninguna de las candidatas describa con precisión la actividad real, con entre 6 y 10 palabras sueltas del vocabulario OFICIAL de la CNO (los términos con los que el catálogo nombraría ese oficio, no las palabras que ha usado la persona). Es la vía para rescatar una consulta escrita en lenguaje de la calle: con esas palabras se vuelve a buscar en el catálogo y se te consulta otra vez con candidatos mejores.
+   - Rellenarlo NO te exime de la regla 3: devuelve igualmente las 3-5 candidatas menos malas, y además los términos.
+   - Si la descripción mezcla dos funciones distintas ("cobro en caja y repongo", "conduzco y reparto"), incluye términos oficiales de LAS DOS.
+   - Déjalo vacío solo cuando alguna candidata describa el puesto de verdad. Ante la duda, rellénalo: no cuesta nada y es lo único que puede traer a la lista una ocupación que no esté ya en ella.
 
 EJEMPLO DE RESPUESTA:
 {"ocupaciones":[{"codigo":"58111037","denominacion":"PELUQUEROS UNISEX","nivel":"00","motivo":"Corte y peinado general."},{"codigo":"58111028","denominacion":"PELUQUEROS DE SEÑORAS","nivel":"00","motivo":"Peluquería y estética femenina."},{"codigo":"58111019","denominacion":"PELUQUEROS DE CABALLEROS","nivel":"00","motivo":"Barbería y corte masculino."}],"pregunta":"¿Cortabas pelo a hombres, a mujeres o a todo tipo de clientes?","opciones":["Pelo de hombre y barbería","Pelo de mujer","De todo, unisex"],"otros_terminos":""}
@@ -2839,6 +2874,18 @@ def n_candidatos():
     return int(valor) if valor else N_CANDIDATOS
 
 
+def una_llamada():
+    """¿Se resuelve esta consulta con una sola llamada al modelo?
+
+    De fábrica lo que diga UNA_LLAMADA. El panel de mantenimiento lo cambia
+    para la sesión, igual que el número de candidatos, para poder lanzar la
+    misma tanda de las dos maneras y comparar. Fuera de mantenimiento nadie
+    toca esa casilla.
+    """
+    valor = st.session_state.get("una_llamada")
+    return UNA_LLAMADA if valor is None else bool(valor)
+
+
 def resuelve(texto, zona, usar_ia=True, contexto="", busqueda=None):
     codigo = texto.strip()
     if re.fullmatch(r"\d{8}", codigo):
@@ -2883,7 +2930,14 @@ def resuelve(texto, zona, usar_ia=True, contexto="", busqueda=None):
     # El numero de candidatos y el proveedor forman parte de la clave: sin
     # ellos, dos corridas con ajustes distintos en la misma sesion se
     # devolvian resultados la una a la otra (visto en la prueba 24 vs 32).
-    clave = f"{normaliza(texto + contexto)}|{tope_ia}|{proveedor_actual()}"
+    #
+    # El modo de llamada va por lo mismo y es peor si falta: la tanda de una
+    # llamada y la de dos se lanzan SEGUIDAS y sobre las MISMAS consultas, que
+    # es justo la forma de compararlas. Sin el modo en la clave, la segunda
+    # tanda sale entera del cache de la primera y las dos columnas del CSV dan
+    # identicas: la comparacion diria "no cambia nada" pase lo que pase.
+    clave = (f"{normaliza(texto + contexto)}|{tope_ia}|{proveedor_actual()}"
+             f"|{'1' if una_llamada() else '2'}")
     if clave in memoria:
         with zona.container():
             pinta_resultado(memoria[clave])
@@ -2958,10 +3012,25 @@ def resuelve(texto, zona, usar_ia=True, contexto="", busqueda=None):
         pinta_resultado({}, estado="Afinando el resultado")
 
     interpretado, aviso = None, ""
-    with zona.container():
-        pinta_resultado({}, estado="Interpretando el oficio")
-    with cronometra("1. Interpretar el oficio"):
-        lecturas = interpreta_consulta(texto)
+    # PASO 1, y solo si estamos en el modo de dos llamadas.
+    #
+    # Con una_llamada() la consulta va derecha al modelo que elige, con los
+    # candidatos que saco el buscador de lo que se escribio. Si esos candidatos
+    # no sirven, el propio modelo devuelve "otros_terminos" y ahi abajo se
+    # rebusca y se le vuelve a preguntar: la interpretacion sigue existiendo,
+    # pero solo se paga cuando hace falta. Ver UNA_LLAMADA.
+    if not una_llamada():
+        with zona.container():
+            pinta_resultado({}, estado="Interpretando el oficio")
+        with cronometra("1. Interpretar el oficio"):
+            lecturas = interpreta_consulta(texto)
+    else:
+        lecturas = []
+        # El panel lee esta marca para avisar de que el paso 1 salio de la
+        # memoria de la sesion y su 0,0 s no es una llamada rapida. Sin
+        # limpiarla, en modo de una llamada se queda la de la consulta ANTERIOR
+        # y el panel avisa de un paso que ni siquiera ha corrido.
+        st.session_state["interprete_en_memoria"] = False
     if lecturas:
         fundido, vistos = [], {}
         for orden, (terminos, grupos) in enumerate(lecturas):
@@ -3048,9 +3117,14 @@ def resuelve(texto, zona, usar_ia=True, contexto="", busqueda=None):
                 )
         return interpreta(bruto)
 
+    # Los tramos van numerados para leerlos en orden en el panel y en el CSV.
+    # Sin paso 1 -modo de una llamada- afinar ES el primero: dejarlo como "2."
+    # haria buscar en la tanda un paso 1 que no existe, y al comparar los dos
+    # CSV las columnas no casarian.
+    n = 1 if una_llamada() else 2
     try:
         lista = "\n".join(f"{c}:{d}" for _, c, d in encontrados)
-        with cronometra("2. Afinar el resultado"):
+        with cronometra(f"{n}. Afinar el resultado"):
             payload = consulta_al_modelo(lista, "Afinando el resultado")
 
         if payload.get("mas_terminos"):
@@ -3061,7 +3135,7 @@ def resuelve(texto, zona, usar_ia=True, contexto="", busqueda=None):
             if ampliados:
                 encontrados = ampliados
                 interpretado = ("la descripción", payload["mas_terminos"])
-                with cronometra("3. Ampliar la búsqueda"):
+                with cronometra(f"{n + 1}. Ampliar la búsqueda"):
                     segunda = consulta_al_modelo(
                         "\n".join(f"{c}:{d}" for _, c, d in ampliados),
                         "Afinando el resultado",
@@ -3330,6 +3404,8 @@ def _de_fabrica():
     st.session_state["sel_modelo"] = AUTOMATICO
     st.session_state["modelo_fijo"] = None
     st.session_state["n_candidatos"] = N_CANDIDATOS
+    st.session_state["una_llamada"] = UNA_LLAMADA
+    st.session_state["una_llamada_interruptor"] = UNA_LLAMADA
     st.session_state["usar_ia"] = True
     st.session_state["ia_interruptor"] = True
 
@@ -3344,6 +3420,10 @@ def _fuera_de_fabrica():
     cand = st.session_state.get("n_candidatos")
     if cand and int(cand) != N_CANDIDATOS:
         dif.append(f"candidatos en {int(cand)} (de fábrica {N_CANDIDATOS})")
+    if una_llamada() != UNA_LLAMADA:
+        dif.append(
+            "una sola llamada" if una_llamada() else "dos llamadas (con paso 1)"
+        )
     if not st.session_state.get("usar_ia", True):
         dif.append("IA desactivada")
     return dif
@@ -3918,6 +3998,30 @@ def pantalla_masiva():
                  "semilla para comparar.",
         )
 
+        # El interruptor que decide si el paso 1 corre o no. Está aquí y no en
+        # los ajustes del buscador a propósito: no es una preferencia de uso,
+        # es la variable de un experimento, y solo significa algo lanzando la
+        # misma tanda con la misma semilla de las dos maneras.
+        # La key del widget NO es "una_llamada", igual que la del interruptor
+        # de IA no es "usar_ia" y por el mismo motivo: si la clave del valor y
+        # la del widget son la misma y Streamlit purga la del widget -lo hace
+        # con los que dejan de pintarse, y este solo se pinta con la pantalla
+        # masiva abierta-, el ajuste vuelve solo al de fábrica a mitad de una
+        # tanda. El valor propio se guarda aparte, desde lo que devuelve la
+        # casilla.
+        st.session_state["una_llamada"] = st.checkbox(
+            f"Una sola llamada al modelo (de fábrica, "
+            f"{'sí' if UNA_LLAMADA else 'no'})",
+            value=una_llamada(), key="una_llamada_interruptor",
+            help="Marcado, la consulta va derecha al modelo que elige, con los "
+                 "candidatos que saca el buscador de lo escrito; si no le "
+                 "sirven, él pide más términos y se le vuelve a preguntar. "
+                 "Sin marcar, corre antes el paso 1, que traduce la frase a "
+                 "vocabulario oficial en una llamada aparte. Compara ACIERTO, "
+                 "no solo segundos: quitar el paso 1 ahorra una llamada, y lo "
+                 "que hay que ver es si se paga en aciertos.",
+        )
+
     lanzar, volver = st.columns(2, gap="small")
     arranca = lanzar.button("Lanzar", type="primary", use_container_width=True,
                             disabled=not consultas)
@@ -3977,6 +4081,10 @@ def pantalla_masiva():
                 # distintas se puedan comparar meses después sin fiarse de la
                 # memoria ni del nombre del archivo.
                 "candidatos": n_candidatos(),
+                # Igual que "candidatos": el modo queda escrito en cada fila
+                # para poder cruzar dos tandas meses después sin fiarse del
+                # nombre del archivo.
+                "una_llamada": "sí" if una_llamada() else "no",
                 "top_local": top_local,
                 "denom_local": locales[0][2] if locales else "",
                 "ventaja_local": (
