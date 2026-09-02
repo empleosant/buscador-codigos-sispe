@@ -98,6 +98,97 @@ def p_basura(motor):
 
 
 # ---------------------------------------------------------------------------
+# 1 bis. Que no reviente con lo que devuelve el MODELO
+#
+# Las de arriba prueban lo que escribe la persona. Estas prueban lo que manda
+# el modelo, que es de donde han salido los tres fallos que han tumbado la app:
+#
+#   01/09  interpreta()          el array de ocupaciones sin el objeto que lo
+#                                envuelve -> 'list' object has no attribute 'get'
+#   02/09  interpreta_consulta()  lecturas como cadenas sueltas
+#   02/09  verifica()             códigos a pelo en vez de objetos
+#
+# Los tres son lo mismo: el modelo se salta la forma pedida, y un .get() sobre
+# algo que no es un diccionario levanta AttributeError. Como el paso 1 corre en
+# TODAS las consultas, lo que reviente ahí no degrada el resultado: tumba la
+# herramienta entera y la persona ve una pantalla roja.
+#
+# Aquí se fija que ninguna forma rara vuelva a hacerlo. Da igual que la
+# interpretación salga peor: lo que no puede es levantar una excepción.
+# ---------------------------------------------------------------------------
+
+RESPUESTAS_DEL_MODELO = [
+    # la forma que se pide en el prompt
+    '{"ocupaciones":[{"codigo":"92101027","nivel":"00","motivo":"x"}],"pregunta":"","opciones":[]}',
+    # el array sin el objeto que lo envuelve (el fallo del 01/09)
+    '[{"codigo":"92101027","nivel":"00","motivo":"x"}]',
+    # códigos a pelo (el fallo del 02/09 en verifica)
+    '{"ocupaciones":["92101027","84201043"],"pregunta":"","opciones":[]}',
+    '{"ocupaciones":[92101027],"pregunta":"","opciones":[]}',
+    # mezclas y basura dentro de la lista
+    '{"ocupaciones":["92101027",{"codigo":"84201043"},null,[],7]}',
+    # opciones y pregunta con formas raras
+    '{"ocupaciones":[],"pregunta":"¿En casa o en residencia?","opciones":"en casa"}',
+    '{"ocupaciones":[],"pregunta":"¿En casa?","opciones":[{"texto":"en casa"}]}',
+    # otros_terminos donde se espera una cadena
+    '{"ocupaciones":[],"otros_terminos":["camarero","piso"]}',
+    '{"ocupaciones":[],"otros_terminos":{"a":1}}',
+    # envuelto en vallas de código, que el modelo pone a menudo
+    '```json\n{"ocupaciones":[{"codigo":"92101027"}]}\n```',
+    # formas degeneradas
+    '{}', '[]', 'null', '3', '"camarero de piso"',
+    '{"ocupaciones":null}', '{"ocupaciones":"92101027"}',
+    # json roto y texto suelto
+    '{"ocupaciones":[{"codigo":', 'no he podido responder', '',
+]
+
+LECTURAS_DEL_MODELO = [
+    '{"lecturas":[{"terminos":"camarero piso","grupos":"9"}]}',
+    # el fallo del 02/09: lecturas como cadenas
+    '{"lecturas":["camarero de piso","limpieza"]}',
+    '{"lecturas":["camarero de piso",{"terminos":"limpiadora","grupos":"9"}]}',
+    '{"lecturas":[{"terminos":["camarero","piso"],"grupos":["9"]}]}',
+    '{"lecturas":[1,2,3]}', '{"lecturas":null}', '{"lecturas":[]}',
+    '{"terminos":"camarero piso","grupos":"9"}',
+    '["camarero de piso"]', '{"lecturas":[{"terminos":', 'camarero de piso', '',
+]
+
+
+@prueba("El modelo no puede tumbar la app")
+def p_respuestas_modelo(motor):
+    fallos = []
+
+    for bruto in RESPUESTAS_DEL_MODELO:
+        try:
+            r = motor.interpreta(bruto)
+            if not isinstance(r, dict) or not isinstance(r.get("ocupaciones"), list):
+                fallos.append(f"interpreta({bruto[:34]!r}) devuelve {type(r).__name__}")
+        except Exception as e:  # noqa: BLE001
+            fallos.append(f"interpreta({bruto[:34]!r}) -> {type(e).__name__}: {e}")
+
+    # interpreta_consulta habla con el modelo: se le pone uno de mentira que
+    # devuelve cada forma, y se comprueba que ninguna sube una excepción.
+    original_una, original_orden = motor._interpreta_una, motor.orden_proveedores
+    try:
+        motor.orden_proveedores = lambda: ["gemini"]
+        for bruto in LECTURAS_DEL_MODELO:
+            motor.st.session_state["interpretaciones"] = {}
+            motor._interpreta_una = lambda prov, texto, b=bruto: b
+            try:
+                r = motor.interpreta_consulta("una persona que limpia habitaciones")
+                if not isinstance(r, list):
+                    fallos.append(f"interpreta_consulta({bruto[:30]!r}) devuelve {type(r).__name__}")
+            except Exception as e:  # noqa: BLE001
+                fallos.append(f"interpreta_consulta({bruto[:30]!r}) -> {type(e).__name__}: {e}")
+    finally:
+        motor._interpreta_una, motor.orden_proveedores = original_una, original_orden
+
+    total = len(RESPUESTAS_DEL_MODELO) + len(LECTURAS_DEL_MODELO)
+    return _informe("El modelo no puede tumbar la app",
+                    total - len(fallos), total, fallos, 100)
+
+
+# ---------------------------------------------------------------------------
 # 2. La forma de escribir no cambia el resultado
 # ---------------------------------------------------------------------------
 
