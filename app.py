@@ -4077,9 +4077,17 @@ with banda:
     st.button("Codificador de ocupaciones", key="marca", on_click=empezar_de_nuevo)
     campo, boton, ajustes = st.columns([6.4, 1.1, 0.5], gap="small")
     with campo:
+        # El placeholder NO lleva lupa. La llevaba, y en pantallas estrechas
+        # salian dos seguidas: esta y la del boton de al lado, que en movil se
+        # queda en icono porque la palabra "Buscar" no cabe en el renglon.
+        # Se quita la del campo y no la del boton: la lupa es el simbolo de la
+        # ACCION de buscar, y ahi si dice algo; dentro del campo era un adorno
+        # que ademas comia ancho al texto de ayuda, que es largo y en movil se
+        # corta. En escritorio el boton sigue con su palabra y el campo se
+        # explica solo.
         texto = st.text_input(
             "Consulta", label_visibility="collapsed", key="consulta",
-            placeholder="🔍 Describe el puesto o introduce un código de 8 cifras...",
+            placeholder="Describe el puesto o introduce un código de 8 cifras...",
         )
     with boton:
         buscar = st.button("Buscar", key="buscar", use_container_width=True)
