@@ -354,7 +354,129 @@ def p_coordinadas(motor):
 
 
 # ---------------------------------------------------------------------------
-# 8. Velocidad
+# 8. El respaldo: la segunda petición que sale cuando la primera se cuelga
+# ---------------------------------------------------------------------------
+
+@prueba("El respaldo no pisa una respuesta buena")
+def p_respaldo(motor):
+    """`_con_plazo` es lo único que decide cuánto espera la persona cuando
+    una llamada al modelo se queda colgada. No toca el modelo: se le pasan
+    funciones de mentira que tardan lo que se les diga, y se comprueba que
+    hace lo que promete en cada caso. Ninguna espera pasa de medio segundo.
+    """
+    import threading
+
+    fallos = []
+    casos = 0
+
+    def caso(nombre, condicion):
+        nonlocal casos
+        casos += 1
+        if not condicion:
+            fallos.append(nombre)
+
+    def cuenta(valor, tarda=0.0, falla=None):
+        """Una llamada de mentira: tarda `tarda` s y devuelve `valor`, o
+        levanta `falla`. Cuenta cuántas veces se la ha llamado."""
+        n = {"llamadas": 0}
+        cerrojo = threading.Lock()
+
+        def hacer():
+            with cerrojo:
+                n["llamadas"] += 1
+            time.sleep(tarda)
+            if falla:
+                raise falla
+            return valor
+        hacer.n = n
+        return hacer
+
+    respaldos = []
+    anota = respaldos.append
+
+    # 1. Contesta rápido: ni respaldo ni espera.
+    respaldos.clear()
+    h = cuenta("ok", tarda=0.02)
+    inicio = time.time()
+    r = motor._con_plazo(h, 1.0, respaldo=0.3, al_respaldar=anota)
+    caso("rápido devuelve el valor", r == "ok")
+    caso("rápido no lanza respaldo", h.n["llamadas"] == 1 and not respaldos)
+    caso("rápido no espera al plazo", time.time() - inicio < 0.25)
+
+    # 2. La primera se cuelga y el respaldo vuelve: se entrega el respaldo sin
+    #    esperar a la primera ni al plazo, y queda anotado.
+    respaldos.clear()
+    tardas = iter([0.8, 0.03])          # primera lenta, segunda rápida
+    llamadas = []
+
+    def h2():
+        t = next(tardas)
+        llamadas.append(t)
+        time.sleep(t)
+        return f"tras {t}"
+    inicio = time.time()
+    r = motor._con_plazo(h2, 1.5, respaldo=0.15, al_respaldar=anota)
+    caso("colgada: gana el respaldo", r == "tras 0.03")
+    caso("colgada: se lanzaron dos", len(llamadas) == 2)
+    caso("colgada: queda anotado", len(respaldos) == 1 and 0.1 < respaldos[0] < 0.5)
+    caso("colgada: no espera al plazo", time.time() - inicio < 0.6)
+
+    # 3. Falla al momento (un 429, un 400): se relanza tal cual, con su tipo,
+    #    y NO se lanza respaldo, que sería gastar cupo en lo mismo.
+    respaldos.clear()
+    h = cuenta(None, tarda=0.01, falla=ValueError("429 quota"))
+    try:
+        motor._con_plazo(h, 1.0, respaldo=0.3, al_respaldar=anota)
+        caso("error rápido: se relanza", False)
+    except ValueError:
+        caso("error rápido: se relanza", True)
+    except Exception as e:  # noqa: BLE001
+        caso(f"error rápido: tipo intacto (llegó {type(e).__name__})", False)
+    caso("error rápido: sin respaldo", h.n["llamadas"] == 1 and not respaldos)
+
+    # 4. Las dos se cuelgan: TimeoutError al plazo, no antes ni después.
+    respaldos.clear()
+    h = cuenta("tarde", tarda=2.0)
+    inicio = time.time()
+    try:
+        motor._con_plazo(h, 0.4, respaldo=0.1, al_respaldar=anota)
+        caso("las dos colgadas: TimeoutError", False)
+    except TimeoutError:
+        caso("las dos colgadas: TimeoutError", True)
+    except Exception as e:  # noqa: BLE001
+        caso(f"las dos colgadas: TimeoutError (llegó {type(e).__name__})", False)
+    caso("las dos colgadas: se rinde al plazo", 0.35 < time.time() - inicio < 0.9)
+    caso("las dos colgadas: hubo respaldo", h.n["llamadas"] == 2 and len(respaldos) == 1)
+
+    # 5. La primera falla DESPUÉS de salir el respaldo: se espera al respaldo.
+    respaldos.clear()
+    turnos = iter([("falla", 0.2), ("ok", 0.3)])
+
+    def h5():
+        que, t = next(turnos)
+        time.sleep(t)
+        if que == "falla":
+            raise RuntimeError("503")
+        return "respaldo"
+    r = motor._con_plazo(h5, 1.5, respaldo=0.05, al_respaldar=anota)
+    caso("falla tardía: gana el respaldo", r == "respaldo")
+
+    # 6. Sin respaldo pedido, se comporta como siempre: espera y corta.
+    h = cuenta("tarde", tarda=2.0)
+    inicio = time.time()
+    try:
+        motor._con_plazo(h, 0.2)
+        caso("sin respaldo: TimeoutError", False)
+    except TimeoutError:
+        caso("sin respaldo: TimeoutError", True)
+    caso("sin respaldo: una sola llamada", h.n["llamadas"] == 1)
+
+    return _informe("El respaldo no pisa una respuesta buena",
+                    casos - len(fallos), casos, fallos, 100)
+
+
+# ---------------------------------------------------------------------------
+# 9. Velocidad
 # ---------------------------------------------------------------------------
 
 @prueba("Suficientemente rápido")

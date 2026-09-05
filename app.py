@@ -141,10 +141,17 @@ ESPERA_MAXIMA = 10   # segundos de silencio que aguanta el TRANSPORTE.
                      # relevara al modelo siguiente (caso medido: 29,1 s, de los
                      # cuales 21,6 fueron el intento colgado). A 8 s hay margen
                      # de sobra sobre los 2,6 s reales y el relevo es rapido.
-PLAZO_INTENTO = 5    # segundos de reloj para UN intento contra el modelo. Es
+PLAZO_INTENTO = 6    # segundos de reloj para UN intento contra el modelo. Es
                      # el que impone _con_plazo, y desde el 01/09/2026 es el
                      # unico que corta de verdad: ESPERA_MAXIMA se lo queda
                      # httpx, que solo mide el tiempo SIN RECIBIR DATOS.
+                     #
+                     # Seis desde el 05/09/2026, y no por dar mas margen a una
+                     # llamada lenta: porque dentro de este plazo ahora caben
+                     # DOS peticiones, la primera y su respaldo (ver
+                     # PLAZO_RESPALDO). El respaldo sale a los 2,5 s y le
+                     # quedan 3,5 para contestar, que cubre con holgura el
+                     # 1,0-1,4 s de una respuesta sana. Con 5 le quedaban 2,5.
                      #
                      # Cuatro y no ocho, medido esa misma noche sobre todas las
                      # respuestas sanas de la tanda: el afinado nunca paso de
@@ -172,6 +179,32 @@ PLAZO_INTENTO = 5    # segundos de reloj para UN intento contra el modelo. Es
                      # Lo que la tanda NO dice es cuanto habrian tardado esos
                      # tres: si eran 4,3 s, 5 los salva; si eran 20, ni 6.
                      # Por eso 5 y no 6.
+                     #
+                     # Tanda del 05/09/2026, en cascada y con el tope en 5: la
+                     # respuesta llego. De 46 llamadas, 10 se cortaron a los
+                     # 5,0 s -ni una sola por error: todas TimeoutError- y el
+                     # reintento que iba detras volvio en 1-2 s. No es que
+                     # Gemini tarde: es que esa peticion concreta se queda
+                     # colgada y ninguna espera la salva. Por eso ya no se
+                     # espera: a los PLAZO_RESPALDO segundos sale otra.
+
+PLAZO_RESPALDO = 2.5  # segundos sin respuesta antes de lanzar una SEGUNDA
+                      # peticion igual, sin tirar la primera; se queda la que
+                      # vuelva antes. Ver _con_plazo.
+                      #
+                      # Medido el 05/09/2026 sobre las respuestas sanas de la
+                      # tanda: gemini-3.5-flash-lite contesta en 1,0-1,4 s (14
+                      # de 17) y gemini-3.1-flash-lite en 1,3-2,6 s (14 de 14).
+                      # A 2,5 s casi ninguna respuesta sana ha disparado el
+                      # respaldo todavia, y la que se ha quedado colgada lleva
+                      # ya el doble de lo normal sin volver. Bajarlo dispara
+                      # respaldos a respuestas que iban a llegar y gasta cupo;
+                      # subirlo es volver a esperar por una peticion muerta.
+                      #
+                      # Lo que cuesta: una llamada de mas en una de cada
+                      # cuatro o cinco consultas, justo las que sin esto
+                      # tardaban 6 s o mas. Se ve en la columna `relevos`, como
+                      # "modelo:2.5s:Respaldo".
 
 ESPERA_TOTAL = 30    # segundos para la consulta ENTERA, relevos incluidos. Es
                      # un tope distinto del de arriba y no se puede unificar:
@@ -1737,8 +1770,36 @@ def cliente():
     return _cliente(proveedor_actual())
 
 
-def _con_plazo(hacer, segundos):
-    """Ejecuta `hacer()` y se rinde a los `segundos`, conteste o no.
+def _con_plazo(hacer, segundos, respaldo=None, al_respaldar=None):
+    """Ejecuta `hacer()` y se rinde a los `segundos`, conteste o no. Si a los
+    `respaldo` segundos no ha contestado, lanza un SEGUNDO `hacer()` igual, sin
+    tirar el primero, y se queda con el que vuelva antes.
+
+    EL RESPALDO. Medido el 05/09/2026 sobre 46 llamadas en cascada: cuando
+    Gemini contesta, contesta en 1,0-1,4 s (14 de 17 llamadas sanas de
+    3.5-flash-lite). Pero una de cada cinco no volvia en 5 s, y no porque
+    tardase: la peticion se quedaba colgada en algun servidor, y el reintento
+    que iba detras volvia en el segundo de siempre. Esperar el plazo entero
+    para descubrirlo costaba 5 s mas el relevo; con dos modelos colgados
+    seguidos, 11-13 s de espera para la persona.
+
+    El respaldo es ese reintento lanzado ANTES de rendirse. A los
+    PLAZO_RESPALDO segundos sale otra peticion identica, en paralelo, y se
+    entrega la primera que vuelva. Cuesta una llamada de mas solo en las que
+    ya iban a tardar de mas, y convierte los 5-6 s de espera muerta en unos
+    3,5. La primera no se cancela porque no se puede (ver abajo); si vuelve
+    antes que el respaldo, se usa ella.
+
+    Un error que llega ANTES del respaldo -un 429, un 400- se relanza al
+    momento y no se lanza nada mas: eso no es un atasco, es una respuesta, y
+    reintentar seria gastar cupo en lo mismo. Si el primero falla DESPUES de
+    salir el respaldo, se espera al respaldo; si falla el respaldo y el
+    primero sigue vivo, se le sigue esperando hasta el plazo. Solo cuando no
+    queda ninguno vivo se relanza el ultimo error, con su tipo intacto.
+
+    `al_respaldar(segundos)` se llama en el hilo PRINCIPAL en el momento de
+    lanzar el respaldo, para dejarlo anotado en `relevos`: es lo que hace
+    visible cuantas veces hace falta y lo que cuesta.
 
     ESPERA_MAXIMA nunca ha acotado lo que creiamos. El SDK lo convierte bien de
     milisegundos a segundos y se lo pasa a httpx, pero el plazo de httpx es el
@@ -1758,29 +1819,70 @@ def _con_plazo(hacer, segundos):
 
     Dentro del hilo NO se toca nada de Streamlit. session_state no es para
     hilos secundarios: aqui solo se hace la llamada, y apuntar el uso, fijar el
-    modelo y anotar el relevo se quedan fuera, donde estaban.
+    modelo y anotar el relevo se quedan fuera, donde estaban. `al_respaldar`
+    tambien corre fuera, en el principal.
     """
-    caja = {}
+    listo = threading.Condition()
+    llegadas = []   # ("valor", x) o ("error", e), por orden de llegada
 
     def envuelve():
         try:
-            caja["valor"] = hacer()
+            resultado = ("valor", hacer())
         except BaseException as e:  # noqa: BLE001
             # Se guarda y se relanza fuera, para que llegue al mismo `except`
             # de siempre con su tipo intacto: de eso dependen por_minuto() y
             # sin_cuota() para decidir si se espera, se releva o se aparta.
-            caja["error"] = e
+            resultado = ("error", e)
+        with listo:
+            llegadas.append(resultado)
+            listo.notify_all()
 
-    hilo = threading.Thread(target=envuelve, daemon=True)
-    hilo.start()
-    hilo.join(segundos)
-    if hilo.is_alive():
-        # Ni "quota" ni "429" en el texto: sin_cuota() mira la cadena y esto no
-        # es un problema de cupo, es una llamada que no vuelve.
-        raise TimeoutError(f"Sin respuesta del modelo en {segundos} s.")
-    if "error" in caja:
-        raise caja["error"]
-    return caja.get("valor")
+    def lanza():
+        threading.Thread(target=envuelve, daemon=True).start()
+
+    arranque = time.perf_counter()
+    lanza()
+    vivos = 1
+    respaldado = respaldo is None   # sin respaldo pedido, no hay nada que lanzar
+    ultimo = None
+    while True:
+        pasado = time.perf_counter() - arranque
+        if pasado >= segundos:
+            # Ni "quota" ni "429" en el texto: sin_cuota() mira la cadena y
+            # esto no es un problema de cupo, es una llamada que no vuelve.
+            raise TimeoutError(f"Sin respuesta del modelo en {segundos} s.")
+        # Se duerme hasta el siguiente hito: el respaldo, si aun no ha salido,
+        # o el plazo. Cualquier llegada despierta antes.
+        hito = segundos if respaldado else min(respaldo, segundos)
+        with listo:
+            if not llegadas:
+                listo.wait(max(hito - pasado, 0))
+            recibidas, llegadas[:] = list(llegadas), []
+        for tipo, x in recibidas:
+            if tipo == "valor":
+                return x
+            ultimo = x
+            vivos -= 1
+        if vivos == 0:
+            raise ultimo
+        if not respaldado and time.perf_counter() - arranque >= respaldo:
+            respaldado = True
+            lanza()
+            vivos += 1
+            if al_respaldar:
+                al_respaldar(time.perf_counter() - arranque)
+
+
+def _anota_respaldo(modelo, segundos):
+    """Deja en `relevos` que hubo que lanzar un respaldo, con el mismo formato
+    que los intentos fallidos: "modelo:2.5s:Respaldo". Sin esto el respaldo
+    seria invisible y no habria forma de saber cuantas llamadas cuesta.
+
+    Corre en el hilo principal: lo llama _con_plazo justo antes de lanzar el
+    hilo del respaldo, no desde dentro de ningun hilo."""
+    st.session_state.setdefault("relevos", []).append(
+        f"{modelo}:{segundos:.1f}s:Respaldo"
+    )
 
 
 INSTRUCCIONES = """Eres un técnico de codificación de ocupaciones.
@@ -1887,6 +1989,8 @@ def _flujo_gemini(cli, prompt, prov="gemini"):
                         model=modelos[m], contents=prompt, config=cfg_afinado,
                     ),
                     PLAZO_INTENTO,
+                    respaldo=PLAZO_RESPALDO,
+                    al_respaldar=lambda t, m_=modelos[m]: _anota_respaldo(m_, t),
                 )
                 _fija_modelo(prov, m)
                 st.session_state["cfg"] = i
@@ -1978,6 +2082,8 @@ def _flujo_openai(cli, prompt, prov):
                     response_format={"type": "json_object"},
                 ),
                 PLAZO_INTENTO,
+                respaldo=PLAZO_RESPALDO,
+                al_respaldar=lambda t, m_=modelos[m]: _anota_respaldo(m_, t),
             )
             _fija_modelo(prov, m)
             _apunta_uso(prov, modelos[m])
@@ -2053,6 +2159,8 @@ def _interpreta_una(prov, texto):
                 model=modelo, contents=texto, config=cfg_interprete,
             ),
             PLAZO_INTENTO,
+            respaldo=PLAZO_RESPALDO,
+            al_respaldar=lambda t: _anota_respaldo(f"paso1:{modelo}", t),
         )
         bruto = (getattr(r, "text", "") or "").strip()
     else:
@@ -2066,6 +2174,8 @@ def _interpreta_una(prov, texto):
                 response_format={"type": "json_object"},
             ),
             PLAZO_INTENTO,
+            respaldo=PLAZO_RESPALDO,
+            al_respaldar=lambda t: _anota_respaldo(f"paso1:{modelo}", t),
         )
         bruto = (r.choices[0].message.content or "").strip()
     _apunta_uso(prov, modelo)

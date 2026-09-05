@@ -2,7 +2,7 @@
 
 Estado del proyecto y cómo seguir. Se actualiza al cerrar cada sesión.
 
-Última actualización: 2 de septiembre de 2026.
+Última actualización: 5 de septiembre de 2026.
 
 ---
 
@@ -15,7 +15,7 @@ subidas a mano.
 
 ```bash
 python3 evaluar.py     # aciertos: 40 consultas con su código correcto
-python3 estres.py      # robustez: 8 comprobaciones del buscador
+python3 estres.py      # robustez: 10 comprobaciones del buscador
 ```
 
 Ninguna de las dos gasta cuota de IA: sustituyen Streamlit y Gemini por
@@ -29,6 +29,68 @@ los Secrets de Streamlit Cloud, **no en el repositorio**: en local la app
 arranca sin IA y solo responde el buscador del catálogo.
 
 ---
+
+## Qué se hizo el 5 de septiembre
+
+La queja: "a veces va lenta, otras engancha rapidísimo, sobre todo con
+Gemini". Antes de tocar nada se lanzó la prueba masiva **en cascada**, que es
+lo que ve la oficina (no con proveedor fijado, que es lo que se hace para
+comparar modos). 40 casos, una llamada, pausa de 12 s. El CSV es
+`tanda_A_2026-09-05_cascada_antes.csv`, entregado en la conversación.
+
+| | Tanda A · 05/09 · cascada · antes del cambio |
+|---|---|
+| Acierto | 37 de 40 (92 %) |
+| Media / mediana (36 con IA) | 3,9 s / 2,0 s |
+| p90 / máximo | 10,5 s / 13,7 s |
+| Consultas de más de 5 s | 8 (7 de más de 8 s) |
+| Relevos | 10, **todos `TimeoutError` a los 5,0 s**, ninguno por error |
+| Sin afinar o con error | 0 |
+
+Lo que dice el CSV, y es lo que explica la queja:
+
+- **Gemini sano es rápido y estable**: gemini-3.5-flash-lite contestó en
+  1,0-1,4 s en 14 de sus 17 llamadas sanas; gemini-3.1-flash-lite en
+  1,3-2,6 s en 14 de 14.
+- **Pero una de cada cinco peticiones se queda colgada** y no vuelve en 5 s.
+  No es lentitud del modelo: el reintento que sale detrás vuelve en el
+  segundo de siempre. Es esa petición concreta, atascada en algún servidor.
+- **La cascada convierte un colgado en 6-13 s de espera**: 5 s muertos más
+  el relevo, y si el segundo modelo también se cuelga (pasó dos veces),
+  otros 5 más Mistral.
+- **El castigo de 5 minutos empeora la racha**: un solo timeout de 3.5 en la
+  consulta 14 dejó las 16 siguientes en 3.1-flash-lite, que en esta tanda se
+  colgó más (8 timeouts de ~24 llamadas frente a 2 de ~19 en 3.5). Está
+  medido, no arreglado: ver pendientes.
+
+**El cambio: petición de respaldo.** `_con_plazo` ya no espera el plazo
+entero para rendirse. A los `PLAZO_RESPALDO` segundos (2,5) sin respuesta
+lanza una segunda petición idéntica en paralelo, sin tirar la primera, y
+entrega la que vuelva antes. Un error que llega antes de los 2,5 s (429, 400)
+se releva como siempre y no lanza nada. `PLAZO_INTENTO` sube de 5 a 6 para
+que al respaldo le queden 3,5 s, no 2,5. Cada respaldo queda en la columna
+`relevos` como `modelo:2.5s:Respaldo`, así que en la siguiente tanda se ve
+cuántas veces hace falta y cuántas llamadas cuesta (previsto: una de cada
+cuatro o cinco consultas, que son justo las que hoy tardan 6 s o más).
+
+Lo cubre una prueba nueva en `estres.py` ("El respaldo no pisa una respuesta
+buena"): seis situaciones con llamadas de mentira, sin tocar la IA. Las dos
+baterías pasan (39 de 40 con el pendiente de siempre; 10 de 10).
+
+**Lo que falta medir**, y es lo primero al abrir la próxima sesión: la tanda
+B, con el cambio desplegado, con los mismos ajustes que la A (cascada, una
+llamada, 40 casos, pausa 12 s). Compara acierto (no debe moverse: el modelo y
+el prompt son los mismos), media, p90, y en `relevos` cuántos `Respaldo` y
+cuántos `TimeoutError` quedan. Si la media no baja de 3,9 s hacia 2-2,5 s, el
+respaldo no está haciendo lo que dice y hay que mirar si los colgados son
+por petición (lo que se supone) o por modelo (entonces el respaldo debería
+ir al modelo siguiente, no al mismo).
+
+Tres fallos de acierto de la tanda A, por si merecen `casos.csv` o no:
+"lleva las facturas y las nóminas" salió 41121012 (personal) con el correcto
+en segunda posición; "auxiliar administrativa facturación" salió 43091029 con
+el correcto segundo; "teleoperadora de atención al cliente" salió 44241016
+TELEOPERADORES, que es discutible que esté mal. Decisión de Álvaro.
 
 ## Qué se hizo el 1 de septiembre
 
@@ -236,7 +298,22 @@ para que dé igual cuántos caminos los produzcan.
 
 1. ~~La prueba masiva.~~ Hecha el 2 de septiembre: una llamada encendida y
    `PLAZO_INTENTO` en 5.
-2. Vigilar la columna `relevos` de las sesiones reales unos días: si siguen
-   saliendo `TimeoutError` con el modelo bueno respondiendo justo después,
-   subir a 6.
-3. Rotar la clave de Gemini que se usó para la tanda (quedó en el chat).
+2. ~~Vigilar la columna `relevos`.~~ Vigilada el 5 de septiembre: 10
+   `TimeoutError` en 40 consultas con el modelo bueno respondiendo justo
+   después. Respuesta: el respaldo (arriba), no subir el plazo a secas.
+3. **Tanda B** con el respaldo desplegado, mismos ajustes que la A. Es lo
+   que dice si el cambio se queda.
+4. **El castigo de 5 minutos por un timeout.** Con el respaldo, que una
+   pareja entera se cuelgue es raro, así que degradar ahí puede tener
+   sentido. Pero medido el 05/09, 3.1-flash-lite se colgó más que 3.5, y
+   quedarse 5 minutos en él por un timeout suelto de 3.5 empeoró la racha.
+   Opciones, a decidir con la tanda B en la mano: no degradar por
+   `TimeoutError` (solo por errores que responde Google), o acortar
+   `CADUCIDAD_DEGRADACION` para los timeouts.
+5. **`PAUSAS_429 = (4, 10, 20)`** duerme hasta 34 s con el mismo modelo ante
+   un tope por minuto antes de relevar. Hoy no saltó ninguno, pero el día que
+   la oficina pase de 15 peticiones por minuto será la siguiente "lentitud".
+   Con cupo por modelo, lo barato es pasar al modelo siguiente al primer 429
+   y dormir solo cuando no quede ninguno.
+6. Rotar la clave de Gemini que se usó para la tanda del 2 de septiembre
+   (quedó en el chat).

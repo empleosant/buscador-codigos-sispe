@@ -56,6 +56,17 @@ intentarlo. Orden decidido con la tanda del 26/08/2026: con los 40 casos,
 Gemini acierta el 84 % en primera posición y Mistral (ministral-3b) el 65 %,
 pero Mistral respondió las 40 sin un fallo y con máximo de 4,6 s.
 
+**Plazos y respaldo.** Cada intento contra un modelo tiene `PLAZO_INTENTO`
+segundos (6) de reloj propio. Si a los `PLAZO_RESPALDO` segundos (2,5) no ha
+contestado, sale una segunda petición idéntica en paralelo y se entrega la
+que vuelva antes; la primera no se cancela porque no se puede. Medido el
+05/09/2026: Gemini sano contesta en 1,0-1,4 s, pero una de cada cinco
+peticiones se queda colgada y no vuelve nunca, y esperar el plazo entero para
+descubrirlo costaba de 5 a 13 s por consulta. Cada respaldo queda anotado en
+la columna `relevos` como `modelo:2.5s:Respaldo`. Un error que llega antes
+del respaldo (cupo, petición mal formada) no lanza nada: se releva como
+siempre.
+
 ## Modo mantenimiento
 
 Añade `?mantenimiento=1` a la dirección para ver correcciones manuales,
@@ -106,12 +117,14 @@ nunca copiado de lo que contesta el motor. La columna `tope` admite 1 (tiene que
 salir el primero) o 3 (basta con que esté entre los tres primeros).
 
 **`estres.py` — robustez.** No afirma qué código es correcto: comprueba que el
-buscador se comporta con sensatez pase lo que pase. Ocho pruebas: que no
-reviente con basura, que dé igual escribir con acentos o sin ellos, que el
-singular encuentre lo que el catálogo guarda en plural, que cada ocupación se
-encuentre a sí misma, que ningún código salga inventado, que dos consultas
-iguales den lo mismo, que la segunda mitad de una consulta coordinada cuente y
-que la búsqueda siga siendo rápida.
+buscador se comporta con sensatez pase lo que pase. Diez pruebas: que no
+reviente con basura, que ninguna respuesta del modelo tumbe la app, que dé
+igual escribir con acentos o sin ellos, que el singular encuentre lo que el
+catálogo guarda en plural, que cada ocupación se encuentre a sí misma, que
+ningún código salga inventado, que dos consultas iguales den lo mismo, que la
+segunda mitad de una consulta coordinada cuente, que el respaldo de una
+llamada colgada se comporte como promete (con llamadas de mentira, sin tocar
+la IA) y que la búsqueda siga siendo rápida.
 
 - `--detalle` enseña cada caso que falla.
 - `--rapido` salta las dos pruebas que recorren el catálogo entero.
